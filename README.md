@@ -36,6 +36,7 @@
 5. [Service provision](./examples/calculate_provision.ipynb) - Function for calculating the provision of residential
    buildings and population with services. In case of missing data, this function utilizes previously described
    functionality to retrieve the necessary information.
+
    <img src="./docs/img/provisioTara.png" alt="isochrones" width="300"></a>
 
 ## Installation
