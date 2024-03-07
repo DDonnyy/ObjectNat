@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ObjectNat"
-version = "0.0.1"
+version = "0.0.2"
 description = ""
 authors = ["Danila <63115678+DDonnyy@users.noreply.github.com>"]
 readme = "README.md"

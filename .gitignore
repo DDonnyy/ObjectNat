@@ -6,3 +6,4 @@ src/tests
 /.vscode
 /poetry.lock
 __pycache__
+/.ipynb_checkpoints

@@ -47,7 +47,9 @@ def get_balanced_buildings(
         if "storeys_count" not in living_buildings.columns:
             raise ValueError("Living buildings are missing `storeys_count` attribute")
     logger.debug(f"Evacuating {population} residents into the provided building")
+    indexes = living_buildings.index
     living_buildings = living_buildings.copy()
+    living_buildings.reset_index(drop=True,inplace=True)
     if "living_area" not in living_buildings.columns:
         living_buildings["living_area"] = living_buildings.area * living_buildings["storeys_count"]
     living_buildings = living_buildings[living_buildings["living_area"].notna()]
@@ -71,6 +73,7 @@ def get_balanced_buildings(
     b_build.balance_houses(city_territory)
 
     houses = city_territory.get_all_houses()
+    houses.index = indexes
     return houses
 
 
@@ -256,7 +259,7 @@ def get_provision(
     calculate_demands = False
     dngraph = DonGraphio(city_crs=city_crs)
 
-    if not adjacency_matrix:
+    if adjacency_matrix is None:
         logger.warning("The adjacency matrix is not provided.")
         if not weight_adjacency_matrix:
             raise RuntimeError("No weight type ('time_min' or 'length_meter') was provided.")
@@ -269,13 +272,15 @@ def get_provision(
         adjacency_matrix = pd.DataFrame(data=0, index=[], columns=buildings.index.astype(int).tolist())
 
     try:
-        CityProvision(
+        cp = CityProvision(
             services=services,
             demanded_buildings=buildings,
             adjacency_matrix=adjacency_matrix,
             threshold=threshold,
             calculation_type=calculation_type,
         )
+        buildings = cp.demanded_buildings
+        services = cp.services
     except DemandKeyError as demand_error:
         logger.warning("The 'demand' column is missing in the provided building data, attempting to calculate values.")
         if demand_normative is None:
