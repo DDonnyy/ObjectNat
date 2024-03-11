@@ -41,7 +41,7 @@
 
 ## Installation
 
-**ObjectNat** soon ~~can be installed with~~ ``pip``:
+**ObjectNat** can be installed with ``pip``:
 
 ```
 pip install ObjectNat

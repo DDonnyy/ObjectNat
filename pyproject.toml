@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ObjectNat"
-version = "0.0.2"
+version = "0.0.3"
 description = ""
 authors = ["Danila <63115678+DDonnyy@users.noreply.github.com>"]
 readme = "README.md"
@@ -19,7 +19,7 @@ networkit = "^11.0"
 numpy = "^1.23.5"
 pandas = "^2.2.0"
 networkx = "^3.2.1"
-population_restorator = { git = "https://github.com/kanootoko/population-restorator.git", rev = "35901d01ae5859f8955a89f3004c50bc9f45d7fb" }
+population-restorator = "^0.2.3"
 dongraphio = "^0.2.5"
 provisio = "^0.1.5"
 
