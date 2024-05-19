@@ -1,116 +1,185 @@
 import pandas as pd
-from shapely import Point, LineString, Polygon, intersection, MultiPolygon
+from shapely import Point, LineString, Polygon, MultiPolygon
+from shapely.ops import unary_union
 import geopandas as gpd
 import math
 import time
 
+from tqdm.contrib.concurrent import process_map
 
-def get_visibility_from_point(mid_point: Point, buildings: gpd.GeoDataFrame, view_distance: int):
 
-    def get_line_from_a_thorough_b(A: Point, B: Point, dist):
+def get_visibility_accurate(point_from: Point, buildings: gpd.GeoDataFrame, view_distance) -> Polygon:
+    """
+    Function to get accurate visibility from a given point to buildings within a given distance.
+
+    Parameters
+    ----------
+    point_from : Point
+        The point from which the line of sight is drawn.
+    buildings : gpd.GeoDataFrame
+        A GeoDataFrame containing the geometry of the buildings.
+    view_distance : float
+        The distance of view from the point.
+
+    Returns
+    -------
+    Polygon
+        A polygon representing the area of visibility from the given point.
+
+    Notes
+    -----
+    If a quick result is important, consider using the `get_visibility_result()` function instead.
+    However, please note that `get_visibility_result()` may provide less accurate results.
+
+    Examples
+    --------
+    >>> point_from = Point(1, 1)
+    >>> buildings = gpd.read_file('buildings.shp')
+    >>> view_distance = 1000
+    >>> visibility = get_visibility_accurate(point_from, buildings, view_distance)
+    """
+
+    def get_point_from_a_thorough_b(A: Point, B: Point, dist):
         """
         Func to get line from point A thorough point B on dist
         """
         direction = math.atan2(B.y - A.y, B.x - A.x)
         C_x = A.x + dist * math.cos(direction)
         C_y = A.y + dist * math.sin(direction)
-        return LineString([Point(A.x, A.y), Point(C_x, C_y)])
+        return Point(C_x, C_y)
 
-    crs = buildings.crs
-    point_buffer = Point(mid_point).buffer(view_distance)
+    def polygon_to_linestring(geometry):
+        """A function to return all segments of a line as a list of linestrings"""
+        coords = geometry.exterior.coords  # Create a list of all line node coordinates
+        return [LineString(part) for part in zip(coords, coords[1:])]
 
+    point_buffer = point_from.buffer(view_distance, resolution=32)
     s = buildings.intersects(point_buffer)
+    buildings_in_buffer = buildings.loc[s[s].index]
+    buildings_in_buffer = buildings_in_buffer.geometry.apply(
+        lambda x: list(x.geoms) if isinstance(x, MultiPolygon) else x
+    ).explode()
 
-    # getting all building's points in buffer
+    buildings_lines_in_buffer = gpd.GeoSeries(buildings_in_buffer.apply(lambda x: polygon_to_linestring(x)).explode())
+    buildings_lines_in_buffer = buildings_lines_in_buffer.loc[buildings_lines_in_buffer.intersects(point_buffer)]
 
+    buildings_in_buffer_points = gpd.GeoSeries(
+        [Point(line.coords[0]) for line in buildings_lines_in_buffer.geometry]
+        + [Point(line.coords[-1]) for line in buildings_lines_in_buffer.geometry]
+    )
+
+    max_dist = buildings_in_buffer_points.distance(point_from).max()
+    polygons = []
+    buildings_lines_in_buffer = gpd.GeoDataFrame(geometry=buildings_lines_in_buffer, crs=buildings.crs).reset_index(
+        drop=True
+    )
+    while buildings_lines_in_buffer.shape[0] > 0:
+        gdf_sindex = buildings_lines_in_buffer.sindex
+        nearest_wall_sind = gdf_sindex.nearest(point_from, return_all=False)
+        nearest_wall = buildings_lines_in_buffer.loc[nearest_wall_sind[1]].iloc[0]
+        wall_points = [Point(coords) for coords in nearest_wall.geometry.coords]
+
+        points_with_angle = []
+        for point_to in wall_points:
+            angle = math.atan2(point_to.y - point_from.y, point_to.x - point_from.x)
+            points_with_angle.append((point_to, angle))
+
+        points_with_angle.sort(key=lambda x: x[1])
+
+        delta_angle = 2 * math.pi + points_with_angle[0][1] - points_with_angle[-1][1]
+        if delta_angle > math.pi:
+            delta_angle = 2 * math.pi - delta_angle
+        a = math.sqrt((max_dist**2) * (1 + (math.tan(delta_angle / 2) ** 2)))
+        p1 = get_point_from_a_thorough_b(point_from, points_with_angle[0][0], a)
+        p2 = get_point_from_a_thorough_b(point_from, points_with_angle[1][0], a)
+
+        polygon = Polygon([points_with_angle[0][0], p1, p2, points_with_angle[1][0]])
+
+        polygons.append(polygon)
+
+        buildings_lines_in_buffer.drop(nearest_wall_sind[1], inplace=True)
+
+        lines_to_kick = buildings_lines_in_buffer.within(polygon)
+        buildings_lines_in_buffer = buildings_lines_in_buffer.loc[~lines_to_kick]
+        buildings_lines_in_buffer.reset_index(drop=True, inplace=True)
+    res = point_buffer.difference(unary_union(polygons))
+    if isinstance(res,Polygon):
+        return res
+    res = list(res.geoms)
+    polygon_containing_point = None
+    for polygon in res:
+        if polygon.contains(point_from):
+            polygon_containing_point = polygon
+            break
+    return polygon_containing_point
+
+
+def get_visibility_result(
+    point: Point, buildings: gpd.GeoDataFrame, view_distance: float, resolution: int = 32
+) -> Polygon:
+    """
+    Function to get a quick estimate of visibility from a given point to buildings within a given distance.
+
+    Parameters
+    ----------
+    point : Point
+        The point from which the line of sight is drawn.
+    buildings : gpd.GeoDataFrame
+        A GeoDataFrame containing the geometry of the buildings.
+    view_distance : float
+        The distance of view from the point.
+    resolution: int
+        Buffer resolution for more accuracy (may give result slower)
+
+    Returns
+    -------
+    Polygon
+        A polygon representing the estimated area of visibility from the given point.
+
+    Notes
+    -----
+    This function provides a quicker but less accurate result compared to `get_visibility_accurate()`.
+    If accuracy is important, consider using `get_visibility_accurate()` instead.
+
+    Examples
+    --------
+    >>> point = Point(1, 1)
+    >>> buildings = gpd.read_file('buildings.shp')
+    >>> view_distance = 1000
+    >>> visibility = get_visibility_result(point, buildings, view_distance)
+    """
+
+    point_buffer = point.buffer(view_distance, resolution=resolution)
+    s = buildings.within(point_buffer)
     buildings_in_buffer = buildings.loc[s[s].index].reset_index(drop=True)
-    builds_points_inside = [
-        Point(coords) for geom in buildings_in_buffer.geometry.unary_union.geoms for coords in geom.exterior.coords
-    ]
-    united_buildings = buildings_in_buffer.unary_union
-
-    # raytracing lines from mid point to building's corners
-    lines_to_corners = [LineString([mid_point, ext]) for ext in builds_points_inside]
-    lines_to_corners = gpd.GeoDataFrame(geometry=lines_to_corners, crs=crs)
-    lines_to_corners = lines_to_corners["geometry"].apply(lambda x: x.difference(united_buildings))
-    lines_to_corners = gpd.GeoDataFrame(geometry=lines_to_corners, crs=crs).explode(index_parts=True)
-    # filter lines, removing all intersecting parts
-    points_to_build = pd.DataFrame()
-    for u, v in lines_to_corners.groupby(level=0):
-        points_to_build = pd.concat(
-            [points_to_build, pd.DataFrame({"geometry": [Point(v.iloc[0].geometry.coords[-1])]})]
-        )
-
-    # raytracing lines from mid point thorough building's corners to buffer limit
-    lines_to_buf = [get_line_from_a_thorough_b(mid_point, p_obn_b, view_distance) for p_obn_b in builds_points_inside]
-
     buffer_exterior_ = list(point_buffer.exterior.coords)
-    lines_to_buf2 = [LineString([mid_point, ext]) for ext in buffer_exterior_]
+    line_geometry = [LineString([point, ext]) for ext in buffer_exterior_]
+    buffer_lines_gdf = gpd.GeoDataFrame(geometry=line_geometry)
+    united_buildings = buildings_in_buffer.unary_union
+    if united_buildings:
+        splited_lines = buffer_lines_gdf["geometry"].apply(lambda x: x.difference(united_buildings))
+    else:
+        splited_lines = buffer_lines_gdf["geometry"]
 
-    lines_to_buf = gpd.GeoDataFrame(geometry=lines_to_buf + lines_to_buf2, crs=crs)
+    splited_lines_gdf = gpd.GeoDataFrame(geometry=splited_lines).explode(index_parts=True)
+    splited_lines_list = []
 
-    # decreasing building size, due to geometry issues
-    united_buildings_buf = united_buildings.buffer(-0.005)
-    lines_to_buf = lines_to_buf["geometry"].apply(lambda x: x.difference(united_buildings_buf))
+    for u, v in splited_lines_gdf.groupby(level=0):
+        splited_lines_list.append(v.iloc[0]["geometry"].coords[-1])
+    circuit = Polygon(splited_lines_list)
+    if united_buildings:
+        circuit = circuit.difference(united_buildings)
+    return circuit
 
-    lines_to_buf = gpd.GeoDataFrame(geometry=lines_to_buf, crs=crs).explode(index_parts=True)
-    # filter lines, removing all intersecting parts
-    for u, v in lines_to_buf.groupby(level=0):
-        points_to_build = pd.concat(
-            [points_to_build, pd.DataFrame({"geometry": [Point(v.iloc[0].geometry.coords[-1])]})]
-        )
+def multiprocess(args):
+    point, buildings, view_distance = args
+    return get_visibility_accurate(point,buildings,view_distance)
 
-    points_to_build.drop_duplicates(subset=["geometry"], inplace=True, keep="first")
-
-    # calculating the angle of each line to determine the connection order
-    points_with_angle = []
-    for point_to in points_to_build.geometry:
-        angle = math.atan2(point_to.y - mid_point.y, point_to.x - mid_point.x)
-        points_with_angle.append((point_to, angle))
-
-    points_with_angle = [(p, round(angle, 3), p.distance(mid_point)) for p, angle in points_with_angle]
-    points_with_angle.sort(key=lambda x: -x[1])
-
-    # for the equal angles, it is necessary to determine the connection order.
-    # Connecting not just nearest points, but points that are closer in distance from the center
-    new_points_with_angle = []
-    point_pre_last = points_with_angle[-1]
-    point_last = points_with_angle[0]
-
-    new_tuple = (
-        points_with_angle[0][0],
-        points_with_angle[0][1],
-        points_with_angle[0][2],
-        abs(point_pre_last[2] - points_with_angle[0][2]),
-    )
-    new_points_with_angle.append(new_tuple)
-
-    for i in range(1, len(points_with_angle)):
-        current_point = points_with_angle[i]
-        cur_angle = current_point[1]
-
-        if cur_angle == point_last[1]:
-            diff = abs(point_pre_last[2] - current_point[2])
-            new_tuple = (current_point[0], current_point[1], current_point[2], diff)
-            new_points_with_angle.append(new_tuple)
-            point_last = current_point
-
-        if cur_angle != point_last[1]:
-            diff = abs(point_last[2] - current_point[2])
-            new_tuple = (current_point[0], current_point[1], current_point[2], diff)
-            new_points_with_angle.append(new_tuple)
-            point_pre_last = point_last
-            point_last = current_point
-
-    new_points_with_angle.sort(key=lambda x: (-x[1], x[3]))
-    # creating polygon with properly ordered points
-    result = Polygon([t[0] for t in new_points_with_angle])
-    result = intersection(point_buffer, result)
-    result = (
-        MultiPolygon([y for y in result.geoms if (y.geom_type == "Polygon" or y.geom_type == "MultiPolygon")])
-        if result.geom_type == "GeometryCollection"
-        else result
-    )
-
-    result = gpd.GeoDataFrame(geometry=[result], crs=crs)
-    return result
+def calculate_visibility_catchment_area(points, buildings: gpd.GeoDataFrame, view_distance, chunksize):
+    points_view = points.geometry.buffer(view_distance).unary_union
+    s = buildings.intersects(points_view)
+    buildings_in_buffer = buildings.loc[s[s].index].reset_index(drop=True)
+    buildings_in_buffer.geometry = buildings_in_buffer.geometry.apply(lambda geom: MultiPolygon([geom]) if isinstance(geom, Polygon) else geom)
+    args =[(point, buildings_in_buffer,view_distance) for point in points.geometry]
+    results = process_map(multiprocess,args,chunksize=chunksize)
+    return results

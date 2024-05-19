@@ -126,4 +126,4 @@ def get_provision(
     if calculate_matrix:
         adjacency_matrix = dngraph.get_adjacency_matrix(buildings, services, weight_adjacency_matrix)
 
-    return get_service_provision(services, adjacency_matrix, buildings, threshold, calculation_type)
+    return get_service_provision(services=services, adjacency_matrix=adjacency_matrix, demanded_buildings=buildings, threshold=threshold, calculation_type=calculation_type)
