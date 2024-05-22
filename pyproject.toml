@@ -21,6 +21,7 @@ networkx = "^3.2.1"
 population-restorator = "^0.2.3"
 dongraphio = "^0.3.5"
 provisio = "^0.1.7"
+joblib = "^1.4.2"
 
 
 
