@@ -117,7 +117,7 @@ def get_visibility_accurate(point_from: Point, buildings: gpd.GeoDataFrame, view
     return polygon_containing_point
 
 
-def get_visibility_result(
+def get_visibility(
         point: Point, buildings: gpd.GeoDataFrame, view_distance: float, resolution: int = 32
 ) -> Polygon:
     """
@@ -149,7 +149,7 @@ def get_visibility_result(
     >>> point = Point(1, 1)
     >>> buildings = gpd.read_file('buildings.shp')
     >>> view_distance = 1000
-    >>> visibility = get_visibility_result(point, buildings, view_distance)
+    >>> visibility = get_visibility(point, buildings, view_distance)
     """
 
     point_buffer = point.buffer(view_distance, resolution=resolution)

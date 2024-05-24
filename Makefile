@@ -27,5 +27,8 @@ build:
 publish:
 	poetry publish
 
+update:
+	poetry update
+
 install-from-build:
 	python -m wheel install dist/graph_lib-*.whl

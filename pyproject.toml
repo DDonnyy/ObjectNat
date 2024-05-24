@@ -19,9 +19,10 @@ numpy = "^1.23.5"
 pandas = "^2.2.0"
 networkx = "^3.2.1"
 population-restorator = "^0.2.3"
-dongraphio = "^0.3.6"
+dongraphio = "^0.3.8"
 provisio = "^0.1.7"
 joblib = "^1.4.2"
+jupyter = "^1.0.0"
 
 
 
