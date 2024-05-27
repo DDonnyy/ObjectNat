@@ -9,20 +9,11 @@ packages = [{ include = "objectnat", from = "src" }]
 
 [tool.poetry.dependencies]
 python = "^3.9"
-geopandas = "^0.14.3"
-osmnx = "^1.9.1"
-tqdm = "^4.66.2"
-osm2geojson = "^0.2.4"
-pydantic = "^2.6.1"
-networkit = "^11.0"
-numpy = "^1.23.5"
-pandas = "^2.2.0"
-networkx = "^3.2.1"
 population-restorator = "^0.2.3"
 dongraphio = "^0.3.8"
 provisio = "^0.1.7"
 joblib = "^1.4.2"
-jupyter = "^1.0.0"
+pandarallel = "^1.6.5"
 
 
 

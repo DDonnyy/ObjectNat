@@ -1,7 +1,7 @@
 import geopandas as gpd
 import networkx as nx
 from dongraphio import GraphType
-
+from loguru import logger
 from .isochrones import get_accessibility_isochrones
 
 
