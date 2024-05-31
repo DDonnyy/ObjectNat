@@ -1,3 +1,5 @@
+from typing import Literal
+
 import geopandas as gpd
 import pandas as pd
 from loguru import logger
@@ -24,7 +26,10 @@ def _get_service_ratio(loc):
 
 
 def get_clusters_polygon(
-    points: gpd.GeoDataFrame, min_dist=100, min_point=5, method="HDBSCAN"
+    points: gpd.GeoDataFrame,
+    min_dist: float | int = 100,
+    min_point: int = 5,
+    method: Literal["DBSCAN", "HDBSCAN"] = "HDBSCAN",
 ) -> tuple[gpd.GeoDataFrame, gpd.GeoDataFrame]:
     """
     Generate cluster polygons for given points based on a specified minimum distance and minimum points per cluster.
@@ -35,11 +40,11 @@ def get_clusters_polygon(
     points : gpd.GeoDataFrame
         GeoDataFrame containing the points to be clustered.
         Must include a 'service_code' column for service ratio calculations.
-    min_dist : int, optional
+    min_dist : float | int, optional
         Minimum distance between points to be considered part of the same cluster. Defaults to 100.
     min_point : int, optional
         Minimum number of points required to form a cluster. Defaults to 5.
-    method : str, optional
+    method : Literal["DBSCAN", "HDBSCAN"], optional
         The clustering method to use. Must be either "DBSCAN" or "HDBSCAN". Defaults to "HDBSCAN".
 
     Returns

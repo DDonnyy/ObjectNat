@@ -44,15 +44,15 @@ def get_visibility_accurate(point_from: Point, obstacles: gpd.GeoDataFrame, view
 
     def get_point_from_a_thorough_b(a: Point, b: Point, dist):
         """
-        Func to get line from point A thorough point B on dist
+        Func to get Point from point a thorough point b on dist
         """
         direction = math.atan2(b.y - a.y, b.x - a.x)
         c_x = a.x + dist * math.cos(direction)
         c_y = a.y + dist * math.sin(direction)
         return Point(c_x, c_y)
 
-    def polygon_to_linestring(geometry):
-        """A function to return all segments of a line as a list of linestrings"""
+    def polygon_to_linestring(geometry: Polygon):
+        """A function to return all segments of a polygon as a list of linestrings"""
         coords_ext = geometry.exterior.coords  # Create a list of all line node coordinates
         polygons_inter = [Polygon(x) for x in geometry.interiors]
         result = [LineString(part) for part in zip(coords_ext, coords_ext[1:])]
@@ -64,6 +64,7 @@ def get_visibility_accurate(point_from: Point, obstacles: gpd.GeoDataFrame, view
     point_buffer = point_from.buffer(view_distance, resolution=32)
     s = obstacles.intersects(point_buffer)
     buildings_in_buffer = obstacles.loc[s[s].index]
+    # TODO kick all geoms except Polygons/MultiPolygons
     buildings_in_buffer = buildings_in_buffer.geometry.apply(
         lambda x: list(x.geoms) if isinstance(x, MultiPolygon) else x
     ).explode()
@@ -330,7 +331,11 @@ def _process_group(group):
 
 
 def get_visibilities_from_points(
-    points: gpd.GeoDataFrame, obstacles: gpd.GeoDataFrame, view_distance: int, sectors_n=None
+    points: gpd.GeoDataFrame,
+    obstacles: gpd.GeoDataFrame,
+    view_distance: int,
+    sectors_n=None,
+    max_workers: int = cpu_count(),
 ) -> list[Polygon]:
     """
     Calculate visibility polygons from a set of points considering obstacles within a specified view distance.
@@ -345,6 +350,8 @@ def get_visibilities_from_points(
         The maximum distance from each point within which visibility is calculated.
     sectors_n : int, optional
         Number of sectors to divide the view into for more detailed visibility calculations. Defaults to None.
+    max_workers: int, optional
+        Maximum workers in multiproccesing, multipocessing.cpu_count() by default.
 
     Returns
     -------
@@ -385,14 +392,14 @@ def get_visibilities_from_points(
         chunksize=5,
         desc="Calculating Visibility Catchment Area from each Point, it might take a while for a "
         "big amount of points",
-        max_workers=cpu_count() - 2,
+        max_workers=max_workers,
     )
     # could return sectorized visions if sectors_n is set
     return all_visions
 
 
 def calculate_visibility_catchment_area(
-    points: gpd.GeoDataFrame, obstacles: gpd.GeoDataFrame, view_distance
+    points: gpd.GeoDataFrame, obstacles: gpd.GeoDataFrame, view_distance: int | float, max_workers: int = cpu_count()
 ) -> gpd.GeoDataFrame:
     """
     Calculate visibility catchment areas for a large urban area based on given points and obstacles.
@@ -407,6 +414,8 @@ def calculate_visibility_catchment_area(
         GeoDataFrame containing the obstacles that block visibility.
     view_distance : int
         The maximum distance from each point within which visibility is calculated.
+    max_workers: int
+        Maximum workers in multiproccesing, multipocessing.cpu_count() by default.
 
     Returns
     -------
@@ -451,7 +460,7 @@ def calculate_visibility_catchment_area(
     crs = obstacles.crs
     sectors_n = 12
     logger.info("Calculating Visibility Catchment Area from each point")
-    all_visions_sectorized = get_visibilities_from_points(points, obstacles, view_distance, sectors_n)
+    all_visions_sectorized = get_visibilities_from_points(points, obstacles, view_distance, sectors_n, max_workers)
     all_visions_sectorized = gpd.GeoDataFrame(
         geometry=[item for sublist in all_visions_sectorized for item in sublist], crs=crs
     )
@@ -476,7 +485,7 @@ def calculate_visibility_catchment_area(
         _process_group,
         groups,
         desc="Counting intersections in each group...",
-        max_workers=cpu_count() - 2,
+        max_workers=max_workers,
     )
     logger.info("Calculating all groups intersection...")
     all_in = _combine_geometry(gpd.GeoDataFrame(data=pd.concat(groups_result), geometry="geometry", crs=crs))

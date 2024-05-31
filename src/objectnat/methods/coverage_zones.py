@@ -1,3 +1,5 @@
+from typing import Literal
+
 import geopandas as gpd
 import networkx as nx
 from dongraphio import GraphType
@@ -41,8 +43,8 @@ def get_radius_zone_coverage(services: gpd.GeoDataFrame, radius: int) -> gpd.Geo
 
 
 def get_isochrone_zone_coverage(
-    services: gpd.GeoDataFrame, weight_type: str, weight_value: int, city_graph: nx.Graph, graph_type: list[GraphType]
-):
+    services: gpd.GeoDataFrame, weight_type: Literal['time_min','length_meter'], weight_value: int, city_graph: nx.Graph, graph_type: list[GraphType]
+) -> tuple[gpd.GeoDataFrame, gpd.GeoDataFrame | None, gpd.GeoDataFrame | None]:
     """
     Create isochrones for each service location based on travel time/distance.
 

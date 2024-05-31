@@ -64,9 +64,9 @@ pip install ObjectNat
 
 ## Contacts
 
-- [NCCR](https://actcognitive.org/o-tsentre/kontakty) - National
+- [NCCR](https://actcognitive.org/) - National
   Center for Cognitive Research
-- [IDU]() - Institute of
+- [IDU](https://idu.itmo.ru/) - Institute of
   Design and Urban Studies
 - [Natalya Chichkova](https://t.me/nancy_nat) - project manager
 - [Danila Oleynikov (Donny)](https://t.me/ddonny_dd) - lead software engineer
