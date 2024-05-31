@@ -1,7 +1,7 @@
 import geopandas as gpd
 import networkx as nx
 from dongraphio import GraphType
-from loguru import logger
+
 from .isochrones import get_accessibility_isochrones
 
 
@@ -40,8 +40,9 @@ def get_radius_zone_coverage(services: gpd.GeoDataFrame, radius: int) -> gpd.Geo
     return services
 
 
-def get_isochrone_zone_coverage(services: gpd.GeoDataFrame, weight_type: str, weight_value: int, city_graph: nx.Graph,
-                                graph_type: list[GraphType]):
+def get_isochrone_zone_coverage(
+    services: gpd.GeoDataFrame, weight_type: str, weight_value: int, city_graph: nx.Graph, graph_type: list[GraphType]
+):
     """
     Create isochrones for each service location based on travel time/distance.
 
@@ -85,8 +86,9 @@ def get_isochrone_zone_coverage(services: gpd.GeoDataFrame, weight_type: str, we
     >>> isochrone_zones = get_isochrone_zone_coverage(services, weight_type, weight_value, city_graph, graph_type)
     >>> isochrone_zones[0] # represent isochrones geodataframe
     """
-    assert services.crs == city_graph.graph['crs'], ('CRS not match')
+    assert services.crs == city_graph.graph["crs"], "CRS not match"
     points = services.geometry.representative_point()
-    isochrone_res = get_accessibility_isochrones(points, graph_type, weight_value, weight_type, city_graph,
-                                                 points.crs.to_epsg())
+    isochrone_res = get_accessibility_isochrones(
+        points, graph_type, weight_value, weight_type, city_graph, points.crs.to_epsg()
+    )
     return isochrone_res

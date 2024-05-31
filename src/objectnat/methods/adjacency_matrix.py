@@ -13,7 +13,7 @@ def get_adjacency_matrix(
     city_crs: int | None = None,
     nx_graph: nx.MultiDiGraph | None = None,
     dongraphio: DonGraphio | None = None,
-    graph_type = None
+    graph_type=None,
 ) -> pd.DataFrame:
     """
     Get the adjacency matrix for the specified city graph, buildings, and services.
@@ -29,11 +29,11 @@ def get_adjacency_matrix(
     """
     try:
         if dongraphio:
-            return dongraphio.get_adjacency_matrix(buildings_from, services_to, weight,graph_type=graph_type)
+            return dongraphio.get_adjacency_matrix(buildings_from, services_to, weight, graph_type=graph_type)
 
         dongraphio = DonGraphio(city_crs)
         dongraphio.set_graph(nx_graph)
-        return dongraphio.get_adjacency_matrix(buildings_from, services_to, weight,graph_type=graph_type)
+        return dongraphio.get_adjacency_matrix(buildings_from, services_to, weight, graph_type=graph_type)
     except ValidationError as e:
         logger.error("Function get_adjacency_matrix() missing 'weight' argument")
         raise e
