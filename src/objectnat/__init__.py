@@ -1,6 +1,7 @@
 __version__ = "0.0.4"
 
 from dongraphio.enums import GraphType
+
 from .methods.adjacency_matrix import get_adjacency_matrix
 from .methods.balanced_buildings import get_balanced_buildings
 from .methods.cluster_points_in_polygons import get_clusters_polygon
