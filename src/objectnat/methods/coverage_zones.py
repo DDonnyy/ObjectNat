@@ -2,6 +2,7 @@ from typing import Literal
 
 import geopandas as gpd
 import networkx as nx
+import pandas as pd
 from dongraphio import GraphType
 
 from .isochrones import get_accessibility_isochrones
@@ -94,7 +95,11 @@ def get_isochrone_zone_coverage(
     """
     assert services.crs == city_graph.graph["crs"], "CRS not match"
     points = services.geometry.representative_point()
-    isochrone_res = get_accessibility_isochrones(
+    iso, routes, stops = get_accessibility_isochrones(
         points, graph_type, weight_value, weight_type, city_graph, points.crs.to_epsg()
     )
-    return isochrone_res
+    services_ = services.copy()
+    iso = gpd.GeoDataFrame(
+        pd.concat([iso.drop(columns=["point", "point_number"]), services_.drop(columns=["geometry"])], axis=1)
+    )
+    return iso, routes, stops
