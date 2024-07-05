@@ -1,7 +1,7 @@
+import geopandas as gpd
 from pyproj import CRS
 from pyproj.aoi import AreaOfInterest
 from pyproj.database import query_utm_crs_info
-import geopandas as gpd
 
 
 def get_utm_crs_for_4326_gdf(gdf: gpd.GeoDataFrame) -> CRS:
