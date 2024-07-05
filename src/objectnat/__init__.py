@@ -16,3 +16,4 @@ from .methods.visibility_analysis import (
     get_visibility,
     get_visibility_accurate,
 )
+from .methods.living_buildings_osm import download_buildings
