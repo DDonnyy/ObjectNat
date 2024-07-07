@@ -142,17 +142,17 @@ def eval_population(source: gpd.GeoDataFrame, population_column: str, area_per_p
     df["building:levels"] = df["building:levels"].fillna(1)
     df["building:levels"] = pd.to_numeric(df["building:levels"], errors="coerce")
     df = df.dropna(subset=["building:levels"])
-    df["building:levels"] = df["building:levels"].round(0).astype(int)
+    df["building:levels"] = df["building:levels"].astype(int)
+    df[population_column] = 0.0
     df.loc[df["is_living"] == 1, population_column] = df[df["is_living"] == 1].apply(
         lambda row: (
             3
-            if (row["area"] <= 400 & row["building:levels"] <= 2)
+            if ((row["area"] <= 400) & (row["building:levels"] <= 2))
             else (row["building:levels"] * row["area"] * 0.8 / area_per_person)
         ),
         axis=1,
     )
-    df[population_column] = df[population_column].fillna(0).astype(int)
-
+    df[population_column] = df[population_column].fillna(0).round(0).astype(int)
     return df
 
 
