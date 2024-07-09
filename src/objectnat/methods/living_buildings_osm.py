@@ -211,7 +211,6 @@ def download_buildings(
 
     logger.info("Downloading buildings from OpenStreetMap and counting population...")
     buildings = ox.features_from_polygon(terr_polygon, tags={"building": True})
-    print(buildings.crs)
     if not buildings.empty:
         buildings = buildings.loc[
             (buildings["geometry"].geom_type == "Polygon") | (buildings["geometry"].geom_type == "MultiPolygon")
