@@ -8,6 +8,7 @@ from .methods.cluster_points_in_polygons import get_clusters_polygon
 from .methods.coverage_zones import get_isochrone_zone_coverage, get_radius_zone_coverage
 from .methods.demands import get_demands
 from .methods.isochrones import get_accessibility_isochrones
+from .methods.living_buildings_osm import download_buildings
 from .methods.osm_graph import get_intermodal_graph_from_osm
 from .methods.provision import NoOsmIdException, NoWeightAdjacencyException, get_provision
 from .methods.visibility_analysis import (
