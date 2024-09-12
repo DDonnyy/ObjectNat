@@ -17,10 +17,12 @@ tqdm = "^4.66.2"
 pandarallel = "^1.6.5"
 networkx = "^3.2.1"
 networkit = "^11.0"
+pulp = "^2.8.0"
 population-restorator = "^0.2.3"
 iduedu = "^0.1.1"
 joblib = "^1.4.2"
 scikit-learn = "^1.4.0"
+scikit-image = "^0.24.0"
 
 
 [tool.poetry.group.dev.dependencies]
