@@ -1,7 +1,10 @@
 import geopandas as gpd
 import population_restorator.balancer.houses as b_build
 import population_restorator.balancer.territories as b_terr
-from loguru import logger
+
+from objectnat import config
+
+logger = config.logger
 
 
 def get_balanced_buildings(

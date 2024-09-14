@@ -1,4 +1,4 @@
-from typing import Tuple, Literal
+from typing import Literal, Tuple
 
 import geopandas as gpd
 import pandas as pd
@@ -7,11 +7,11 @@ from .city_provision import CityProvision
 
 
 def get_service_provision(
-        buildings: gpd.GeoDataFrame,
-        adjacency_matrix: pd.DataFrame,
-        services: gpd.GeoDataFrame,
-        threshold: int,
-        calculation_type: Literal["gravity", "linear"] = "gravity",
+    buildings: gpd.GeoDataFrame,
+    adjacency_matrix: pd.DataFrame,
+    services: gpd.GeoDataFrame,
+    threshold: int,
+    calculation_type: Literal["gravity", "linear"] = "gravity",
 ) -> Tuple[gpd.GeoDataFrame, gpd.GeoDataFrame, gpd.GeoDataFrame]:
     """Calculate load from buildings with demands on the given services using the distances matrix between them.
 
@@ -36,8 +36,7 @@ def get_service_provision(
 
 
 def is_shown(
-        buildings: gpd.GeoDataFrame, services: gpd.GeoDataFrame, links: gpd.GeoDataFrame,
-        selection_zone: gpd.GeoDataFrame
+    buildings: gpd.GeoDataFrame, services: gpd.GeoDataFrame, links: gpd.GeoDataFrame, selection_zone: gpd.GeoDataFrame
 ) -> Tuple[gpd.GeoDataFrame, gpd.GeoDataFrame, gpd.GeoDataFrame]:
     buildings.reset_index(inplace=True)
     buildings = gpd.overlay(buildings, selection_zone, how="intersection")

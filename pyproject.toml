@@ -19,10 +19,9 @@ networkx = "^3.2.1"
 networkit = "^11.0"
 pulp = "^2.8.0"
 population-restorator = "^0.2.3"
-iduedu = "^0.1.1"
+iduedu = "^0.1.2"
 joblib = "^1.4.2"
 scikit-learn = "^1.4.0"
-scikit-image = "^0.24.0"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -48,6 +47,11 @@ disable = [
     "duplicate-code",
     "missing-module-docstring",
     "missing-function-docstring",
+    "too-many-locals",
+    "too-many-branches",
+    "too-many-statements",
+    "too-many-arguments",
+    "cyclic-import"
 ]
 good-names = [
 

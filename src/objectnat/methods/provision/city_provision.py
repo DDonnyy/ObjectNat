@@ -5,10 +5,13 @@ import geopandas as gpd
 import numpy as np
 import pandas as pd
 import pulp
-from loguru import logger
 from shapely import LineString
 
+from objectnat import config
+
 from .provision_exceptions import *
+
+logger = config.logger
 
 
 class CityProvision:
@@ -148,7 +151,7 @@ class CityProvision:
             p = 1 / loc / loc
             p = p / p.sum()
             threshold = p.quantile(0.9)
-            p = p[p > threshold]
+            p = p[p >= threshold]
             p = p / p.sum()
             if p.sum() == 0:
                 return loc
@@ -190,6 +193,7 @@ class CityProvision:
             errors="ignore",
         )
         selection_range += selection_range
+
         if len(distance_matrix.columns) > 0 and len(distance_matrix.index) > 0:
             return self._provision_loop_gravity(
                 houses_table,

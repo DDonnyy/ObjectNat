@@ -2,6 +2,7 @@ from typing import Literal
 
 import geopandas as gpd
 import networkx as nx
+
 from .isochrones import get_accessibility_isochrones
 
 

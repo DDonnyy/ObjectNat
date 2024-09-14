@@ -7,5 +7,6 @@ ObjectNat is an open-source library created for geospatial analysis created by I
 Homepage https://github.com/DDonnyy/ObjectNat.
 """
 
-from ._version import VERSION as __version__
 from ._api import *
+from ._config import config
+from ._version import VERSION as __version__

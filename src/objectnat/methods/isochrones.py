@@ -4,12 +4,15 @@ import geopandas as gpd
 import networkx as nx
 import numpy as np
 import pandas as pd
-from osmnx.utils_graph import graph_to_gdfs
+from osmnx import graph_to_gdfs
 from pyproj import CRS
 from scipy.spatial import KDTree
 from shapely import Point
-from loguru import logger
 from shapely.ops import unary_union
+
+from objectnat import config
+
+logger = config.logger
 
 
 def get_accessibility_isochrones(
@@ -32,7 +35,8 @@ def get_accessibility_isochrones(
     weight_value : float
         The maximum distance or time threshold for calculating isochrones.
     weight_type : Literal["time_min", "length_meter"]
-        The type of weight to use for distance calculations. Either time in minutes ("time_min") or distance in meters ("length_meter").
+        The type of weight to use for distance calculations. Either time in minutes ("time_min") or distance
+        in meters ("length_meter").
     graph_nx : nx.Graph
         A NetworkX graph representing the city network.
         The graph must contain the appropriate CRS and, for time-based isochrones, a speed attribute.
