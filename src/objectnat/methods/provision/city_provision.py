@@ -41,13 +41,11 @@ class CityProvision:
         demanded_buildings: gpd.GeoDataFrame,
         adjacency_matrix: pd.DataFrame,
         threshold: int,
-        calculation_type: Literal["gravity", "linear"] = "gravity",
     ):
         self.services = self.ensure_services(services)
         self.demanded_buildings = self.ensure_buildings(demanded_buildings)
         self.adjacency_matrix = adjacency_matrix
         self.threshold = threshold
-        self.calculation_type = calculation_type
         self.check_crs(self.demanded_buildings, self.services)
         self.delete_useless_matrix_rows(self.adjacency_matrix, self.demanded_buildings)
 
@@ -82,8 +80,24 @@ class CityProvision:
         adjacency_matrix.drop(index=(list(dif)), axis=0, inplace=True)
 
     def get_provisions(self) -> Tuple[gpd.GeoDataFrame, gpd.GeoDataFrame, gpd.GeoDataFrame]:
-        self._calculate_provisions()
-
+        self._destination_matrix = pd.DataFrame(
+            0,
+            index=self.adjacency_matrix.columns,
+            columns=self.adjacency_matrix.index,
+        )
+        self.adjacency_matrix = self.adjacency_matrix.transpose()
+        logger.debug(
+            "Calculating provision from {} services to {} buildings.",
+            len(self.services),
+            len(self.demanded_buildings),
+        )
+        self._destination_matrix = self._provision_loop_gravity(
+            self.demanded_buildings.copy(),
+            self.services.copy(),
+            self.adjacency_matrix.copy() + 1,
+            self.threshold,
+            self._destination_matrix.copy(),
+        )
         _additional_options(
             self.demanded_buildings,
             self.services,
@@ -105,37 +119,6 @@ class CityProvision:
                 self.adjacency_matrix,
             ),
         )
-
-    def _calculate_provisions(self):
-        self._destination_matrix = pd.DataFrame(
-            0,
-            index=self.adjacency_matrix.columns,
-            columns=self.adjacency_matrix.index,
-        )
-        self.adjacency_matrix = self.adjacency_matrix.transpose()
-        logger.debug(
-            "Calculating provision from {} services to {} buildings with {} method",
-            len(self.services),
-            len(self.demanded_buildings),
-            self.calculation_type,
-        )
-        if self.calculation_type == "gravity":
-            self._destination_matrix = self._provision_loop_gravity(
-                self.demanded_buildings.copy(),
-                self.services.copy(),
-                self.adjacency_matrix.copy() + 1,
-                self.threshold,
-                self._destination_matrix.copy(),
-            )
-
-        elif self.calculation_type == "linear":
-            self._destination_matrix = self._provision_loop_linear(
-                self.demanded_buildings.copy(),
-                self.services.copy(),
-                self.adjacency_matrix.copy(),
-                self.threshold,
-                self._destination_matrix.copy(),
-            )
 
     def _provision_loop_gravity(
         self,
@@ -205,100 +188,6 @@ class CityProvision:
             )
         return destination_matrix
 
-    def _provision_loop_linear(
-        self,
-        houses_table: gpd.GeoDataFrame,
-        services_table: gpd.GeoDataFrame,
-        distance_matrix: pd.DataFrame,
-        selection_range,
-        destination_matrix: pd.DataFrame,
-    ):
-        def declare_variables(loc):
-            name = loc.name
-            nans = loc.isna()
-            index = nans[~nans].index
-            t = pd.Series(
-                [pulp.LpVariable(name=f"route_{name}_{I}", lowBound=0, cat="Integer") for I in index],
-                index,
-                dtype="object",
-            )
-            loc[~nans] = t
-            return loc
-
-        select = distance_matrix[distance_matrix.iloc[:] <= selection_range]
-        select = select.apply(lambda x: 1 / (x + 1), axis=1)
-
-        select = select.loc[:, ~select.columns.duplicated()].copy(deep=True)
-        select = select.loc[~select.index.duplicated(), :].copy(deep=True)
-
-        variables = select.apply(lambda x: declare_variables(x), axis=1)
-
-        prob = pulp.LpProblem("problem", pulp.LpMaximize)
-        for col in variables.columns:
-            t = variables[col].dropna().values
-            if len(t) > 0:
-                prob += (
-                    pulp.lpSum(t) <= houses_table["demand_left"][col],
-                    f"sum_of_capacities_{col}",
-                )
-            else:
-                pass
-
-        for index in variables.index:
-            t = variables.loc[index].dropna().values
-            if len(t) > 0:
-                prob += (
-                    pulp.lpSum(t) <= services_table["capacity_left"][index],
-                    f"sum_of_demands_{index}",
-                )
-            else:
-                pass
-        costs = []
-        for index in variables.index:
-            t = variables.loc[index].dropna()
-            t = t * select.loc[index].dropna()
-            costs.extend(t)
-        prob += (pulp.lpSum(costs), "Sum_of_Transporting_Costs")
-        prob.solve(pulp.PULP_CBC_CMD(msg=False))
-        to_df = {}
-        for var in prob.variables():
-            t = var.name.split("_")
-            try:
-                to_df[int(t[1])].update({int(t[2]): var.value()})
-            except ValueError:
-                print(t)
-            except:
-                to_df[int(t[1])] = {int(t[2]): var.value()}
-
-        result = pd.DataFrame(to_df).transpose()
-        result = result.join(
-            pd.DataFrame(
-                0,
-                columns=list(set(set(destination_matrix.columns) - set(result.columns))),
-                index=destination_matrix.index,
-            ),
-            how="outer",
-        )
-        result = result.fillna(0)
-        destination_matrix = destination_matrix + result
-        axis_1 = destination_matrix.sum(axis=1)
-        axis_0 = destination_matrix.sum(axis=0)
-        services_table["capacity_left"] = services_table["capacity"].subtract(axis_1, fill_value=0)
-        houses_table["demand_left"] = houses_table["demand"].subtract(axis_0, fill_value=0)
-
-        distance_matrix = distance_matrix.drop(
-            index=services_table[services_table["capacity_left"] == 0].index.values,
-            columns=houses_table[houses_table["demand_left"] == 0].index.values,
-            errors="ignore",
-        )
-
-        selection_range += selection_range
-        if len(distance_matrix.columns) > 0 and len(distance_matrix.index) > 0:
-            return self._provision_loop_linear(
-                houses_table, services_table, distance_matrix, selection_range, destination_matrix
-            )
-        return destination_matrix
-
 
 def _provision_matrix_transform(
     destination_matrix: pd.DataFrame,
@@ -348,7 +237,7 @@ def _provision_matrix_transform(
     distribution_links = distribution_links.set_geometry(sel.apply(lambda x: subfunc_geom(x), axis=1)).set_crs(
         buildings_.crs
     )
-    distribution_links["distance"] = distribution_links["distance"].astype(np.float32)
+    distribution_links["distance"] = distribution_links["distance"].round(2)
     return distribution_links
 
 
@@ -393,6 +282,9 @@ def _additional_options(
         )
     buildings["avg_dist"] = (buildings["avg_dist"] / (buildings["demand"] - buildings["demand_left"])).astype(
         np.float32
+    )
+    buildings["avg_dist"] = buildings.apply(
+        lambda x: np.nan if (x["demand"] == x["demand_left"]) else round(x["avg_dist"],2), axis=1
     )
     buildings["provison_value"] = (buildings["supplyed_demands_within"] / buildings["demand"]).astype(np.float32)
     services["service_load"] = (services["capacity"] - services["capacity_left"]).astype(np.uint16)

@@ -65,3 +65,4 @@ use_parentheses = true
 ensure_newline_before_comments = true
 line_length = 120
 split_on_trailing_comma = true
+skip = ["__init__.py"]
