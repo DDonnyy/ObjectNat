@@ -1,15 +1,13 @@
 # pylint: disable=singleton-comparison
-from typing import Literal, Tuple
+from typing import Tuple
 
 import geopandas as gpd
 import numpy as np
 import pandas as pd
-import pulp
 from shapely import LineString
 
 from objectnat import config
-
-from .provision_exceptions import *
+from .provision_exceptions import DemandKeyError, CapacityKeyError
 
 logger = config.logger
 
@@ -162,7 +160,7 @@ class CityProvision:
 
         temp_destination_matrix = distance_matrix.apply(lambda x: _calculate_flows_y(x[x <= selection_range]), axis=1)
         temp_destination_matrix = temp_destination_matrix.fillna(0)
-        temp_destination_matrix = temp_destination_matrix.apply(lambda x: _balance_flows_to_demands(x))
+        temp_destination_matrix = temp_destination_matrix.apply(_balance_flows_to_demands)
         temp_destination_matrix = temp_destination_matrix.fillna(0)
         destination_matrix = destination_matrix.add(temp_destination_matrix, fill_value=0)
         axis_1 = destination_matrix.sum(axis=1)
@@ -234,7 +232,7 @@ def _calc_links(
         services_.index.values
     )
     sel = distribution_links.loc[sel[sel].index.values]
-    distribution_links = distribution_links.set_geometry(sel.apply(lambda x: subfunc_geom(x), axis=1)).set_crs(
+    distribution_links = distribution_links.set_geometry(sel.apply(subfunc_geom, axis=1)).set_crs(
         buildings_.crs
     )
     distribution_links["distance"] = distribution_links["distance"].astype(float).round(2)
@@ -284,9 +282,9 @@ def _additional_options(
         np.float32
     )
     buildings["avg_dist"] = buildings.apply(
-        lambda x: np.nan if (x["demand"] == x["demand_left"]) else round(x["avg_dist"],2), axis=1
+        lambda x: np.nan if (x["demand"] == x["demand_left"]) else round(x["avg_dist"], 2), axis=1
     )
-    buildings["provison_value"] = (buildings["supplyed_demands_within"] / buildings["demand"]).astype(np.float32)
+    buildings["provison_value"] = (buildings["supplyed_demands_within"] / buildings["demand"]).astype(float).round(2)
     services["service_load"] = (services["capacity"] - services["capacity_left"]).astype(np.uint16)
     buildings["supplyed_demands_within"] = buildings["supplyed_demands_within"].astype(np.uint16)
     buildings["supplyed_demands_without"] = buildings["supplyed_demands_without"].astype(np.uint16)

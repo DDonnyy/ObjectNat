@@ -109,7 +109,7 @@ def get_accessibility_isochrones(
 
     results = []
     logger.info("Building isochrones geometry...")
-    for node_from, row in dist_matrix.iterrows():
+    for _, row in dist_matrix.iterrows():
         geometry = []
         for node_to, value in row.items():
             if not pd.isna(value):
