@@ -106,13 +106,13 @@ class CityProvision:
             self.threshold,
         )
 
-        self.demanded_buildings = self.demanded_buildings.fillna(0)
-        self.services = self.services.fillna(0)
+        # self.demanded_buildings['provision_value'] = self.demanded_buildings['provision_value'].fillna(0)
+        # self.services = self.services.fillna(0)
 
         return (
             self.demanded_buildings,
             self.services,
-            _provision_matrix_transform(
+            _calc_links(
                 self._destination_matrix,
                 self.services,
                 self.demanded_buildings,
@@ -189,7 +189,7 @@ class CityProvision:
         return destination_matrix
 
 
-def _provision_matrix_transform(
+def _calc_links(
     destination_matrix: pd.DataFrame,
     services: gpd.GeoDataFrame,
     buildings: gpd.GeoDataFrame,
@@ -237,7 +237,7 @@ def _provision_matrix_transform(
     distribution_links = distribution_links.set_geometry(sel.apply(lambda x: subfunc_geom(x), axis=1)).set_crs(
         buildings_.crs
     )
-    distribution_links["distance"] = distribution_links["distance"].round(2)
+    distribution_links["distance"] = distribution_links["distance"].astype(float).round(2)
     return distribution_links
 
 
