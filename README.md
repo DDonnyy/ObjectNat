@@ -55,7 +55,8 @@
    <img src="https://github.com/user-attachments/assets/2a9ad722-87d2-4954-9612-5ac3765aa824" alt="service-clusterization" height="250">
    
 8. **[Living buildings from OSM](./examples/download_buildings_from_osm.ipynb)** - This function downloads building geometries from OpenStreetMap (OSM) for a specified territory and assigns attributes to each building. Specifically, it determines whether a building is residential (`is_living` attribute) and estimates the approximate number of inhabitants (`approximate_pop` attribute).
-    <img src="https://github.com/user-attachments/assets/d60dcd85-1a2e-4342-aae4-561aeda18858" alt="Living buildings" height="250">
+   
+   <img src="https://github.com/user-attachments/assets/d60dcd85-1a2e-4342-aae4-561aeda18858" alt="Living buildings" height="250">
    
 ## Installation
 
