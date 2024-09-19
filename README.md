@@ -3,6 +3,7 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![PyPI version](https://img.shields.io/pypi/v/objectnat.svg)](https://pypi.org/project/objectnat/)
 
+- [РИДМИ (Russian)](README_ru.md)
 <p align="center">
 <img src="https://github.com/user-attachments/assets/d3878cce-8eba-4f96-8458-9a798d436120" alt="logo" width="400">
 </p>
