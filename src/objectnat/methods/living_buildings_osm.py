@@ -1,73 +1,15 @@
 import geopandas as gpd
-import osm2geojson
+import numpy as np
 import osmnx as ox
 import pandas as pd
-import requests
-from loguru import logger
+from iduedu import get_boundary
 from shapely import MultiPolygon, Polygon
+
+from objectnat import config
 
 from ..utils import get_utm_crs_for_4326_gdf
 
-DEFAULT_OVERPASS_URL = "http://overpass-api.de/api/interpreter"
-
-
-def get_terr_polygon_osm_name(territory_name: str) -> Polygon | MultiPolygon:
-    """
-    Retrieve the polygon geometry of a specified territory using its name from OpenStreetMap.
-
-    Parameters
-    ----------
-    territory_name : str
-        The name of the territory to retrieve the polygon for.
-
-    Returns
-    -------
-    gpd.GeoDataFrame
-        A GeoDataFrame containing the polygon geometry of the specified territory.
-
-    Examples
-    --------
-    >>> territory_name = "Saint-Petersburg, Russia"
-    >>> polygon = get_terr_polygon_osm_name(territory_name)
-    """
-    logger.info(f"Retrieving polygon geometry for '{territory_name}'")
-    place = ox.geocode_to_gdf(territory_name)
-    polygon = place.geometry.values[0]
-    return polygon.unary_union
-
-
-def get_terr_polygon_osm_id(osm_id: int) -> Polygon | MultiPolygon:
-    """
-    Retrieve the polygon geometry of a specified territory using its OSM ID from OpenStreetMap.
-
-    Parameters
-    ----------
-    osm_id : int
-        The OpenStreetMap ID of the territory to retrieve the polygon for.
-
-    Returns
-    -------
-    Polygon | MultiPolygon
-        A Polygon or MultiPolygon geometry of the specified territory.
-
-    Examples
-    --------
-    >>> osm_id = 421007
-    >>> polygon = get_terr_polygon_osm_id(osm_id)
-    """
-    overpass_query = f"""
-                [out:json];
-                (
-                    relation({osm_id});
-                );
-                out geom;
-                """
-    logger.info(f"Retrieving polygon geometry for osm id '{osm_id}'")
-    result = requests.get(DEFAULT_OVERPASS_URL, params={"data": overpass_query}, timeout=500)
-    json_result = result.json()
-    json_result = osm2geojson.json2geojson(json_result)
-    json_result = gpd.GeoDataFrame.from_features(json_result["features"]).set_crs(4326)
-    return json_result.geometry.unary_union
+logger = config.logger
 
 
 def eval_is_living(row: gpd.GeoSeries):
@@ -143,16 +85,20 @@ def eval_population(source: gpd.GeoDataFrame, population_column: str, area_per_p
     df["building:levels"] = pd.to_numeric(df["building:levels"], errors="coerce")
     df = df.dropna(subset=["building:levels"])
     df["building:levels"] = df["building:levels"].astype(int)
-    df[population_column] = 0.0
-    df.loc[df["is_living"] == 1, population_column] = df[df["is_living"] == 1].apply(
-        lambda row: (
-            3
-            if ((row["area"] <= 400) & (row["building:levels"] <= 2))
-            else (row["building:levels"] * row["area"] * 0.8 / area_per_person)
-        ),
-        axis=1,
+    df[population_column] = np.nan
+    df.loc[df["is_living"] == 1, population_column] = (
+        df[df["is_living"] == 1]
+        .apply(
+            lambda row: (
+                3
+                if ((row["area"] <= 400) & (row["building:levels"] <= 2))
+                else (row["building:levels"] * row["area"] * 0.8 / area_per_person)
+            ),
+            axis=1,
+        )
+        .round(0)
+        .astype(int)
     )
-    df[population_column] = df[population_column].fillna(0).round(0).astype(int)
     return df
 
 
@@ -191,26 +137,10 @@ def download_buildings(
     >>> buildings_df = download_buildings(osm_territory_name="Saint-Petersburg, Russia")
     >>> buildings_df.head()
     """
-    if osm_territory_id is not None:
-        polygon = get_terr_polygon_osm_id(osm_territory_id)
-        return download_buildings(
-            terr_polygon=polygon,
-            area_per_person=area_per_person,
-            is_living_column=is_living_column,
-            population_column=population_column,
-        )
+    polygon = get_boundary(osm_territory_id, osm_territory_name, terr_polygon)
 
-    if osm_territory_name is not None:
-        polygon = get_terr_polygon_osm_name(osm_territory_name)
-        return download_buildings(
-            terr_polygon=polygon,
-            area_per_person=area_per_person,
-            is_living_column=is_living_column,
-            population_column=population_column,
-        )
-
-    logger.info("Downloading buildings from OpenStreetMap and counting population...")
-    buildings = ox.features_from_polygon(terr_polygon, tags={"building": True})
+    logger.debug("Downloading buildings from OpenStreetMap and counting population...")
+    buildings = ox.features_from_polygon(polygon, tags={"building": True})
     if not buildings.empty:
         buildings = buildings.loc[
             (buildings["geometry"].geom_type == "Polygon") | (buildings["geometry"].geom_type == "MultiPolygon")
@@ -222,7 +152,7 @@ def download_buildings(
         buildings[is_living_column] = buildings.apply(eval_is_living, axis=1)
         buildings = eval_population(buildings, population_column, area_per_person)
         buildings.reset_index(drop=True, inplace=True)
-        logger.info("Done!")
+        logger.debug("Done!")
         return buildings[
             [
                 "building",
@@ -234,9 +164,9 @@ def download_buildings(
                 "building:levels",
                 "leisure",
                 "design:year",
-                "is_living",
+                is_living_column,
                 "building:levels_is_real",
-                "approximate_pop",
+                population_column,
                 "geometry",
             ]
         ]

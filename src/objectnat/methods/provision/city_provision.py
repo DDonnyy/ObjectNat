@@ -7,7 +7,8 @@ import pandas as pd
 from shapely import LineString
 
 from objectnat import config
-from .provision_exceptions import DemandKeyError, CapacityKeyError
+
+from .provision_exceptions import CapacityKeyError, DemandKeyError
 
 logger = config.logger
 
@@ -232,9 +233,7 @@ def _calc_links(
         services_.index.values
     )
     sel = distribution_links.loc[sel[sel].index.values]
-    distribution_links = distribution_links.set_geometry(sel.apply(subfunc_geom, axis=1)).set_crs(
-        buildings_.crs
-    )
+    distribution_links = distribution_links.set_geometry(sel.apply(subfunc_geom, axis=1)).set_crs(buildings_.crs)
     distribution_links["distance"] = distribution_links["distance"].astype(float).round(2)
     return distribution_links
 
