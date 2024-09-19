@@ -2,8 +2,11 @@ from typing import Literal
 
 import geopandas as gpd
 import pandas as pd
-from loguru import logger
 from sklearn.cluster import DBSCAN, HDBSCAN
+
+from objectnat import config
+
+logger = config.logger
 
 
 def _get_cluster(services_select, min_dist, min_point, method):

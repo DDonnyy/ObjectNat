@@ -4,11 +4,14 @@ from multiprocessing import cpu_count
 import geopandas as gpd
 import numpy as np
 import pandas as pd
-from loguru import logger
 from pandarallel import pandarallel
 from shapely import LineString, MultiPolygon, Point, Polygon
 from shapely.ops import polygonize, unary_union
 from tqdm.contrib.concurrent import process_map
+
+from objectnat import config
+
+logger = config.logger
 
 
 def get_visibility_accurate(point_from: Point, obstacles: gpd.GeoDataFrame, view_distance) -> Polygon:
