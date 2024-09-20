@@ -12,6 +12,8 @@ from .provision_exceptions import CapacityKeyError, DemandKeyError
 
 logger = config.logger
 
+from pandarallel import pandarallel
+
 
 class CityProvision:
     """
@@ -43,10 +45,10 @@ class CityProvision:
     ):
         self.services = self.ensure_services(services)
         self.demanded_buildings = self.ensure_buildings(demanded_buildings)
-        self.adjacency_matrix = adjacency_matrix
+        self.adjacency_matrix = self.delete_useless_matrix_rows(adjacency_matrix.copy(), demanded_buildings, services)
         self.threshold = threshold
         self.check_crs(self.demanded_buildings, self.services)
-        self.delete_useless_matrix_rows(self.adjacency_matrix, self.demanded_buildings)
+        pandarallel.initialize(progress_bar=False, verbose=0)
 
     @staticmethod
     def ensure_buildings(v: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
@@ -71,12 +73,19 @@ class CityProvision:
         ), f"\nThe CRS in the provided geodataframes are different.\nBuildings CRS:{demanded_buildings.crs}\nServices CRS:{services.crs} \n"
 
     @staticmethod
-    def delete_useless_matrix_rows(adjacency_matrix, demanded_buildings):
+    def delete_useless_matrix_rows(adjacency_matrix, demanded_buildings, services):
         adjacency_matrix.index = adjacency_matrix.index.astype(int)
-        indexes = set(demanded_buildings.index.astype(int).tolist())
+
+        builds_indexes = set(demanded_buildings.index.astype(int).tolist())
         rows = set(adjacency_matrix.index.astype(int).tolist())
-        dif = rows ^ indexes
+        dif = rows ^ builds_indexes
         adjacency_matrix.drop(index=(list(dif)), axis=0, inplace=True)
+
+        service_indexes = set(services.index.astype(int).tolist())
+        columns = set(adjacency_matrix.columns.astype(int).tolist())
+        dif = columns ^ service_indexes
+        adjacency_matrix.drop(columns=(list(dif)), axis=0, inplace=True)
+        return adjacency_matrix
 
     def get_provisions(self) -> Tuple[gpd.GeoDataFrame, gpd.GeoDataFrame, gpd.GeoDataFrame]:
         self._destination_matrix = pd.DataFrame(
@@ -90,6 +99,8 @@ class CityProvision:
             len(self.services),
             len(self.demanded_buildings),
         )
+        self.adjacency_matrix = self.adjacency_matrix.where(self.adjacency_matrix <= self.threshold * 3, np.inf)
+
         self._destination_matrix = self._provision_loop_gravity(
             self.demanded_buildings.copy(),
             self.services.copy(),
@@ -126,13 +137,22 @@ class CityProvision:
         distance_matrix: pd.DataFrame,
         selection_range,
         destination_matrix: pd.DataFrame,
-        temp_destination_matrix=None,
+        best_houses=0.9,
     ):
+        def apply_function_based_on_size(df, func, axis, threshold=500):
+            if len(df) > threshold:
+                return df.parallel_apply(func, axis=axis)
+            else:
+                return df.apply(func, axis=axis)
+
         def _calculate_flows_y(loc):
+            import numpy as np
+            import pandas as pd
+
             c = services_table.loc[loc.name]["capacity_left"]
             p = 1 / loc / loc
             p = p / p.sum()
-            threshold = p.quantile(0.9)
+            threshold = p.quantile(best_houses)
             p = p[p >= threshold]
             p = p / p.sum()
             if p.sum() == 0:
@@ -141,9 +161,13 @@ class CityProvision:
             r = pd.Series(0, p.index)
             choice = np.unique(rng.choice(p.index, int(c), p=p.values), return_counts=True)
             choice = r.add(pd.Series(choice[1], choice[0]), fill_value=0)
+
             return choice
 
         def _balance_flows_to_demands(loc):
+            import numpy as np
+            import pandas as pd
+
             d = houses_table.loc[loc.name]["demand_left"]
             loc = loc[loc > 0]
             if loc.sum() > 0:
@@ -159,13 +183,20 @@ class CityProvision:
                 return choice
             return loc
 
-        temp_destination_matrix = distance_matrix.apply(lambda x: _calculate_flows_y(x[x <= selection_range]), axis=1)
+        temp_destination_matrix = apply_function_based_on_size(
+            distance_matrix, lambda x: _calculate_flows_y(x[x <= selection_range]), 1
+        )
+
         temp_destination_matrix = temp_destination_matrix.fillna(0)
-        temp_destination_matrix = temp_destination_matrix.apply(_balance_flows_to_demands)
+
+        temp_destination_matrix = apply_function_based_on_size(temp_destination_matrix, _balance_flows_to_demands, 0)
+
         temp_destination_matrix = temp_destination_matrix.fillna(0)
         destination_matrix = destination_matrix.add(temp_destination_matrix, fill_value=0)
+
         axis_1 = destination_matrix.sum(axis=1)
         axis_0 = destination_matrix.sum(axis=0)
+
         services_table["capacity_left"] = services_table["capacity"].subtract(axis_1, fill_value=0)
         houses_table["demand_left"] = houses_table["demand"].subtract(axis_0, fill_value=0)
 
@@ -174,16 +205,19 @@ class CityProvision:
             columns=houses_table[houses_table["demand_left"] == 0].index.values,
             errors="ignore",
         )
+
+        distance_matrix = distance_matrix.loc[~(distance_matrix == np.inf).all(axis=1)]
+        distance_matrix = distance_matrix.loc[:, ~(distance_matrix == np.inf).all(axis=0)]
+
         selection_range += selection_range
 
+        if best_houses > 0.1:
+            best_houses -= 0.1
+            if best_houses <= 0.1:
+                best_houses = 0
         if len(distance_matrix.columns) > 0 and len(distance_matrix.index) > 0:
             return self._provision_loop_gravity(
-                houses_table,
-                services_table,
-                distance_matrix,
-                selection_range,
-                destination_matrix,
-                temp_destination_matrix,
+                houses_table, services_table, distance_matrix, selection_range, destination_matrix, best_houses
             )
         return destination_matrix
 
