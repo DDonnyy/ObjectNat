@@ -17,7 +17,7 @@
 
 ## Features and how to use
 
-1. **[City graph from OSM (IduEdu)](https://github.com/DDonnyy/IduEdu/blob/main/examples/get_any_graph.ipynb)** - Functions to assemble a road, pedestrian,
+1. **[City graph from OSM (IduEdu)](./examples/get_any_graph.ipynb)** - Functions to assemble a road, pedestrian,
    and public transport graph from OpenStreetMap (OSM) and creating Intermodal graph. 
 
    <img src="https://github.com/user-attachments/assets/8dc98da9-8462-415e-8cc8-bdfca788e206" alt="IntermodalGraph" height="250">

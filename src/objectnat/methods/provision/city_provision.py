@@ -5,14 +5,12 @@ import geopandas as gpd
 import numpy as np
 import pandas as pd
 from shapely import LineString
-
+from pandarallel import pandarallel
 from objectnat import config
 
 from .provision_exceptions import CapacityKeyError, DemandKeyError
 
 logger = config.logger
-
-from pandarallel import pandarallel
 
 
 class CityProvision:
@@ -45,7 +43,7 @@ class CityProvision:
     ):
         self.services = self.ensure_services(services)
         self.demanded_buildings = self.ensure_buildings(demanded_buildings)
-        self.adjacency_matrix = self.delete_useless_matrix_rows(adjacency_matrix.copy(), demanded_buildings, services)
+        self.adjacency_matrix = self.delete_useless_matrix_rows_columns(adjacency_matrix, demanded_buildings, services)
         self.threshold = threshold
         self.check_crs(self.demanded_buildings, self.services)
         pandarallel.initialize(progress_bar=False, verbose=0)
@@ -54,7 +52,6 @@ class CityProvision:
     def ensure_buildings(v: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
         if "demand" not in v.columns:
             raise DemandKeyError
-        v = v.copy()
         v["demand_left"] = v["demand"]
         return v
 
@@ -62,7 +59,6 @@ class CityProvision:
     def ensure_services(v: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
         if "capacity" not in v.columns:
             raise CapacityKeyError
-        v = v.copy()
         v["capacity_left"] = v["capacity"]
         return v
 
@@ -73,7 +69,7 @@ class CityProvision:
         ), f"\nThe CRS in the provided geodataframes are different.\nBuildings CRS:{demanded_buildings.crs}\nServices CRS:{services.crs} \n"
 
     @staticmethod
-    def delete_useless_matrix_rows(adjacency_matrix, demanded_buildings, services):
+    def delete_useless_matrix_rows_columns(adjacency_matrix, demanded_buildings, services):
         adjacency_matrix.index = adjacency_matrix.index.astype(int)
 
         builds_indexes = set(demanded_buildings.index.astype(int).tolist())
@@ -142,12 +138,11 @@ class CityProvision:
         def apply_function_based_on_size(df, func, axis, threshold=500):
             if len(df) > threshold:
                 return df.parallel_apply(func, axis=axis)
-            else:
-                return df.apply(func, axis=axis)
+            return df.apply(func, axis=axis)
 
         def _calculate_flows_y(loc):
-            import numpy as np
-            import pandas as pd
+            import numpy as np  # pylint: disable=redefined-outer-name,reimported,import-outside-toplevel
+            import pandas as pd  # pylint: disable=redefined-outer-name,reimported,import-outside-toplevel
 
             c = services_table.loc[loc.name]["capacity_left"]
             p = 1 / loc / loc
@@ -165,8 +160,8 @@ class CityProvision:
             return choice
 
         def _balance_flows_to_demands(loc):
-            import numpy as np
-            import pandas as pd
+            import numpy as np  # pylint: disable=redefined-outer-name,reimported,import-outside-toplevel
+            import pandas as pd  # pylint: disable=redefined-outer-name,reimported,import-outside-toplevel
 
             d = houses_table.loc[loc.name]["demand_left"]
             loc = loc[loc > 0]
@@ -228,6 +223,11 @@ def _calc_links(
     buildings: gpd.GeoDataFrame,
     distance_matrix: pd.DataFrame,
 ):
+    buildings_ = buildings.copy()
+    services_ = services.copy()
+    buildings_.geometry = buildings_.representative_point()
+    services_.geometry = services_.representative_point()
+
     def subfunc(loc):
         try:
             return [
@@ -244,15 +244,11 @@ def _calc_links(
     def subfunc_geom(loc):
         return LineString(
             (
-                buildings_["geometry"][loc["building_index"]],
-                services_["geometry"][loc["service_index"]],
+                buildings_.geometry[loc["building_index"]],
+                services_.geometry[loc["service_index"]],
             )
         )
 
-    buildings_ = buildings.copy()
-    services_ = services.copy()
-    buildings_.geometry = buildings_.representative_point()
-    services_.geometry = services_.representative_point()
     flat_matrix = destination_matrix.transpose().apply(lambda x: subfunc(x[x > 0]), result_type="reduce")
 
     distribution_links = gpd.GeoDataFrame(data=[item for sublist in list(flat_matrix) for item in sublist])

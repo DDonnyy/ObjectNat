@@ -45,16 +45,19 @@ def get_accessibility_isochrones(
     -------
     tuple[gpd.GeoDataFrame, gpd.GeoDataFrame | None, gpd.GeoDataFrame | None]
         A tuple containing:
-        - isochrones : GeoDataFrame with the calculated isochrone geometries.
-        - public transport stops (if applicable) : GeoDataFrame with public transport stops within the isochrone, or None if not applicable.
-        - public transport routes (if applicable) : GeoDataFrame with public transport routes within the isochrone, or None if not applicable.
+        - isochrones :
+            GeoDataFrame with the calculated isochrone geometries.
+        - public transport stops (if applicable) :
+            GeoDataFrame with public transport stops within the isochrone, or None if not applicable.
+        - public transport routes (if applicable) :
+            GeoDataFrame with public transport routes within the isochrone, or None if not applicable.
 
     Examples
     --------
     >>> from iduedu import get_intermodal_graph
     >>> graph = get_intermodal_graph(polygon=my_territory_polygon)
     >>> points = gpd.GeoDataFrame(geometry=[Point(30.33, 59.95)], crs=4326).to_crs(graph.graph['crs'])
-    >>> isochrones, pt_stops, pt_routes = get_accessibility_isochrones(points, weight_value=15, weight_type="time_min", graph_nx=my_graph)
+    >>> isochrones, pt_stops, pt_routes = get_accessibility_isochrones(points,weight_value=15, weight_type="time_min", graph_nx=my_graph)
 
     """
 

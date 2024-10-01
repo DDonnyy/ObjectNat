@@ -12,6 +12,8 @@ def get_service_provision(
     adjacency_matrix: pd.DataFrame,
     services: gpd.GeoDataFrame,
     threshold: int,
+    buildings_demand_column: str = "demand",
+    services_capacity_column: str = "capacity",
 ) -> Tuple[gpd.GeoDataFrame, gpd.GeoDataFrame, gpd.GeoDataFrame]:
     """Calculate load from buildings with demands on the given services using the distances matrix between them.
 
@@ -20,10 +22,18 @@ def get_service_provision(
         adjacency_matrix (pd.DataFrame): DataFrame representing the adjacency matrix
         buildings (gpd.GeoDataFrame): GeoDataFrame of demanded buildings
         threshold (int): Threshold value
+        buildings_demand_column (str): column name of buildings demands
+        services_capacity_column (str): column name of services capacity
     Returns:
         Tuple[gpd.GeoDataFrame, gpd.GeoDataFrame, gpd.GeoDataFrame]: Tuple of GeoDataFrames representing provision
         buildings, provision services, and provision links
     """
+    buildings = buildings.copy()
+    services = services.copy()
+    adjacency_matrix = adjacency_matrix.copy()
+    buildings["demand"] = buildings[buildings_demand_column]
+    services["capacity"] = services[services_capacity_column]
+
     provision_buildings, provision_services, provision_links = CityProvision(
         services=services,
         demanded_buildings=buildings,
@@ -40,6 +50,9 @@ def clip_provision(
     assert (
         selection_zone.crs == buildings.crs == services.crs == links.crs
     ), f"CRS mismatch: buildings_crs:{buildings.crs}, links_crs:{links.crs} , services_crs:{services.crs}, selection_zone_crs:{selection_zone.crs}"
+    buildings = buildings.copy()
+    links = links.copy()
+    services = services.copy()
 
     s = buildings.intersects(selection_zone.unary_union)
     buildings = buildings.loc[s[s].index]

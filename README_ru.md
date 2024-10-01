@@ -17,7 +17,7 @@
 
 ## Функции и как использовать
 
-1. **[Граф города из OSM (IduEdu)](https://github.com/DDonnyy/IduEdu/blob/main/examples/get_any_graph.ipynb)** — Функции
+1. **[Граф города из OSM (IduEdu)](./examples/get_any_graph.ipynb)** — Функции
    для сборки графа дорог, пешеходных путей и общественного транспорта из OpenStreetMap (OSM) и создания интермодального
    графа.
 

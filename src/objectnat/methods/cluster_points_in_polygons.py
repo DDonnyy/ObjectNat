@@ -21,10 +21,10 @@ def _get_cluster(services_select, min_dist, min_point, method):
     return services_select
 
 
-def _get_service_ratio(loc):
+def _get_service_ratio(loc, service_code_column):
     all_services = loc.shape[0]
-    loc["service_code"] = loc["service_code"].astype(str)
-    services_count = loc.groupby("service_code").size()
+    loc[service_code_column] = loc[service_code_column].astype(str)
+    services_count = loc.groupby(service_code_column).size()
     return (services_count / all_services).round(2)
 
 
@@ -33,6 +33,7 @@ def get_clusters_polygon(
     min_dist: float | int = 100,
     min_point: int = 5,
     method: Literal["DBSCAN", "HDBSCAN"] = "HDBSCAN",
+    service_code_column: str = "service_code",
 ) -> tuple[gpd.GeoDataFrame, gpd.GeoDataFrame]:
     """
     Generate cluster polygons for given points based on a specified minimum distance and minimum points per cluster.
@@ -49,7 +50,8 @@ def get_clusters_polygon(
         Minimum number of points required to form a cluster. Defaults to 5.
     method : Literal["DBSCAN", "HDBSCAN"], optional
         The clustering method to use. Must be either "DBSCAN" or "HDBSCAN". Defaults to "HDBSCAN".
-
+    service_code_column : str, optional
+        Column, containing service type for relative ratio in clasterized polygons. Defaults to "service_code".
     Returns
     -------
     tuple[gpd.GeoDataFrame, gpd.GeoDataFrame]
@@ -72,17 +74,19 @@ def get_clusters_polygon(
 
     services_select = _get_cluster(points, min_dist, min_point, method)
 
-    if "service_code" not in points.columns:
+    if service_code_column not in points.columns:
         logger.warning(
-            "No 'service_code' column in provided GeoDataFrame, cluster polygons will be without relative ratio."
+            f"No {service_code_column} column in provided GeoDataFrame, cluster polygons will be without relative ratio"
         )
-        points["service_code"] = 1
+        points[service_code_column] = service_code_column
 
     services_normal = services_select[services_select["cluster"] != -1]
     services_outlier = services_select[services_select["cluster"] == -1]
 
     if len(services_normal) > 0:
-        cluster_service = services_normal.groupby("cluster", group_keys=True).apply(_get_service_ratio)
+        cluster_service = services_normal.groupby("cluster", group_keys=True).apply(
+            _get_service_ratio, service_code_column=service_code_column
+        )
         if isinstance(cluster_service, pd.Series):
             cluster_service = cluster_service.unstack(level=1, fill_value=0)
 
@@ -98,7 +102,9 @@ def get_clusters_polygon(
         new_clusters = list(range(clusters_outlier, clusters_outlier + len(services_outlier)))
         services_outlier.loc[:, "cluster"] = new_clusters
 
-        cluster_service = services_outlier.groupby("cluster", group_keys=True).apply(_get_service_ratio)
+        cluster_service = services_outlier.groupby("cluster", group_keys=True).apply(
+            _get_service_ratio, service_code_column=service_code_column
+        )
         if isinstance(cluster_service, pd.Series):
             cluster_service = cluster_service.unstack(level=1, fill_value=0)
 

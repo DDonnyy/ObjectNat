@@ -31,7 +31,7 @@ def eval_is_living(row: gpd.GeoSeries):
     >>> buildings = download_buildings(osm_territory_id=421007)
     >>> buildings['is_living'] = buildings.apply(eval_is_living, axis=1)
     """
-    if row["building"] in (
+    return row["building"] in (
         "apartments",
         "house",
         "residential",
@@ -41,10 +41,7 @@ def eval_is_living(row: gpd.GeoSeries):
         "bungalow",
         "cabin",
         "farm",
-    ):
-        return True
-    else:
-        return False
+    )
 
 
 def eval_population(source: gpd.GeoDataFrame, population_column: str, area_per_person: float = 33):
@@ -111,7 +108,8 @@ def download_buildings(
     area_per_person: float = 33,
 ) -> gpd.GeoDataFrame | None:
     """
-    Download building geometries and evaluate 'is_living' and 'population' attributes for a specified territory from OpenStreetMap.
+    Download building geometries and evaluate 'is_living' and 'population'
+     attributes for a specified territory from OpenStreetMap.
 
     Parameters
     ----------
@@ -146,27 +144,27 @@ def download_buildings(
             (buildings["geometry"].geom_type == "Polygon") | (buildings["geometry"].geom_type == "MultiPolygon")
         ]
     if buildings.empty:
-        logger.warning(f"There are no buildings in the specified territory. Output GeoDataFrame is empty.")
+        logger.warning("There are no buildings in the specified territory. Output GeoDataFrame is empty.")
         return buildings
-    else:
-        buildings[is_living_column] = buildings.apply(eval_is_living, axis=1)
-        buildings = eval_population(buildings, population_column, area_per_person)
-        buildings.reset_index(drop=True, inplace=True)
-        logger.debug("Done!")
-        return buildings[
-            [
-                "building",
-                "addr:street",
-                "addr:housenumber",
-                "amenity",
-                "area",
-                "name",
-                "building:levels",
-                "leisure",
-                "design:year",
-                is_living_column,
-                "building:levels_is_real",
-                population_column,
-                "geometry",
-            ]
+
+    buildings[is_living_column] = buildings.apply(eval_is_living, axis=1)
+    buildings = eval_population(buildings, population_column, area_per_person)
+    buildings.reset_index(drop=True, inplace=True)
+    logger.debug("Done!")
+    return buildings[
+        [
+            "building",
+            "addr:street",
+            "addr:housenumber",
+            "amenity",
+            "area",
+            "name",
+            "building:levels",
+            "leisure",
+            "design:year",
+            is_living_column,
+            "building:levels_is_real",
+            population_column,
+            "geometry",
         ]
+    ]
