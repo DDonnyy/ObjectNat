@@ -4,7 +4,7 @@ import geopandas as gpd
 import numpy as np
 import pandas as pd
 
-from .city_provision import CityProvision
+from .provision_model import Provision
 
 
 def get_service_provision(
@@ -34,7 +34,7 @@ def get_service_provision(
     buildings["demand"] = buildings[buildings_demand_column]
     services["capacity"] = services[services_capacity_column]
 
-    provision_buildings, provision_services, provision_links = CityProvision(
+    provision_buildings, provision_services, provision_links = Provision(
         services=services,
         demanded_buildings=buildings,
         adjacency_matrix=adjacency_matrix,

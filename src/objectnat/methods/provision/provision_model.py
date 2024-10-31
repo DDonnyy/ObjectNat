@@ -14,7 +14,7 @@ from .provision_exceptions import CapacityKeyError, DemandKeyError
 logger = config.logger
 
 
-class CityProvision:
+class Provision:
     """
     Represents the logic for city provision calculations using a gravity or linear model.
 
@@ -26,7 +26,7 @@ class CityProvision:
         calculation_type (str, optional): Type of calculation ("gravity" or "linear"). Defaults to "gravity".
 
     Returns:
-        CityProvision: The CityProvision object.
+        Provision: The CityProvision object.
 
     Raises: KeyError: If the 'demand' column is missing in the provided 'demanded_buildings' GeoDataFrame,
     or if the 'capacity' column is missing in the provided 'services' GeoDataFrame. ValueError: If the 'capacity'
@@ -47,7 +47,8 @@ class CityProvision:
         self.adjacency_matrix = self.delete_useless_matrix_rows_columns(adjacency_matrix, demanded_buildings, services)
         self.threshold = threshold
         self.check_crs(self.demanded_buildings, self.services)
-        pandarallel.initialize(progress_bar=False, verbose=0)
+        print(config.pandarallel_use_file_system)
+        pandarallel.initialize(progress_bar=False, verbose=0, use_memory_fs=config.pandarallel_use_file_system)
 
     @staticmethod
     def ensure_buildings(v: gpd.GeoDataFrame) -> gpd.GeoDataFrame:

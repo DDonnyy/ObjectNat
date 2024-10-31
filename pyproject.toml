@@ -21,6 +21,7 @@ population-restorator = "^0.2.3"
 iduedu = "^0.2.0"
 joblib = "^1.4.2"
 scikit-learn = "^1.4.0"
+jupyter = "^1.1.1"
 
 
 [tool.poetry.group.dev.dependencies]
