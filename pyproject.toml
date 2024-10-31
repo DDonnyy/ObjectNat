@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ObjectNat"
-version = "0.2.2"
+version = "0.2.3"
 description = "ObjectNat is an open-source library created for geospatial analysis created by IDU team"
 license = "BSD-3-Clause"
 authors = ["DDonnyy <63115678+DDonnyy@users.noreply.github.com>"]
@@ -16,10 +16,9 @@ geopandas = "^0.14.3"
 tqdm = "^4.66.2"
 pandarallel = "^1.6.5"
 networkx = "^3.2.1"
-networkit = "^11.0"
 pulp = "^2.8.0"
 population-restorator = "^0.2.3"
-iduedu = "^0.1.4"
+iduedu = "^0.2.0"
 joblib = "^1.4.2"
 scikit-learn = "^1.4.0"
 

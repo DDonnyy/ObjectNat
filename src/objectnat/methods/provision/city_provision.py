@@ -4,8 +4,9 @@ from typing import Tuple
 import geopandas as gpd
 import numpy as np
 import pandas as pd
-from shapely import LineString
 from pandarallel import pandarallel
+from shapely import LineString
+
 from objectnat import config
 
 from .provision_exceptions import CapacityKeyError, DemandKeyError
@@ -111,9 +112,6 @@ class CityProvision:
             self._destination_matrix,
             self.threshold,
         )
-
-        # self.demanded_buildings['provision_value'] = self.demanded_buildings['provision_value'].fillna(0)
-        # self.services = self.services.fillna(0)
 
         return (
             self.demanded_buildings,
