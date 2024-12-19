@@ -7,8 +7,6 @@ from shapely import MultiPolygon, Polygon
 
 from objectnat import config
 
-from ..utils import get_utm_crs_for_4326_gdf
-
 logger = config.logger
 
 
@@ -75,8 +73,8 @@ def eval_population(source: gpd.GeoDataFrame, population_column: str, area_per_p
     if "building:levels" not in source.columns:
         raise RuntimeError("No 'building:levels' column in provided GeoDataFrame")
     df = source.copy()
-    local_utm_crs = get_utm_crs_for_4326_gdf(source.to_crs(4326))
-    df["area"] = df.to_crs(local_utm_crs.to_epsg()).geometry.area.astype(float)
+    local_crs = source.estimate_utm_crs()
+    df["area"] = df.to_crs(local_crs).geometry.area.astype(float)
     df["building:levels_is_real"] = df["building:levels"].apply(lambda x: False if pd.isna(x) else True)
     df["building:levels"] = df["building:levels"].fillna(1)
     df["building:levels"] = pd.to_numeric(df["building:levels"], errors="coerce")

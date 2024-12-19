@@ -33,7 +33,7 @@ class Provision:
     column in 'services' or 'demand' column  'demanded_buildings' GeoDataFrame has no valid value.
     """
 
-    _destination_matrix = None
+    destination_matrix = None
 
     def __init__(
         self,
@@ -42,12 +42,13 @@ class Provision:
         adjacency_matrix: pd.DataFrame,
         threshold: int,
     ):
-        self.services = self.ensure_services(services)
-        self.demanded_buildings = self.ensure_buildings(demanded_buildings)
-        self.adjacency_matrix = self.delete_useless_matrix_rows_columns(adjacency_matrix, demanded_buildings, services)
+        self.services = self.ensure_services(services.copy())
+        self.demanded_buildings = self.ensure_buildings(demanded_buildings.copy())
+        self.adjacency_matrix = self.delete_useless_matrix_rows_columns(
+            adjacency_matrix.copy(), demanded_buildings, services
+        ).copy()
         self.threshold = threshold
         self.check_crs(self.demanded_buildings, self.services)
-        print(config.pandarallel_use_file_system)
         pandarallel.initialize(progress_bar=False, verbose=0, use_memory_fs=config.pandarallel_use_file_system)
 
     @staticmethod
@@ -83,63 +84,16 @@ class Provision:
         columns = set(adjacency_matrix.columns.astype(int).tolist())
         dif = columns ^ service_indexes
         adjacency_matrix.drop(columns=(list(dif)), axis=0, inplace=True)
-        return adjacency_matrix
+        return adjacency_matrix.transpose()
 
-    def get_provisions(self) -> Tuple[gpd.GeoDataFrame, gpd.GeoDataFrame, gpd.GeoDataFrame]:
-        self._destination_matrix = pd.DataFrame(
-            0,
-            index=self.adjacency_matrix.columns,
-            columns=self.adjacency_matrix.index,
-        )
-        self.adjacency_matrix = self.adjacency_matrix.transpose()
-        logger.debug(
-            "Calculating provision from {} services to {} buildings.",
-            len(self.services),
-            len(self.demanded_buildings),
-        )
-        self.adjacency_matrix = self.adjacency_matrix.where(self.adjacency_matrix <= self.threshold * 3, np.inf)
+    def run(self) -> Tuple[gpd.GeoDataFrame, gpd.GeoDataFrame, gpd.GeoDataFrame]:
 
-        self._destination_matrix = self._provision_loop_gravity(
-            self.demanded_buildings.copy(),
-            self.services.copy(),
-            self.adjacency_matrix.copy() + 1,
-            self.threshold,
-            self._destination_matrix.copy(),
-        )
-        _additional_options(
-            self.demanded_buildings,
-            self.services,
-            self.adjacency_matrix,
-            self._destination_matrix,
-            self.threshold,
-        )
-
-        return (
-            self.demanded_buildings,
-            self.services,
-            _calc_links(
-                self._destination_matrix,
-                self.services,
-                self.demanded_buildings,
-                self.adjacency_matrix,
-            ),
-        )
-
-    def _provision_loop_gravity(
-        self,
-        houses_table: gpd.GeoDataFrame,
-        services_table: gpd.GeoDataFrame,
-        distance_matrix: pd.DataFrame,
-        selection_range,
-        destination_matrix: pd.DataFrame,
-        best_houses=0.9,
-    ):
-        def apply_function_based_on_size(df, func, axis, threshold=500):
+        def apply_function_based_on_size(df, func, axis, threshold=100):
             if len(df) > threshold:
                 return df.parallel_apply(func, axis=axis)
             return df.apply(func, axis=axis)
 
-        def _calculate_flows_y(loc):
+        def calculate_flows_y(loc):
             import numpy as np  # pylint: disable=redefined-outer-name,reimported,import-outside-toplevel
             import pandas as pd  # pylint: disable=redefined-outer-name,reimported,import-outside-toplevel
 
@@ -158,7 +112,7 @@ class Provision:
 
             return choice
 
-        def _balance_flows_to_demands(loc):
+        def balance_flows_to_demands(loc):
             import numpy as np  # pylint: disable=redefined-outer-name,reimported,import-outside-toplevel
             import pandas as pd  # pylint: disable=redefined-outer-name,reimported,import-outside-toplevel
 
@@ -177,43 +131,104 @@ class Provision:
                 return choice
             return loc
 
-        temp_destination_matrix = apply_function_based_on_size(
-            distance_matrix, lambda x: _calculate_flows_y(x[x <= selection_range]), 1
+        logger.debug(
+            f"Calculating provision from {len(self.services)} services to {len(self.demanded_buildings)} buildings."
         )
 
-        temp_destination_matrix = temp_destination_matrix.fillna(0)
+        distance_matrix = self.adjacency_matrix
+        destination_matrix = pd.DataFrame(
+            0,
+            index=distance_matrix.index,
+            columns=distance_matrix.columns,
+            dtype=int,
+        )
+        distance_matrix = distance_matrix.where(distance_matrix <= self.threshold * 3, np.inf)
 
-        temp_destination_matrix = apply_function_based_on_size(temp_destination_matrix, _balance_flows_to_demands, 0)
-
-        temp_destination_matrix = temp_destination_matrix.fillna(0)
-        destination_matrix = destination_matrix.add(temp_destination_matrix, fill_value=0)
-
-        axis_1 = destination_matrix.sum(axis=1)
-        axis_0 = destination_matrix.sum(axis=0)
-
-        services_table["capacity_left"] = services_table["capacity"].subtract(axis_1, fill_value=0)
-        houses_table["demand_left"] = houses_table["demand"].subtract(axis_0, fill_value=0)
-
+        houses_table = self.demanded_buildings[["demand", "demand_left"]].copy()
+        services_table = self.services[["capacity", "capacity_left"]].copy()
         distance_matrix = distance_matrix.drop(
             index=services_table[services_table["capacity_left"] == 0].index.values,
             columns=houses_table[houses_table["demand_left"] == 0].index.values,
             errors="ignore",
         )
-
         distance_matrix = distance_matrix.loc[~(distance_matrix == np.inf).all(axis=1)]
         distance_matrix = distance_matrix.loc[:, ~(distance_matrix == np.inf).all(axis=0)]
 
-        selection_range += selection_range
+        distance_matrix = distance_matrix + 1
+        selection_range = (self.threshold + 1) / 2
+        best_houses = 0.9
+        while len(distance_matrix.columns) > 0 and len(distance_matrix.index) > 0:
+            objects_n = sum(distance_matrix.shape)
+            logger.debug(
+                f"Matrix shape: {distance_matrix.shape},"
+                f" Total objects: {objects_n},"
+                f" Selection range: {selection_range},"
+                f" Best houses: {best_houses}"
+            )
 
-        if best_houses > 0.1:
-            best_houses -= 0.1
+            temp_destination_matrix = apply_function_based_on_size(
+                distance_matrix, lambda x: calculate_flows_y(x[x <= selection_range]), 1
+            )
+
+            temp_destination_matrix = temp_destination_matrix.fillna(0)
+            temp_destination_matrix = apply_function_based_on_size(temp_destination_matrix, balance_flows_to_demands, 0)
+            temp_destination_matrix = temp_destination_matrix.fillna(0)
+            temp_destination_matrix_aligned = temp_destination_matrix.reindex(
+                index=destination_matrix.index, columns=destination_matrix.columns, fill_value=0
+            )
+            del temp_destination_matrix
+            destination_matrix_np = destination_matrix.to_numpy()
+            temp_destination_matrix_np = temp_destination_matrix_aligned.to_numpy()
+            del temp_destination_matrix_aligned
+            destination_matrix = pd.DataFrame(
+                destination_matrix_np + temp_destination_matrix_np,
+                index=destination_matrix.index,
+                columns=destination_matrix.columns,
+            )
+            del destination_matrix_np, temp_destination_matrix_np
+            axis_1 = destination_matrix.sum(axis=1).astype(int)
+            axis_0 = destination_matrix.sum(axis=0).astype(int)
+
+            services_table["capacity_left"] = services_table["capacity"].subtract(axis_1, fill_value=0)
+            houses_table["demand_left"] = houses_table["demand"].subtract(axis_0, fill_value=0)
+            del axis_1, axis_0
+            distance_matrix = distance_matrix.drop(
+                index=services_table[services_table["capacity_left"] == 0].index.values,
+                columns=houses_table[houses_table["demand_left"] == 0].index.values,
+                errors="ignore",
+            )
+            distance_matrix = distance_matrix.loc[~(distance_matrix == np.inf).all(axis=1)]
+            distance_matrix = distance_matrix.loc[:, ~(distance_matrix == np.inf).all(axis=0)]
+
+            selection_range *= 1.5
             if best_houses <= 0.1:
                 best_houses = 0
-        if len(distance_matrix.columns) > 0 and len(distance_matrix.index) > 0:
-            return self._provision_loop_gravity(
-                houses_table, services_table, distance_matrix, selection_range, destination_matrix, best_houses
-            )
-        return destination_matrix
+            else:
+                objects_n_new = sum(distance_matrix.shape)
+                best_houses = objects_n_new / (objects_n / best_houses)
+
+        logger.debug("Done!")
+        del distance_matrix, houses_table, services_table
+        self.destination_matrix = destination_matrix
+
+        _additional_options(
+            self.demanded_buildings,
+            self.services,
+            self.adjacency_matrix,
+            self.destination_matrix,
+            self.threshold,
+        )
+
+        return (
+            self.demanded_buildings,
+            self.services,
+            _calc_links(
+                self.destination_matrix,
+                self.services,
+                self.demanded_buildings,
+                self.adjacency_matrix,
+            ),
+        )
 
 
 def _calc_links(
@@ -279,8 +294,7 @@ def _additional_options(
     buildings["supplyed_demands_without"] = 0
     services["carried_capacity_within"] = 0
     services["carried_capacity_without"] = 0
-    for i in range(len(destination_matrix)):
-        loc = destination_matrix.iloc[i]
+    for i, loc in destination_matrix.iterrows():
         distances_all = matrix.loc[loc.name]
         distances = distances_all[distances_all <= normative_distance]
         s = matrix.loc[loc.name] <= normative_distance
@@ -306,6 +320,7 @@ def _additional_options(
         services.at[loc.name, "carried_capacity_without"] = (
             services.at[loc.name, "carried_capacity_without"] + without.sum()
         )
+    buildings["min_dist"] = matrix.min(axis=0).replace(np.inf, None)
     buildings["avg_dist"] = (buildings["avg_dist"] / (buildings["demand"] - buildings["demand_left"])).astype(
         np.float32
     )
@@ -318,3 +333,4 @@ def _additional_options(
     buildings["supplyed_demands_without"] = buildings["supplyed_demands_without"].astype(np.uint16)
     services["carried_capacity_within"] = services["carried_capacity_within"].astype(np.uint16)
     services["carried_capacity_without"] = services["carried_capacity_without"].astype(np.uint16)
+    logger.debug("Done adding additional options")
