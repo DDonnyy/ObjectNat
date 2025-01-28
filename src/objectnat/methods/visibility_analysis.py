@@ -8,7 +8,7 @@ from pandarallel import pandarallel
 from shapely import LineString, MultiPolygon, Point, Polygon
 from shapely.ops import polygonize, unary_union
 from tqdm.contrib.concurrent import process_map
-
+from objectnat.methods.utils.geom_utils import polygons_to_linestring, explode_linestring
 from objectnat import config
 
 logger = config.logger
@@ -54,25 +54,20 @@ def get_visibility_accurate(point_from: Point, obstacles: gpd.GeoDataFrame, view
         c_y = a.y + dist * math.sin(direction)
         return Point(c_x, c_y)
 
-    def polygon_to_linestring(geometry: Polygon):
-        """A function to return all segments of a polygon as a list of linestrings"""
-        coords_ext = geometry.exterior.coords  # Create a list of all line node coordinates
-        polygons_inter = [Polygon(x) for x in geometry.interiors]
-        result = [LineString(part) for part in zip(coords_ext, coords_ext[1:])]
-        for poly in polygons_inter:
-            poly_coords = poly.exterior.coords
-            result.extend([LineString(part) for part in zip(poly_coords, poly_coords[1:])])
-        return result
-
     point_buffer = point_from.buffer(view_distance, resolution=32)
+    allowed_geom_types = ["MultiPolygon", "Polygon", "LineString", "MultiLineString"]
+    obstacles = obstacles[obstacles.geom_type.isin(allowed_geom_types)]
     s = obstacles.intersects(point_buffer)
-    buildings_in_buffer = obstacles.loc[s[s].index]
-    # TODO kick all geoms except Polygons/MultiPolygons
-    buildings_in_buffer = buildings_in_buffer.geometry.apply(
-        lambda x: list(x.geoms) if isinstance(x, MultiPolygon) else x
-    ).explode()
+    obstacles_in_buffer = obstacles.loc[s[s].index].geometry
 
-    buildings_lines_in_buffer = gpd.GeoSeries(buildings_in_buffer.apply(polygon_to_linestring).explode())
+    buildings_lines_in_buffer = gpd.GeoSeries(
+        obstacles_in_buffer.apply(polygons_to_linestring)
+        .explode(index_parts=False)
+        .apply(explode_linestring)
+        .explode()
+        .reset_index(drop=True)
+    )
+
     buildings_lines_in_buffer = buildings_lines_in_buffer.loc[buildings_lines_in_buffer.intersects(point_buffer)]
 
     buildings_in_buffer_points = gpd.GeoSeries(
@@ -85,12 +80,10 @@ def get_visibility_accurate(point_from: Point, obstacles: gpd.GeoDataFrame, view
     buildings_lines_in_buffer = gpd.GeoDataFrame(geometry=buildings_lines_in_buffer, crs=obstacles.crs).reset_index(
         drop=True
     )
-    iteration = 0
     while not buildings_lines_in_buffer.empty:
-        iteration += 1
         gdf_sindex = buildings_lines_in_buffer.sindex
         # TODO check if 2 walls are nearest and use the widest angle between points
-        nearest_wall_sind = gdf_sindex.nearest(point_from, return_all=False)
+        nearest_wall_sind = gdf_sindex.nearest(point_from, return_all=False, max_distance=max_dist)
         nearest_wall = buildings_lines_in_buffer.loc[nearest_wall_sind[1]].iloc[0]
         wall_points = [Point(coords) for coords in nearest_wall.geometry.coords]
 
