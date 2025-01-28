@@ -54,6 +54,18 @@ def get_visibility_accurate(point_from: Point, obstacles: gpd.GeoDataFrame, view
         c_y = a.y + dist * math.sin(direction)
         return Point(c_x, c_y)
 
+
+    def point_side_of_line(line, point):
+        """A positive indicates the left-hand side a negative indicates the right-hand side"""
+        x1, y1 = line.coords[0]
+        x2, y2 = line.coords[-1]
+        x, y = point.coords[0]
+        cross_product = (x2 - x1) * (y - y1) - (y2 - y1) * (x - x1)
+        if cross_product > 0:
+            return 1
+        return -1
+
+
     point_buffer = point_from.buffer(view_distance, resolution=32)
     allowed_geom_types = ["MultiPolygon", "Polygon", "LineString", "MultiLineString"]
     obstacles = obstacles[obstacles.geom_type.isin(allowed_geom_types)]
@@ -77,9 +89,11 @@ def get_visibility_accurate(point_from: Point, obstacles: gpd.GeoDataFrame, view
 
     max_dist = max(view_distance, buildings_in_buffer_points.distance(point_from).max())
     polygons = []
+
     buildings_lines_in_buffer = gpd.GeoDataFrame(geometry=buildings_lines_in_buffer, crs=obstacles.crs).reset_index(
         drop=True
     )
+
     while not buildings_lines_in_buffer.empty:
         gdf_sindex = buildings_lines_in_buffer.sindex
         # TODO check if 2 walls are nearest and use the widest angle between points
@@ -91,17 +105,22 @@ def get_visibility_accurate(point_from: Point, obstacles: gpd.GeoDataFrame, view
         points_with_angle = sorted(
             [(pt, math.atan2(pt.y - point_from.y, pt.x - point_from.x)) for pt in wall_points], key=lambda x: x[1]
         )
-
         delta_angle = 2 * math.pi + points_with_angle[0][1] - points_with_angle[-1][1]
-        if delta_angle > math.pi:
-            delta_angle = 2 * math.pi - delta_angle
-        a = math.sqrt((max_dist**2) * (1 + (math.tan(delta_angle / 2) ** 2)))
-        p1 = get_point_from_a_thorough_b(point_from, points_with_angle[0][0], a)
-        p2 = get_point_from_a_thorough_b(point_from, points_with_angle[1][0], a)
-        polygon = Polygon([points_with_angle[0][0], p1, p2, points_with_angle[1][0]])
+        if round(delta_angle, 10) == round(math.pi, 10):
+            wall_b_centroid = buildings_in_buffer.loc[nearest_wall["index"]].centroid
+            p1 = get_point_from_a_thorough_b(point_from, points_with_angle[0][0], max_dist)
+            p2 = get_point_from_a_thorough_b(point_from, points_with_angle[1][0], max_dist)
+            polygon = LineString([p1, p2])
+            polygon = polygon.buffer(distance=max_dist * point_side_of_line(polygon, wall_b_centroid), single_sided=True)
+        else:
+            if delta_angle > math.pi:
+                delta_angle = 2 * math.pi - delta_angle
+            a = math.sqrt((max_dist**2) * (1 + (math.tan(delta_angle / 2) ** 2)))
+            p1 = get_point_from_a_thorough_b(point_from, points_with_angle[0][0], a)
+            p2 = get_point_from_a_thorough_b(point_from, points_with_angle[1][0], a)
+            polygon = Polygon([points_with_angle[0][0], p1, p2, points_with_angle[1][0]])
 
         polygons.append(polygon)
-
         buildings_lines_in_buffer.drop(nearest_wall_sind[1], inplace=True)
 
         lines_to_kick = buildings_lines_in_buffer.within(polygon)
@@ -112,8 +131,13 @@ def get_visibility_accurate(point_from: Point, obstacles: gpd.GeoDataFrame, view
         return res
     res = list(res.geoms)
     polygon_containing_point = None
+
     for polygon in res:
-        if polygon.contains(point_from):
+        print(polygon.intersects(point_from))
+        print(polygon.contains(point_from))
+
+        print('-')
+        if polygon.intersects(point_from):
             polygon_containing_point = polygon
             break
     return polygon_containing_point
