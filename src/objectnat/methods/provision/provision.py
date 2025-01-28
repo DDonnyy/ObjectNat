@@ -4,7 +4,11 @@ import geopandas as gpd
 import numpy as np
 import pandas as pd
 
+from objectnat import config
+
 from .provision_model import Provision
+
+logger = config.logger
 
 
 def get_service_provision(
@@ -39,7 +43,7 @@ def get_service_provision(
         demanded_buildings=buildings,
         adjacency_matrix=adjacency_matrix,
         threshold=threshold,
-    ).get_provisions()
+    ).run()
     return provision_buildings, provision_services, provision_links
 
 
@@ -69,12 +73,12 @@ def recalculate_links(
     services = services.copy()
     links = links.copy()
 
-    max_dist = links["distance"].max()
-    assert new_max_dist <= max_dist, "New distance exceeds max links distance"
-
     links_to_recalculate = links[links["distance"] > new_max_dist]
-    links_to_keep = links[links["distance"] <= new_max_dist]
+    if len(links_to_recalculate) == 0:
+        logger.warning("To clip distance exceeds max links distance, returning full provision")
+        return buildings, services, links
 
+    links_to_keep = links[links["distance"] <= new_max_dist]
     free_demand = links_to_recalculate.groupby("building_index").agg({"demand": list, "distance": list})
     free_demand["distance"] = free_demand.apply(
         lambda x: sum((x1 * x2) for x1, x2 in zip(x.demand, x.distance)), axis=1
