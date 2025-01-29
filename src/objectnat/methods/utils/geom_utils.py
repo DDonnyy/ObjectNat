@@ -1,10 +1,13 @@
-from shapely import LineString, Polygon, MultiPolygon, MultiLineString
+import math
+
+from shapely import LineString, Polygon, MultiPolygon, MultiLineString, Point
 
 from objectnat import config
 
 logger = config.logger
 
-def polygons_to_linestring(geom: Polygon | MultiPolygon):
+
+def polygons_to_multilinestring(geom: Polygon | MultiPolygon):
     def convert_polygon(polygon: Polygon):
         lines = []
         exterior = LineString(polygon.exterior.coords)
@@ -20,8 +23,30 @@ def polygons_to_linestring(geom: Polygon | MultiPolygon):
         return MultiLineString(convert_polygon(geom))
     return convert_multipolygon(geom)
 
+
 def explode_linestring(geometry: LineString) -> list[LineString]:
     """A function to return all segments of a linestring as a list of linestrings"""
     coords_ext = geometry.coords  # Create a list of all line node coordinates
     result = [LineString(part) for part in zip(coords_ext, coords_ext[1:])]
     return result
+
+
+def point_side_of_line(line:LineString, point:Point) ->int:
+    """A positive indicates the left-hand side a negative indicates the right-hand side"""
+    x1, y1 = line.coords[0]
+    x2, y2 = line.coords[-1]
+    x, y = point.coords[0]
+    cross_product = (x2 - x1) * (y - y1) - (y2 - y1) * (x - x1)
+    if cross_product > 0:
+        return 1
+    return -1
+
+
+def get_point_from_a_thorough_b(a: Point, b: Point, dist):
+    """
+    Func to get Point from point a thorough point b on dist
+    """
+    direction = math.atan2(b.y - a.y, b.x - a.x)
+    c_x = a.x + dist * math.cos(direction)
+    c_y = a.y + dist * math.sin(direction)
+    return Point(c_x, c_y)
