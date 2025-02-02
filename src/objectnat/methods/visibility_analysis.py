@@ -19,7 +19,9 @@ from objectnat import config
 logger = config.logger
 
 
-def get_visibility_accurate(point_from: Point, obstacles: gpd.GeoDataFrame, view_distance) -> Polygon:
+def get_visibility_accurate(
+    point_from: Point, obstacles: gpd.GeoDataFrame, view_distance, return_max_view_dist=False
+) -> Polygon | tuple[Polygon, float]:
     """
     Function to get accurate visibility from a given point to buildings within a given distance.
 
@@ -31,11 +33,13 @@ def get_visibility_accurate(point_from: Point, obstacles: gpd.GeoDataFrame, view
         A GeoDataFrame containing the geometry of the obstacles.
     view_distance : float
         The distance of view from the point.
+    return_max_view_dist
+        If True, the max view distance is returned with view polygon in tuple.
 
     Returns
     -------
-    Polygon
-        A polygon representing the area of visibility from the given point.
+    Polygon | tuple[Polygon, float]
+        A polygon representing the area of visibility from the given point or polygon with max view distance.
 
     Notes
     -----
@@ -50,6 +54,17 @@ def get_visibility_accurate(point_from: Point, obstacles: gpd.GeoDataFrame, view
     >>> visibility = get_visibility_accurate(point_from, obstacles, view_distance)
     """
 
+    def find_furthest_point(point_from, view_polygon):
+        try:
+            res = max([Point(coords).distance(point_from) for coords in view_polygon.exterior.coords])
+        except Exception as e:
+            print(view_polygon)
+            raise e
+        return res
+
+    obstacles = obstacles.copy()
+    obstacles.reset_index(inplace=True, drop=True)
+
     point_buffer = point_from.buffer(view_distance, resolution=32)
     allowed_geom_types = ["MultiPolygon", "Polygon", "LineString", "MultiLineString"]
     obstacles = obstacles[obstacles.geom_type.isin(allowed_geom_types)]
@@ -59,9 +74,7 @@ def get_visibility_accurate(point_from: Point, obstacles: gpd.GeoDataFrame, view
     buildings_lines_in_buffer = gpd.GeoSeries(
         pd.Series(
             obstacles_in_buffer.apply(polygons_to_multilinestring).explode(index_parts=False).apply(explode_linestring)
-        )
-        .explode()
-        .reset_index(drop=True)
+        ).explode()
     )
 
     buildings_lines_in_buffer = buildings_lines_in_buffer.loc[buildings_lines_in_buffer.intersects(point_buffer)]
@@ -73,11 +86,8 @@ def get_visibility_accurate(point_from: Point, obstacles: gpd.GeoDataFrame, view
 
     max_dist = max(view_distance, buildings_in_buffer_points.distance(point_from).max())
     polygons = []
-
-    buildings_lines_in_buffer = gpd.GeoDataFrame(geometry=buildings_lines_in_buffer, crs=obstacles.crs).reset_index(
-        drop=True
-    )
-
+    buildings_lines_in_buffer = gpd.GeoDataFrame(geometry=buildings_lines_in_buffer, crs=obstacles.crs).reset_index()
+    logger.debug("Calculation vis polygon")
     while not buildings_lines_in_buffer.empty:
         gdf_sindex = buildings_lines_in_buffer.sindex
         # TODO check if 2 walls are nearest and use the widest angle between points
@@ -109,11 +119,19 @@ def get_visibility_accurate(point_from: Point, obstacles: gpd.GeoDataFrame, view
         polygons.append(polygon)
         buildings_lines_in_buffer.drop(nearest_wall_sind[1], inplace=True)
 
+        if not polygon.is_valid or polygon.area < 1:
+            buildings_lines_in_buffer.reset_index(drop=True, inplace=True)
+            continue
+
         lines_to_kick = buildings_lines_in_buffer.within(polygon)
         buildings_lines_in_buffer = buildings_lines_in_buffer.loc[~lines_to_kick]
         buildings_lines_in_buffer.reset_index(drop=True, inplace=True)
-    res = point_buffer.difference(unary_union(polygons))
+    logger.debug("Done calculating!")
+    res = point_buffer.difference(unary_union(polygons + obstacles_in_buffer.to_list()))
+
     if isinstance(res, Polygon):
+        if return_max_view_dist:
+            return res, find_furthest_point(point_from, res)
         return res
     res = list(res.geoms)
     polygon_containing_point = None
@@ -122,6 +140,8 @@ def get_visibility_accurate(point_from: Point, obstacles: gpd.GeoDataFrame, view
         if polygon.intersects(point_from):
             polygon_containing_point = polygon
             break
+    if return_max_view_dist:
+        return polygon_containing_point, find_furthest_point(point_from, polygon_containing_point)
     return polygon_containing_point
 
 
