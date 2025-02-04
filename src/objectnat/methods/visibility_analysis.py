@@ -113,7 +113,7 @@ def get_visibility_accurate(
                 delta_angle = 2 * math.pi - delta_angle
             a = math.sqrt((max_dist**2) * (1 + (math.tan(delta_angle / 2) ** 2)))
             p1 = get_point_from_a_thorough_b(point_from, points_with_angle[0][0], a)
-            p2 = get_point_from_a_thorough_b(point_from, points_with_angle[1][0], a)
+            p2 = get_point_from_a_thorough_b(point_from, points_with_angle[-1][0], a)
             polygon = Polygon([points_with_angle[0][0], p1, p2, points_with_angle[1][0]])
 
         polygons.append(polygon)
