@@ -56,7 +56,7 @@ def get_visibility_accurate(
 
     def find_furthest_point(point_from, view_polygon):
         try:
-            res = max([Point(coords).distance(point_from) for coords in view_polygon.exterior.coords])
+            res = round(max([Point(coords).distance(point_from) for coords in view_polygon.exterior.coords]),1)
         except Exception as e:
             print(view_polygon)
             raise e
