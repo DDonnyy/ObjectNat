@@ -8,13 +8,14 @@ from pandarallel import pandarallel
 from shapely import LineString, MultiPolygon, Point, Polygon
 from shapely.ops import polygonize, unary_union
 from tqdm.contrib.concurrent import process_map
+
+from objectnat import config
 from objectnat.methods.utils.geom_utils import (
-    polygons_to_multilinestring,
     explode_linestring,
     get_point_from_a_thorough_b,
     point_side_of_line,
+    polygons_to_multilinestring,
 )
-from objectnat import config
 
 logger = config.logger
 
@@ -56,7 +57,7 @@ def get_visibility_accurate(
 
     def find_furthest_point(point_from, view_polygon):
         try:
-            res = round(max([Point(coords).distance(point_from) for coords in view_polygon.exterior.coords]),1)
+            res = round(max(Point(coords).distance(point_from) for coords in view_polygon.exterior.coords), 1)
         except Exception as e:
             print(view_polygon)
             raise e

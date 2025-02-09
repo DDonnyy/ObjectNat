@@ -42,6 +42,7 @@ max-locals = 20
 extension-pkg-allow-list = ["networkit"]
 disable = [
     "duplicate-code",
+    "too-many-positional-arguments",
     "missing-module-docstring",
     "missing-function-docstring",
     "too-many-locals",

@@ -1,6 +1,8 @@
 import math
 
-from shapely import LineString, Polygon, MultiPolygon, MultiLineString, Point
+import geopandas as gpd
+from shapely import LineString, MultiLineString, MultiPolygon, Point, Polygon
+from shapely.ops import polygonize, unary_union
 
 from objectnat import config
 
@@ -31,7 +33,7 @@ def explode_linestring(geometry: LineString) -> list[LineString]:
     return result
 
 
-def point_side_of_line(line:LineString, point:Point) ->int:
+def point_side_of_line(line: LineString, point: Point) -> int:
     """A positive indicates the left-hand side a negative indicates the right-hand side"""
     x1, y1 = line.coords[0]
     x2, y2 = line.coords[-1]
@@ -50,3 +52,28 @@ def get_point_from_a_thorough_b(a: Point, b: Point, dist):
     c_x = a.x + dist * math.cos(direction)
     c_y = a.y + dist * math.sin(direction)
     return Point(c_x, c_y)
+
+
+def gdf_to_circle_zones_from_point(
+    gdf: gpd.GeoDataFrame, point_from: Point, zone_radius, resolution=4, explode_multigeom=True
+) -> gpd.GeoDataFrame:
+    """n_segments = 4*resolution,e.g. if resolution = 4 that means there will be 16 segments"""
+    crs = gdf.crs
+    buffer = point_from.buffer(zone_radius, resolution=resolution)
+    gdf_unary = gdf.clip(buffer, keep_geom_type=True).unary_union
+    gdf_geometry = (
+        gpd.GeoDataFrame(geometry=[gdf_unary], crs=crs)
+        .explode(index_parts=True)
+        .geometry.apply(polygons_to_multilinestring)
+        .unary_union
+    )
+    zones_lines = [LineString([Point(coords1), Point(point_from)]) for coords1 in buffer.exterior.coords[:-1]]
+    if explode_multigeom:
+        return (
+            gpd.GeoDataFrame(geometry=list(polygonize(unary_union([gdf_geometry] + zones_lines))), crs=crs)
+            .clip(gdf_unary, keep_geom_type=True)
+            .explode(index_parts=False)
+        )
+    return gpd.GeoDataFrame(geometry=list(polygonize(unary_union([gdf_geometry] + zones_lines))), crs=crs).clip(
+        gdf_unary, keep_geom_type=True
+    )
