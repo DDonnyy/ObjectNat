@@ -51,9 +51,12 @@ def clip_provision(
     buildings: gpd.GeoDataFrame, services: gpd.GeoDataFrame, links: gpd.GeoDataFrame, selection_zone: gpd.GeoDataFrame
 ) -> Tuple[gpd.GeoDataFrame, gpd.GeoDataFrame, gpd.GeoDataFrame]:
 
-    assert (
-        selection_zone.crs == buildings.crs == services.crs == links.crs
-    ), f"CRS mismatch: buildings_crs:{buildings.crs}, links_crs:{links.crs} , services_crs:{services.crs}, selection_zone_crs:{selection_zone.crs}"
+    assert selection_zone.crs == buildings.crs == services.crs == links.crs, (
+        f"CRS mismatch: buildings_crs:{buildings.crs}, "
+        f"links_crs:{links.crs} , "
+        f"services_crs:{services.crs}, "
+        f"selection_zone_crs:{selection_zone.crs}"
+    )
     buildings = buildings.copy()
     links = links.copy()
     services = services.copy()

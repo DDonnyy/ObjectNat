@@ -19,9 +19,9 @@ class Provision:
     Represents the logic for city provision calculations using a gravity or linear model.
 
     Args:
-        services (InstanceOf[gpd.GeoDataFrame]): GeoDataFrame representing the services available in the city.
-        demanded_buildings (InstanceOf[gpd.GeoDataFrame]): GeoDataFrame representing the buildings with demands for services.
-        adjacency_matrix (InstanceOf[pd.DataFrame]): DataFrame representing the adjacency matrix between buildings.
+        services (gpd.GeoDataFrame): GeoDataFrame representing the services available in the city.
+        demanded_buildings (gpd.GeoDataFrame): GeoDataFrame representing the buildings with demands for services.
+        adjacency_matrix (pd.DataFrame): DataFrame representing the adjacency matrix between buildings.
         threshold (int): Threshold value for the provision calculations.
         calculation_type (str, optional): Type of calculation ("gravity" or "linear"). Defaults to "gravity".
 
@@ -67,9 +67,11 @@ class Provision:
 
     @staticmethod
     def check_crs(demanded_buildings, services):
-        assert (
-            demanded_buildings.crs == services.crs
-        ), f"\nThe CRS in the provided geodataframes are different.\nBuildings CRS:{demanded_buildings.crs}\nServices CRS:{services.crs} \n"
+        assert demanded_buildings.crs == services.crs, (
+            f"\nThe CRS in the provided geodataframes are different."
+            f"\nBuildings CRS:{demanded_buildings.crs}"
+            f"\nServices CRS:{services.crs}"
+        )
 
     @staticmethod
     def delete_useless_matrix_rows_columns(adjacency_matrix, demanded_buildings, services):
@@ -294,7 +296,7 @@ def _additional_options(
     buildings["supplyed_demands_without"] = 0
     services["carried_capacity_within"] = 0
     services["carried_capacity_without"] = 0
-    for i, loc in destination_matrix.iterrows():
+    for _, loc in destination_matrix.iterrows():
         distances_all = matrix.loc[loc.name]
         distances = distances_all[distances_all <= normative_distance]
         s = matrix.loc[loc.name] <= normative_distance

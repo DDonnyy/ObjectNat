@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ObjectNat"
-version = "0.2.6"
+version = "0.2.7"
 description = "ObjectNat is an open-source library created for geospatial analysis created by IDU team"
 license = "BSD-3-Clause"
 authors = ["DDonnyy <63115678+DDonnyy@users.noreply.github.com>"]
@@ -42,6 +42,7 @@ max-locals = 20
 extension-pkg-allow-list = ["networkit"]
 disable = [
     "duplicate-code",
+    "too-many-positional-arguments",
     "missing-module-docstring",
     "missing-function-docstring",
     "too-many-locals",

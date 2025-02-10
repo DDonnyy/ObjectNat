@@ -10,11 +10,19 @@ from shapely.ops import polygonize, unary_union
 from tqdm.contrib.concurrent import process_map
 
 from objectnat import config
+from objectnat.methods.utils.geom_utils import (
+    explode_linestring,
+    get_point_from_a_thorough_b,
+    point_side_of_line,
+    polygons_to_multilinestring,
+)
 
 logger = config.logger
 
 
-def get_visibility_accurate(point_from: Point, obstacles: gpd.GeoDataFrame, view_distance) -> Polygon:
+def get_visibility_accurate(
+    point_from: Point, obstacles: gpd.GeoDataFrame, view_distance, return_max_view_dist=False
+) -> Polygon | tuple[Polygon, float]:
     """
     Function to get accurate visibility from a given point to buildings within a given distance.
 
@@ -26,11 +34,13 @@ def get_visibility_accurate(point_from: Point, obstacles: gpd.GeoDataFrame, view
         A GeoDataFrame containing the geometry of the obstacles.
     view_distance : float
         The distance of view from the point.
+    return_max_view_dist
+        If True, the max view distance is returned with view polygon in tuple.
 
     Returns
     -------
-    Polygon
-        A polygon representing the area of visibility from the given point.
+    Polygon | tuple[Polygon, float]
+        A polygon representing the area of visibility from the given point or polygon with max view distance.
 
     Notes
     -----
@@ -45,34 +55,29 @@ def get_visibility_accurate(point_from: Point, obstacles: gpd.GeoDataFrame, view
     >>> visibility = get_visibility_accurate(point_from, obstacles, view_distance)
     """
 
-    def get_point_from_a_thorough_b(a: Point, b: Point, dist):
-        """
-        Func to get Point from point a thorough point b on dist
-        """
-        direction = math.atan2(b.y - a.y, b.x - a.x)
-        c_x = a.x + dist * math.cos(direction)
-        c_y = a.y + dist * math.sin(direction)
-        return Point(c_x, c_y)
+    def find_furthest_point(point_from, view_polygon):
+        try:
+            res = round(max(Point(coords).distance(point_from) for coords in view_polygon.exterior.coords), 1)
+        except Exception as e:
+            print(view_polygon)
+            raise e
+        return res
 
-    def polygon_to_linestring(geometry: Polygon):
-        """A function to return all segments of a polygon as a list of linestrings"""
-        coords_ext = geometry.exterior.coords  # Create a list of all line node coordinates
-        polygons_inter = [Polygon(x) for x in geometry.interiors]
-        result = [LineString(part) for part in zip(coords_ext, coords_ext[1:])]
-        for poly in polygons_inter:
-            poly_coords = poly.exterior.coords
-            result.extend([LineString(part) for part in zip(poly_coords, poly_coords[1:])])
-        return result
+    obstacles = obstacles.copy()
+    obstacles.reset_index(inplace=True, drop=True)
 
     point_buffer = point_from.buffer(view_distance, resolution=32)
+    allowed_geom_types = ["MultiPolygon", "Polygon", "LineString", "MultiLineString"]
+    obstacles = obstacles[obstacles.geom_type.isin(allowed_geom_types)]
     s = obstacles.intersects(point_buffer)
-    buildings_in_buffer = obstacles.loc[s[s].index]
-    # TODO kick all geoms except Polygons/MultiPolygons
-    buildings_in_buffer = buildings_in_buffer.geometry.apply(
-        lambda x: list(x.geoms) if isinstance(x, MultiPolygon) else x
-    ).explode()
+    obstacles_in_buffer = obstacles.loc[s[s].index].geometry
 
-    buildings_lines_in_buffer = gpd.GeoSeries(buildings_in_buffer.apply(polygon_to_linestring).explode())
+    buildings_lines_in_buffer = gpd.GeoSeries(
+        pd.Series(
+            obstacles_in_buffer.apply(polygons_to_multilinestring).explode(index_parts=False).apply(explode_linestring)
+        ).explode()
+    )
+
     buildings_lines_in_buffer = buildings_lines_in_buffer.loc[buildings_lines_in_buffer.intersects(point_buffer)]
 
     buildings_in_buffer_points = gpd.GeoSeries(
@@ -82,15 +87,12 @@ def get_visibility_accurate(point_from: Point, obstacles: gpd.GeoDataFrame, view
 
     max_dist = max(view_distance, buildings_in_buffer_points.distance(point_from).max())
     polygons = []
-    buildings_lines_in_buffer = gpd.GeoDataFrame(geometry=buildings_lines_in_buffer, crs=obstacles.crs).reset_index(
-        drop=True
-    )
-    iteration = 0
+    buildings_lines_in_buffer = gpd.GeoDataFrame(geometry=buildings_lines_in_buffer, crs=obstacles.crs).reset_index()
+    logger.debug("Calculation vis polygon")
     while not buildings_lines_in_buffer.empty:
-        iteration += 1
         gdf_sindex = buildings_lines_in_buffer.sindex
         # TODO check if 2 walls are nearest and use the widest angle between points
-        nearest_wall_sind = gdf_sindex.nearest(point_from, return_all=False)
+        nearest_wall_sind = gdf_sindex.nearest(point_from, return_all=False, max_distance=max_dist)
         nearest_wall = buildings_lines_in_buffer.loc[nearest_wall_sind[1]].iloc[0]
         wall_points = [Point(coords) for coords in nearest_wall.geometry.coords]
 
@@ -98,31 +100,49 @@ def get_visibility_accurate(point_from: Point, obstacles: gpd.GeoDataFrame, view
         points_with_angle = sorted(
             [(pt, math.atan2(pt.y - point_from.y, pt.x - point_from.x)) for pt in wall_points], key=lambda x: x[1]
         )
-
         delta_angle = 2 * math.pi + points_with_angle[0][1] - points_with_angle[-1][1]
-        if delta_angle > math.pi:
-            delta_angle = 2 * math.pi - delta_angle
-        a = math.sqrt((max_dist**2) * (1 + (math.tan(delta_angle / 2) ** 2)))
-        p1 = get_point_from_a_thorough_b(point_from, points_with_angle[0][0], a)
-        p2 = get_point_from_a_thorough_b(point_from, points_with_angle[1][0], a)
-        polygon = Polygon([points_with_angle[0][0], p1, p2, points_with_angle[1][0]])
+        if round(delta_angle, 10) == round(math.pi, 10):
+            wall_b_centroid = obstacles_in_buffer.loc[nearest_wall["index"]].centroid
+            p1 = get_point_from_a_thorough_b(point_from, points_with_angle[0][0], max_dist)
+            p2 = get_point_from_a_thorough_b(point_from, points_with_angle[1][0], max_dist)
+            polygon = LineString([p1, p2])
+            polygon = polygon.buffer(
+                distance=max_dist * point_side_of_line(polygon, wall_b_centroid), single_sided=True
+            )
+        else:
+            if delta_angle > math.pi:
+                delta_angle = 2 * math.pi - delta_angle
+            a = math.sqrt((max_dist**2) * (1 + (math.tan(delta_angle / 2) ** 2)))
+            p1 = get_point_from_a_thorough_b(point_from, points_with_angle[0][0], a)
+            p2 = get_point_from_a_thorough_b(point_from, points_with_angle[-1][0], a)
+            polygon = Polygon([points_with_angle[0][0], p1, p2, points_with_angle[1][0]])
 
         polygons.append(polygon)
-
         buildings_lines_in_buffer.drop(nearest_wall_sind[1], inplace=True)
+
+        if not polygon.is_valid or polygon.area < 1:
+            buildings_lines_in_buffer.reset_index(drop=True, inplace=True)
+            continue
 
         lines_to_kick = buildings_lines_in_buffer.within(polygon)
         buildings_lines_in_buffer = buildings_lines_in_buffer.loc[~lines_to_kick]
         buildings_lines_in_buffer.reset_index(drop=True, inplace=True)
-    res = point_buffer.difference(unary_union(polygons))
+    logger.debug("Done calculating!")
+    res = point_buffer.difference(unary_union(polygons + obstacles_in_buffer.to_list()))
+
     if isinstance(res, Polygon):
+        if return_max_view_dist:
+            return res, find_furthest_point(point_from, res)
         return res
     res = list(res.geoms)
     polygon_containing_point = None
+
     for polygon in res:
-        if polygon.contains(point_from):
+        if polygon.intersects(point_from):
             polygon_containing_point = polygon
             break
+    if return_max_view_dist:
+        return polygon_containing_point, find_furthest_point(point_from, polygon_containing_point)
     return polygon_containing_point
 
 
