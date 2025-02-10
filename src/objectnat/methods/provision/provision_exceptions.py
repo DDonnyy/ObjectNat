@@ -7,7 +7,7 @@ class CapacityKeyError(KeyError):
 
     def __str__(self):
         if self.message:
-            return "CapacityKeyError, {0} ".format(self.message)
+            return f"CapacityKeyError, {self.message} "
 
         return (
             "Column 'capacity' was not found in provided 'services' GeoDataFrame. This attribute "
@@ -24,7 +24,7 @@ class CapacityValueError(ValueError):
 
     def __str__(self):
         if self.message:
-            return "CapacityValueError, {0} ".format(self.message)
+            return f"CapacityValueError, {self.message} "
 
         return "Column 'capacity' in 'services' GeoDataFrame  has no valid value."
 
@@ -38,7 +38,7 @@ class DemandKeyError(KeyError):
 
     def __str__(self):
         if self.message:
-            return "DemandKeyError, {0} ".format(self.message)
+            return f"DemandKeyError, {self.message} "
 
         return (
             "The column 'demand' was not found in the provided 'demanded_buildings' GeoDataFrame. "
@@ -55,5 +55,5 @@ class DemandValueError(ValueError):
 
     def __str__(self):
         if self.message:
-            return "DemandValueError, {0} ".format(self.message)
+            return f"DemandValueError, {self.message} "
         return "Column 'demand' in 'demanded_buildings' GeoDataFrame  has no valid value."

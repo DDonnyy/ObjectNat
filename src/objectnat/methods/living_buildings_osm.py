@@ -75,7 +75,7 @@ def eval_population(source: gpd.GeoDataFrame, population_column: str, area_per_p
     df = source.copy()
     local_crs = source.estimate_utm_crs()
     df["area"] = df.to_crs(local_crs).geometry.area.astype(float)
-    df["building:levels_is_real"] = df["building:levels"].apply(lambda x: False if pd.isna(x) else True)
+    df["building:levels_is_real"] = df["building:levels"].apply(lambda x: not pd.isna(x))
     df["building:levels"] = df["building:levels"].fillna(1)
     df["building:levels"] = pd.to_numeric(df["building:levels"], errors="coerce")
     df = df.dropna(subset=["building:levels"])
@@ -126,7 +126,7 @@ def download_buildings(
     Returns
     -------
     gpd.GeoDataFrame or None
-        A GeoDataFrame containing building geometries and attributes, or None if no buildings are found or an error occurs.
+        A GeoDataFrame containing building geometries and attributes, or None if no buildings are found.
 
     Examples
     --------
