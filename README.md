@@ -52,8 +52,8 @@ results. Points can be generated using a road graph and random point distributio
 considering obstacles, trees, and environmental factors.
 **[Detailed information in Wiki](https://github.com/DDonnyy/ObjectNat/wiki/Noise-simulation)**
 
-   <img src="https://github.com/user-attachments/assets/5f2b3c55-9a02-4d70-80f4-503b77023eda" alt="noise_sim" height="250">
-   
+   <img src="https://github.com/user-attachments/assets/dd185867-67c4-4d03-8905-d06dd1d36fb3" alt="noise_sim" height="250">
+
 8. **[Point clusterization](./examples/point_clusterization.ipynb)** - Function to generate cluster polygons for given
 points based on a specified minimum distance and minimum points per cluster. Optionally, calculate the relative ratio
 between types of services within the clusters.
