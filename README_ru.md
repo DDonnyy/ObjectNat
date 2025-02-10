@@ -50,7 +50,7 @@
 
 7. **[Симуляция шума](./examples/noise_simulation.ipynb)** - Функция для симуляции шумового распространения от
 источник-а(ов) с учётом характеристик источника, препятствий и зелёных насаждений 
-**[Больше информации на странице Wiki](https://github.com/DDonnyy/ObjectNat/wiki/Симуляция-шумового-распространения)**
+**[Больше информации на странице Wiki](https://github.com/user-attachments/assets/dd185867-67c4-4d03-8905-d06dd1d36fb3)**
 
    <img src="https://github.com/user-attachments/assets/5f2b3c55-9a02-4d70-80f4-503b77023eda" alt="noise_sim" height="250">
 
