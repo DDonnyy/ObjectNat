@@ -292,8 +292,8 @@ def _additional_options(
     normative_distance,
 ):
     buildings["avg_dist"] = 0
-    buildings["supplyed_demands_within"] = 0
-    buildings["supplyed_demands_without"] = 0
+    buildings["supplied_demands_within"] = 0
+    buildings["supplied_demands_without"] = 0
     services["carried_capacity_within"] = 0
     services["carried_capacity_without"] = 0
     for _, loc in destination_matrix.iterrows():
@@ -310,8 +310,8 @@ def _additional_options(
             .add(distances_all.multiply(without, fill_value=0), fill_value=0)
         )
         buildings["demand_left"] = buildings["demand_left"].sub(within.add(without, fill_value=0), fill_value=0)
-        buildings["supplyed_demands_within"] = buildings["supplyed_demands_within"].add(within, fill_value=0)
-        buildings["supplyed_demands_without"] = buildings["supplyed_demands_without"].add(without, fill_value=0)
+        buildings["supplied_demands_within"] = buildings["supplied_demands_within"].add(within, fill_value=0)
+        buildings["supplied_demands_without"] = buildings["supplied_demands_without"].add(without, fill_value=0)
 
         services.at[loc.name, "capacity_left"] = (
             services.at[loc.name, "capacity_left"] - within.add(without, fill_value=0).sum()
@@ -329,10 +329,10 @@ def _additional_options(
     buildings["avg_dist"] = buildings.apply(
         lambda x: np.nan if (x["demand"] == x["demand_left"]) else round(x["avg_dist"], 2), axis=1
     )
-    buildings["provison_value"] = (buildings["supplyed_demands_within"] / buildings["demand"]).astype(float).round(2)
+    buildings["provision_value"] = (buildings["supplied_demands_within"] / buildings["demand"]).astype(float).round(2)
     services["service_load"] = (services["capacity"] - services["capacity_left"]).astype(np.uint16)
-    buildings["supplyed_demands_within"] = buildings["supplyed_demands_within"].astype(np.uint16)
-    buildings["supplyed_demands_without"] = buildings["supplyed_demands_without"].astype(np.uint16)
+    buildings["supplied_demands_within"] = buildings["supplied_demands_within"].astype(np.uint16)
+    buildings["supplied_demands_without"] = buildings["supplied_demands_without"].astype(np.uint16)
     services["carried_capacity_within"] = services["carried_capacity_within"].astype(np.uint16)
     services["carried_capacity_without"] = services["carried_capacity_without"].astype(np.uint16)
     logger.debug("Done adding additional options")

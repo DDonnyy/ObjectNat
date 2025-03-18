@@ -21,11 +21,18 @@ iduedu = "^0.2.2"
 scikit-learn = "^1.4.0"
 
 
+
+
 [tool.poetry.group.dev.dependencies]
 black = "^24.2.0"
 pylint = "^3.0.3"
 isort = "^5.13.2"
 jupyter = "^1.0.0"
+pytest = "^8.3.5"
+pytest-cov = "^6.0.0"
+folium = "^0.19.5"
+matplotlib = "^3.10.1"
+mapclassify = "^2.8.1"
 
 [build-system]
 requires = ["poetry-core"]

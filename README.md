@@ -2,6 +2,9 @@
 
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![PyPI version](https://img.shields.io/pypi/v/objectnat.svg)](https://pypi.org/project/objectnat/)
+[![CI](https://github.com/DDonnyy/ObjecNat/actions/workflows/ci_pipeline.yml/badge.svg)](https://github.com/DDonnyy/ObjecNat/actions/workflows/ci_pipeline.yml)
+[![Coverage](https://codecov.io/gh/DDonnyy/ObjecNat/graph/badge.svg?token=VN8CBP8ZW3)](https://codecov.io/gh/DDonnyy/ObjecNat)
+[![License](https://img.shields.io/badge/license-BSD--3--Clause-blue.svg)](https://opensource.org/licenses/MIT)
 
 - [РИДМИ (Russian)](README_ru.md)
 <p align="center">

@@ -88,14 +88,14 @@ def recalculate_links(
     )
     free_demand["demand"] = free_demand["demand"].apply(sum)
     free_demand = free_demand.reindex(buildings.index, fill_value=0)
-    new_sum_time = (buildings["supplyed_demands_within"] + buildings["supplyed_demands_without"]) * buildings[
+    new_sum_time = (buildings["supplied_demands_within"] + buildings["supplied_demands_without"]) * buildings[
         "avg_dist"
     ] - free_demand["distance"]
 
     buildings["demand_left"] = buildings["demand_left"] + free_demand["demand"]
-    buildings["supplyed_demands_without"] = buildings["supplyed_demands_without"] - free_demand["demand"]
+    buildings["supplied_demands_without"] = buildings["supplied_demands_without"] - free_demand["demand"]
     buildings["avg_dist"] = new_sum_time / (
-        buildings["supplyed_demands_without"] + buildings["supplyed_demands_within"]
+        buildings["supplied_demands_without"] + buildings["supplied_demands_within"]
     )
     buildings["avg_dist"] = buildings.apply(
         lambda x: np.nan if (x["demand"] == x["demand_left"]) else round(x["avg_dist"], 2), axis=1
