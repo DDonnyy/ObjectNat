@@ -3,7 +3,7 @@ from typing import Literal
 import geopandas as gpd
 import networkx as nx
 
-from .isochrones import get_accessibility_isochrones
+from objectnat.methods.isochrones import get_accessibility_isochrones
 
 
 def get_radius_zone_coverage(services: gpd.GeoDataFrame, radius: int) -> gpd.GeoDataFrame:

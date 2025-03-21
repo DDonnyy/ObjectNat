@@ -5,7 +5,6 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 from osmnx import graph_to_gdfs
-from pyproj import CRS
 from scipy.spatial import KDTree
 from shapely import Point
 from shapely.ops import unary_union
@@ -60,11 +59,12 @@ def get_accessibility_isochrones(
     >>> isochrones, stops, routes = get_accessibility_isochrones(points,15,weight_type="time_min", graph_nx=graph)
 
     """
+    if weight_value <= 0:
+        raise ValueError("Weight value must be greater than 0")
+    if weight_type not in ["time_min", "length_meter"]:
+        raise UserWarning("Weight type should be either 'time_min' or 'length_meter'")
 
-    assert points.crs == CRS.from_epsg(
-        graph_nx.graph["crs"]
-    ), f'CRS mismatch , points.crs = {points.crs.to_epsg()}, graph["crs"] = {graph_nx.graph["crs"]}'
-
+    points = points.to_crs(graph_nx.graph["crs"])
     nodes_with_data = list(graph_nx.nodes(data=True))
     logger.info("Calculating isochrones distances...")
     coordinates = np.array([(data["x"], data["y"]) for node, data in nodes_with_data])

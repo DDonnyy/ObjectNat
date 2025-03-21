@@ -1,7 +1,5 @@
 # pylint: disable=unused-import,wildcard-import,unused-wildcard-import
-from iduedu import *
 
-from .methods.balanced_buildings import get_balanced_buildings
 from .methods.cluster_points_in_polygons import get_clusters_polygon
 from .methods.coverage_zones import get_isochrone_zone_coverage, get_radius_zone_coverage
 from .methods.isochrones import get_accessibility_isochrones

@@ -23,7 +23,6 @@ class Provision:
         demanded_buildings (gpd.GeoDataFrame): GeoDataFrame representing the buildings with demands for services.
         adjacency_matrix (pd.DataFrame): DataFrame representing the adjacency matrix between buildings.
         threshold (int): Threshold value for the provision calculations.
-        calculation_type (str, optional): Type of calculation ("gravity" or "linear"). Defaults to "gravity".
 
     Returns:
         Provision: The CityProvision object.
