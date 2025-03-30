@@ -8,7 +8,7 @@
 
 - [РИДМИ (Russian)](README_ru.md)
 <p align="center">
-<img src="https://github.com/user-attachments/assets/d3878cce-8eba-4f96-8458-9a798d436120" alt="logo" width="400">
+<img src="https://github.com/user-attachments/assets/ed0f226e-1728-4659-9e21-b4d499e703cd" alt="logo" width="400">
 </p>
 
 #### **ObjectNat** is an open-source library created for geospatial analysis created by **IDU team**
