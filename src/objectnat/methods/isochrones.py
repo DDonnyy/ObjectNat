@@ -4,12 +4,12 @@ import geopandas as gpd
 import networkx as nx
 import numpy as np
 import pandas as pd
-from osmnx import graph_to_gdfs
 from scipy.spatial import KDTree
 from shapely import Point
 from shapely.ops import unary_union
 
 from objectnat import config
+from objectnat.methods.utils.graph_utils import graph_to_gdf
 
 logger = config.logger
 
@@ -63,8 +63,12 @@ def get_accessibility_isochrones(
         raise ValueError("Weight value must be greater than 0")
     if weight_type not in ["time_min", "length_meter"]:
         raise UserWarning("Weight type should be either 'time_min' or 'length_meter'")
+    try:
+        local_crs = graph_nx.graph["crs"]
+    except KeyError as exc:
+        raise ValueError("Graph does not have crs attribute") from exc
 
-    points = points.to_crs(graph_nx.graph["crs"])
+    points = points.to_crs(local_crs)
     nodes_with_data = list(graph_nx.nodes(data=True))
     logger.info("Calculating isochrones distances...")
     coordinates = np.array([(data["x"], data["y"]) for node, data in nodes_with_data])
@@ -126,7 +130,7 @@ def get_accessibility_isochrones(
         geometry = unary_union(geometry)
         results.append(geometry)
 
-    isochrones = gpd.GeoDataFrame(data=points, geometry=results, crs=graph_nx.graph["crs"])
+    isochrones = gpd.GeoDataFrame(data=points, geometry=results, crs=local_crs)
     isochrones["weight_type"] = weight_type
     isochrones["weight_value"] = weight_value
 
@@ -134,7 +138,7 @@ def get_accessibility_isochrones(
     nodes = pd.DataFrame.from_dict(dict(isochrones_subgraph.nodes(data=True)), orient="index")
     if "desc" in nodes.columns and "stop" in nodes["desc"].unique():
         pt_nodes = nodes[nodes["desc"] == "stop"]
-        nodes, edges = graph_to_gdfs(isochrones_subgraph.subgraph(pt_nodes.index))
+        nodes, edges = graph_to_gdf(isochrones_subgraph.subgraph(pt_nodes.index),restore_edge_geom=True)
         nodes.reset_index(drop=True, inplace=True)
         nodes = nodes[["desc", "route", "geometry"]]
         edges.reset_index(drop=True, inplace=True)
