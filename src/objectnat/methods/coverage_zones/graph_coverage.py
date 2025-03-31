@@ -49,7 +49,7 @@ def get_graph_coverage(
         geometry=[
             Point(data["x"], data["y"])
             for node, data in list(nx_graph.nodes(data=True))
-            if node in nearest_service_nodes
+            if node in nearest_paths.keys()
         ],
         crs=local_crs,
     )
