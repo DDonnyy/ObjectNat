@@ -1,7 +1,9 @@
 import geopandas as gpd
 import networkx as nx
+import numpy as np
 import pandas as pd
 from loguru import logger
+from scipy.spatial import KDTree
 from shapely import LineString
 from shapely.geometry.point import Point
 
@@ -85,3 +87,16 @@ def graph_to_gdf(
     if restore_edge_geom:
         edges_gdf = _restore_edges_geom(nodes_gdf, edges_gdf)
     return nodes_gdf, edges_gdf
+
+
+def get_closest_nodes_from_gdf(gdf: gpd.GeoDataFrame, nx_graph: nx.Graph) -> tuple:
+    nodes_with_data = list(nx_graph.nodes(data=True))
+    try:
+        coordinates = np.array([(data["x"], data["y"]) for node, data in nodes_with_data])
+    except KeyError as e:
+        raise ValueError("Graph does not have coordinates attribute") from e
+    tree = KDTree(coordinates)
+    target_coord = [(p.x, p.y) for p in gdf.representative_point()]
+    distances, indices = tree.query(target_coord)
+    nearest_nodes = [nodes_with_data[idx][0] for idx in indices]
+    return distances, nearest_nodes
