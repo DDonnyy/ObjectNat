@@ -16,6 +16,47 @@ def get_graph_coverage(
     weight_value_cutoff: float = None,
     zone: gpd.GeoDataFrame = None,
 ):
+    """
+    Calculate coverage zones from source points through a graph network using Dijkstra's algorithm
+    and Voronoi diagrams.
+
+    The function works by:
+    1. Finding nearest graph nodes for each input point
+    2. Calculating all reachable nodes within cutoff distance using Dijkstra
+    3. Creating Voronoi polygons around graph nodes
+    4. Combining reachability information with Voronoi cells
+    5. Clipping results to specified zone boundary
+
+    Parameters
+    ----------
+    gdf_from : gpd.GeoDataFrame
+        Source points from which coverage is calculated.
+    nx_graph : nx.Graph
+        NetworkX graph representing the transportation network.
+    weight_type : Literal["time_min", "length_meter"]
+        Edge attribute to use as weight for path calculations.
+    weight_value_cutoff : float, optional
+        Maximum weight value for path calculations (e.g., max travel time/distance).
+    zone : gpd.GeoDataFrame, optional
+        Boundary polygon to clip the resulting coverage zones. If None, concave hull of reachable nodes will be used.
+
+    Returns
+    -------
+    gpd.GeoDataFrame
+        GeoDataFrame with coverage zones polygons, each associated with its source point.
+
+    Notes
+    -----
+    - The graph must have a valid CRS attribute in its graph properties
+    - MultiGraph/MultiDiGraph inputs will be converted to simple Graph/DiGraph
+
+    Examples
+    --------
+    >>> from iduedu import get_intermodal_graph # pip install iduedu to get OSM city network graph
+    >>> points = gpd.read_file('points.geojson')
+    >>> graph = get_intermodal_graph(osm_id=1114252)
+    >>> coverage = get_graph_coverage(points, graph, "time_min", 15)
+    """
     try:
         local_crs = nx_graph.graph["crs"]
     except KeyError as exc:
@@ -42,27 +83,34 @@ def get_graph_coverage(
 
     distances, nearest_service_nodes = get_closest_nodes_from_gdf(points, nx_graph)
 
-    nearest_paths = nx.multi_source_dijkstra_path(
+    points["nearest_node"] = nearest_service_nodes
+
+    dists, nearest_paths = nx.multi_source_dijkstra(
         reversed_graph, nearest_service_nodes, weight=weight_type, cutoff=weight_value_cutoff
     )
-    graph_points = gpd.GeoDataFrame(
-        geometry=[
-            Point(data["x"], data["y"])
-            for node, data in list(nx_graph.nodes(data=True))
-            if node in nearest_paths.keys()
-        ],
-        crs=local_crs,
-    )
+    reachable_nodes = list(nearest_paths.keys())
+    graph_points = pd.DataFrame(
+        data=[{"node": node, "geometry": Point(data["x"], data["y"])} for node, data in nx_graph.nodes(data=True)]
+    ).set_index("node")
     nearest_service_nodes = pd.DataFrame(
-        data=[path[0] for path in nearest_paths.values()], index=nearest_paths.keys(), columns=["node_from"]
+        data=[path[0] for path in nearest_paths.values()], index=reachable_nodes, columns=["node_to"]
     )
     graph_nodes_gdf = gpd.GeoDataFrame(
-        nearest_service_nodes.merge(graph_points, left_index=True, right_index=True), geometry="geometry", crs=local_crs
+        graph_points.merge(nearest_service_nodes, left_index=True, right_index=True, how="left"),
+        geometry="geometry",
+        crs=local_crs,
     )
+    graph_nodes_gdf["node_to"] = graph_nodes_gdf["node_to"].fillna("non_reachable")
     voronois = gpd.GeoDataFrame(geometry=graph_nodes_gdf.voronoi_polygons(), crs=local_crs)
-    merged = voronois.sjoin(graph_nodes_gdf).dissolve(by="node_from").reset_index()
+    graph_nodes_gdf = graph_nodes_gdf[graph_nodes_gdf["node_to"] != "non_reachable"]
+    zone_coverages = voronois.sjoin(graph_nodes_gdf).dissolve(by="node_to").reset_index().drop(columns=["node"])
+    zone_coverages = zone_coverages.merge(
+        points.drop(columns="geometry"), left_on="node_to", right_on="nearest_node", how="inner"
+    ).reset_index(drop=True)
+    zone_coverages.drop(columns=["node_to", "nearest_node"], inplace=True)
     if zone is None:
-        zone = concave_hull(graph_nodes_gdf.union_all(), ratio=0.5)
+        zone = concave_hull(graph_nodes_gdf[~graph_nodes_gdf["node_to"].isna()].union_all(), ratio=0.5)
     else:
         zone = zone.to_crs(local_crs)
-    return merged.clip(zone)
+
+    return zone_coverages.clip(zone)
