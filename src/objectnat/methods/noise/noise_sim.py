@@ -18,7 +18,7 @@ from objectnat.methods.utils.geom_utils import (
     get_point_from_a_thorough_b,
     polygons_to_multilinestring,
 )
-from objectnat.methods.visibility_analysis import get_visibility_accurate
+from objectnat.methods.visibility.visibility_analysis import get_visibility_accurate
 
 logger = config.logger
 

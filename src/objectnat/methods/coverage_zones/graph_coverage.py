@@ -6,7 +6,7 @@ import pandas as pd
 from pyproj.exceptions import CRSError
 from shapely import Point, concave_hull
 
-from objectnat.methods.utils.graph_utils import get_closest_nodes_from_gdf
+from objectnat.methods.utils.graph_utils import get_closest_nodes_from_gdf, remove_weakly_connected_nodes
 
 
 def get_graph_coverage(
@@ -68,11 +68,12 @@ def get_graph_coverage(
     except CRSError as e:
         raise CRSError(f"Graph crs ({local_crs}) has invalid format.") from e
 
-    if type(nx_graph) is nx.MultiDiGraph:
-        nx_graph = nx.DiGraph(nx_graph)
-    if type(nx_graph) is nx.MultiGraph:
-        nx_graph = nx.Graph(nx_graph)
-
+    if nx_graph.is_multigraph():
+        if nx_graph.is_directed():
+            nx_graph = nx.DiGraph(nx_graph)
+        else:
+            nx_graph = nx.Graph(nx_graph)
+    nx_graph = remove_weakly_connected_nodes(nx_graph)
     sparse_matrix = nx.to_scipy_sparse_array(nx_graph, weight=weight_type)
     transposed_matrix = sparse_matrix.transpose()
     reversed_graph = nx.from_scipy_sparse_array(
@@ -81,22 +82,22 @@ def get_graph_coverage(
 
     points.geometry = points.representative_point()
 
-    distances, nearest_service_nodes = get_closest_nodes_from_gdf(points, nx_graph)
+    _, nearest_nodes = get_closest_nodes_from_gdf(points, nx_graph)
 
-    points["nearest_node"] = nearest_service_nodes
+    points["nearest_node"] = nearest_nodes
 
     dists, nearest_paths = nx.multi_source_dijkstra(
-        reversed_graph, nearest_service_nodes, weight=weight_type, cutoff=weight_value_cutoff
+        reversed_graph, nearest_nodes, weight=weight_type, cutoff=weight_value_cutoff
     )
     reachable_nodes = list(nearest_paths.keys())
     graph_points = pd.DataFrame(
         data=[{"node": node, "geometry": Point(data["x"], data["y"])} for node, data in nx_graph.nodes(data=True)]
     ).set_index("node")
-    nearest_service_nodes = pd.DataFrame(
+    nearest_nodes = pd.DataFrame(
         data=[path[0] for path in nearest_paths.values()], index=reachable_nodes, columns=["node_to"]
     )
     graph_nodes_gdf = gpd.GeoDataFrame(
-        graph_points.merge(nearest_service_nodes, left_index=True, right_index=True, how="left"),
+        graph_points.merge(nearest_nodes, left_index=True, right_index=True, how="left"),
         geometry="geometry",
         crs=local_crs,
     )

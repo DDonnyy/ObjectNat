@@ -47,7 +47,7 @@ class Provision:
             adjacency_matrix.copy(), demanded_buildings, services
         ).copy()
         self.threshold = threshold
-        self.check_crs(self.demanded_buildings, self.services)
+        self.services.to_crs(self.demanded_buildings.crs, inplace=True)
         pandarallel.initialize(progress_bar=False, verbose=0, use_memory_fs=config.pandarallel_use_file_system)
 
     @staticmethod
@@ -64,13 +64,6 @@ class Provision:
         v["capacity_left"] = v["capacity"]
         return v
 
-    @staticmethod
-    def check_crs(demanded_buildings, services):
-        assert demanded_buildings.crs == services.crs, (
-            f"\nThe CRS in the provided geodataframes are different."
-            f"\nBuildings CRS:{demanded_buildings.crs}"
-            f"\nServices CRS:{services.crs}"
-        )
 
     @staticmethod
     def delete_useless_matrix_rows_columns(adjacency_matrix, demanded_buildings, services):
@@ -267,7 +260,15 @@ def _calc_links(
     flat_matrix = destination_matrix.transpose().apply(lambda x: subfunc(x[x > 0]), result_type="reduce")
 
     distribution_links = gpd.GeoDataFrame(data=[item for sublist in list(flat_matrix) for item in sublist])
-
+    if distribution_links.empty:
+        logger.warning(
+            "Unable to create distribution links - no demand could be matched with service locations. "
+            "This is likely because either: "
+            "1) The demand column in buildings contains zero values, or "
+            "2) The capacity column in services contains zero values, or "
+            "3) There are no service locations within the maximum allowed distance"
+        )
+        return distribution_links
     distribution_links["distance"] = distribution_links.apply(
         lambda x: distance_matrix.loc[x["service_index"]][x["building_index"]],
         axis=1,

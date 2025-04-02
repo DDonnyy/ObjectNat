@@ -100,3 +100,28 @@ def get_closest_nodes_from_gdf(gdf: gpd.GeoDataFrame, nx_graph: nx.Graph) -> tup
     distances, indices = tree.query(target_coord)
     nearest_nodes = [nodes_with_data[idx][0] for idx in indices]
     return distances, nearest_nodes
+
+
+def remove_weakly_connected_nodes(graph: nx.DiGraph) -> nx.DiGraph:
+    graph = graph.copy()
+
+    weakly_connected_components = list(nx.weakly_connected_components(graph))
+    if len(weakly_connected_components) > 1:
+        logger.warning(
+            f"Found {len(weakly_connected_components)} disconnected subgraphs in the network. "
+            f"These are isolated groups of nodes with no connections between them. "
+            f"Size of components: {[len(c) for c in weakly_connected_components]}"
+        )
+
+    all_scc = sorted(nx.strongly_connected_components(graph), key=len)
+    nodes_to_del = set().union(*all_scc[:-1])
+
+    if nodes_to_del:
+        logger.warning(
+            f"Removing {len(nodes_to_del)} nodes that form {len(all_scc) - 1} trap components. "
+            f"These are groups where you can enter but can't exit (or vice versa). "
+            f"Keeping the largest strongly connected component ({len(all_scc[-1])} nodes)."
+        )
+        graph.remove_nodes_from(nodes_to_del)
+
+    return graph
