@@ -64,7 +64,6 @@ class Provision:
         v["capacity_left"] = v["capacity"]
         return v
 
-
     @staticmethod
     def delete_useless_matrix_rows_columns(adjacency_matrix, demanded_buildings, services):
         adjacency_matrix.index = adjacency_matrix.index.astype(int)

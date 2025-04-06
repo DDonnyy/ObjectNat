@@ -77,3 +77,14 @@ def gdf_to_circle_zones_from_point(
     return gpd.GeoDataFrame(geometry=list(polygonize(unary_union([gdf_geometry] + zones_lines))), crs=crs).clip(
         gdf_unary, keep_geom_type=True
     )
+
+
+def remove_inner_geom(polygon: Polygon | MultiPolygon):
+    """function to get rid of inner polygons"""
+    if isinstance(polygon, Polygon):
+        return Polygon(polygon.exterior.coords)
+    if isinstance(polygon, MultiPolygon):
+        polys = []
+        for poly in polygon.geoms:
+            polys.append(Polygon(poly.exterior.coords))
+        return MultiPolygon(polys)

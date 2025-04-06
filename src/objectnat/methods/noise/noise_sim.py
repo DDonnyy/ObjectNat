@@ -11,8 +11,8 @@ from shapely.ops import polygonize, unary_union
 from tqdm import tqdm
 
 from objectnat import config
-from objectnat.methods.noise.noise_reduce import dist_to_target_db, green_noise_reduce_db
 from objectnat.methods.noise.noise_exceptions import InvalidStepError
+from objectnat.methods.noise.noise_reduce import dist_to_target_db, green_noise_reduce_db
 from objectnat.methods.utils.geom_utils import (
     gdf_to_circle_zones_from_point,
     get_point_from_a_thorough_b,

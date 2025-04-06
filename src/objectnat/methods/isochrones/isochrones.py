@@ -4,195 +4,212 @@ import geopandas as gpd
 import networkx as nx
 import numpy as np
 import pandas as pd
-from pyproj.exceptions import CRSError
 from shapely import Point
-from shapely.ops import unary_union
+from shapely.ops import polygonize
 
 from objectnat import config
-from objectnat.methods.utils.graph_utils import graph_to_gdf, remove_weakly_connected_nodes, get_closest_nodes_from_gdf
+from objectnat.methods.isochrones.isochrone_utils import (
+    _create_isochrones_gdf,
+    _prepare_graph_and_nodes,
+    _validate_inputs,
+    _calculate_distance_matrix,
+    _process_pt_data,
+)
+from objectnat.methods.utils.geom_utils import remove_inner_geom, polygons_to_multilinestring
+from objectnat.methods.utils.graph_utils import graph_to_gdf
 
 logger = config.logger
 
 
+def get_accessibility_isochrone_stepped(
+    isochrone_type: Literal["radius", "ways", "separate"],
+    point: gpd.GeoDataFrame,
+    weight_value: float,
+    weight_type: Literal["time_min", "length_meter"],
+    nx_graph: nx.Graph,
+    step: float = None,
+    **kwargs,
+):
+    buffer_params = {
+        "buffer_factor": 0.7,
+        "road_buffer_size": 5,
+    }
+
+    buffer_params.update(kwargs)
+    point = point.copy()
+    if len(point) > 1:
+        logger.warning(
+            f"This method processes only single point. The GeoDataFrame contains {len(point)} points - "
+            "only the first geometry will be used for isochrone calculation. "
+        )
+        point = point.iloc[[0]]
+
+    local_crs, graph_type = _validate_inputs(point, weight_value, weight_type, nx_graph)
+
+    if step is None:
+        if weight_type == "length_meter":
+            step = 100
+        else:
+            step = 1
+    nx_graph, points, dist_nearest, speed = _prepare_graph_and_nodes(
+        point, nx_graph, graph_type, weight_type, weight_value
+    )
+
+    dist_matrix, subgraph = _calculate_distance_matrix(
+        nx_graph, points["nearest_node"].values, weight_type, weight_value, dist_nearest
+    )
+
+    logger.info("Building isochrones geometry...")
+    nodes, edges = graph_to_gdf(subgraph)
+
+    if isochrone_type == "separate":
+        distances = dist_matrix.iloc[0]
+        steps = np.arange(0, weight_value + step, step)
+        if steps[-1] > weight_value:
+            steps[-1] = weight_value  # Ensure last step doesn't exceed weight_value
+        results = []
+        for i in range(len(steps) - 1):
+            min_dist = steps[i]
+            max_dist = steps[i + 1]
+            nodes_in_step = distances.between(min_dist, max_dist, inclusive="left")
+            step_nodes = nodes.loc[nodes_in_step[nodes_in_step].index]
+            if not step_nodes.empty:
+                buffer_size = (max_dist - distances.loc[step_nodes.index]) * 0.7
+                if weight_type == "time_min":
+                    buffer_size = buffer_size * speed
+                step_nodes["buffer_size"] = buffer_size
+                step_polygon = step_nodes.geometry.buffer(step_nodes["buffer_size"], resolution=4).union_all()
+                results.append((min_dist, max_dist, step_polygon))
+        stepped_iso = gpd.GeoDataFrame(
+            results, columns=["start", "end", "geometry"], geometry="geometry", crs=local_crs
+        )
+        polygons = gpd.GeoDataFrame(
+            geometry=list(polygonize(stepped_iso.geometry.apply(polygons_to_multilinestring).union_all())),
+            crs=local_crs,
+        )
+        polygons_points = polygons.copy()
+        polygons_points.geometry = polygons.representative_point()
+        stepped_iso = polygons_points.sjoin(stepped_iso, predicate="within").reset_index()
+        stepped_iso = stepped_iso.groupby("index").agg({"start": "mean", "end": "mean"})
+        stepped_iso["geometry"] = polygons
+        stepped_iso = gpd.GeoDataFrame(stepped_iso, geometry="geometry", crs=local_crs)
+    else:
+        if isochrone_type == "radius":
+            isochrone_geoms = _build_radius_isochrones(
+                dist_matrix, weight_value, weight_type, speed, nodes, buffer_params["buffer_factor"]
+            )
+        else:  # isochrone_type == 'ways':
+            if graph_type in ["intermodal", "walk"]:
+                isochrone_edges = edges[edges["type"] == "walk"]
+            else:
+                isochrone_edges = edges.copy()
+            all_isochrones_edges = isochrone_edges.buffer(buffer_params["road_buffer_size"], resolution=1).union_all()
+            isochrone_geoms = _build_ways_isochrones(
+                dist_matrix,
+                weight_value,
+                weight_type,
+                speed,
+                nodes,
+                all_isochrones_edges,
+                local_crs,
+                buffer_params["buffer_factor"],
+            )
+        nodes["dist"] = np.round(dist_matrix.iloc[0] * 2) / 2
+        voronois = gpd.GeoDataFrame(geometry=nodes.voronoi_polygons(), crs=local_crs)
+        stepped_iso = voronois.sjoin(nodes)
+        stepped_iso = stepped_iso.clip(isochrone_geoms[0], keep_geom_type=True)
+    return stepped_iso
+
 def get_accessibility_isochrones(
+    isochrone_type: Literal["radius", "ways"],
     points: gpd.GeoDataFrame,
     weight_value: float,
     weight_type: Literal["time_min", "length_meter"],
     nx_graph: nx.Graph,
+    **kwargs,
 ) -> tuple[gpd.GeoDataFrame, gpd.GeoDataFrame | None, gpd.GeoDataFrame | None]:
-    """
-    Calculate accessibility isochrones from a gpd.GeoDataFrame based on the provided city graph.
 
-    Isochrones represent areas that can be reached from a given point within a specific time or distance,
-    using a graph that contains road and transport network data.
+    buffer_params = {
+        "buffer_factor": 0.7,
+        "road_buffer_size": 5,
+    }
 
-    Parameters
-    ----------
-    points : gpd.GeoDataFrame
-        A GeoDataFrame containing the geometry from which accessibility isochrones should be calculated.
-        The CRS of this GeoDataFrame must match the CRS of the provided graph.
-    weight_value : float
-        The maximum distance or time threshold for calculating isochrones.
-    weight_type : Literal["time_min", "length_meter"]
-        The type of weight to use for distance calculations. Either time in minutes ("time_min") or distance
-        in meters ("length_meter").
-    nx_graph : nx.Graph
-        A NetworkX graph representing the city network.
-        The graph must contain the appropriate CRS and, for time-based isochrones, a speed attribute.
+    buffer_params.update(kwargs)
 
-    Returns
-    -------
-    tuple[gpd.GeoDataFrame, gpd.GeoDataFrame | None, gpd.GeoDataFrame | None]
-        A tuple containing:
-        - isochrones :
-            GeoDataFrame with the calculated isochrone geometries.
-        - public transport stops (if applicable) :
-            GeoDataFrame with public transport stops within the isochrone, or None if not applicable.
-        - public transport routes (if applicable) :
-            GeoDataFrame with public transport routes within the isochrone, or None if not applicable.
+    points = points.copy()
+    local_crs, graph_type = _validate_inputs(points, weight_value, weight_type, nx_graph)
 
-    Examples
-    --------
-    >>> from iduedu import get_intermodal_graph
-    >>> graph = get_intermodal_graph(polygon=my_territory_polygon)
-    >>> points = gpd.GeoDataFrame(geometry=[Point(30.33, 59.95)], crs=4326).to_crs(graph.graph['crs'])
-    >>> isochrones, stops, routes = get_accessibility_isochrones(points,15,weight_type="time_min", nx_graph=graph)
+    nx_graph, points, dist_nearest, speed = _prepare_graph_and_nodes(
+        points, nx_graph, graph_type, weight_type, weight_value
+    )
 
-    """
-    if weight_value <= 0:
-        raise ValueError("Weight value must be greater than 0")
-    if weight_type not in ["time_min", "length_meter"]:
-        raise UserWarning("Weight type should be either 'time_min' or 'length_meter'")
+    weight_cutoff = (
+        weight_value + (100 if weight_type == "length_meter" else 1) if isochrone_type == "ways" else weight_value
+    )
 
-    try:
-        local_crs = nx_graph.graph["crs"]
-    except KeyError as exc:
-        raise ValueError("Graph does not have crs attribute") from exc
-    try:
-        points = points.to_crs(local_crs)
-    except CRSError as e:
-        raise CRSError(f"Graph crs ({local_crs}) has invalid format.") from e
-
-    nx_graph = remove_weakly_connected_nodes(nx_graph)
-    distances, nearest_nodes = get_closest_nodes_from_gdf(points, nx_graph)
-    points["nearest_node"] = nearest_nodes
-
-    dist_nearest = pd.DataFrame(data=distances, index=nearest_nodes, columns=["dist"]).drop_duplicates()
-    speed = 0
-    if nx_graph.graph["type"] in ["walk", "intermodal"] and weight_type == "time_min":
-        try:
-            speed = nx_graph.graph["walk_speed"]
-        except KeyError:
-            logger.warning("There is no walk_speed in graph, set to the default speed - 83.33 m/min")
-            speed = 83.33
-        dist_nearest = dist_nearest / speed
-    elif weight_type == "time_min":
-        speed = 20 * 1000 / 60
-        dist_nearest = dist_nearest / speed
-
-    if (dist_nearest > weight_value).all().all():
-        raise RuntimeError(
-            "The point(s) lie further from the graph than weight_value, it's impossible to "
-            "construct isochrones. Check the coordinates of the point(s)/their projection"
-        )
-
-    data = {}
-    for source in nearest_nodes:
-        dist = nx.single_source_dijkstra_path_length(nx_graph, source, weight=weight_type, cutoff=weight_value)
-        data.update({source: dist})
-    dist_matrix = pd.DataFrame.from_dict(data, orient="index")
-    dist_matrix = dist_matrix.add(dist_nearest.dist, axis=0)
-    dist_matrix = dist_matrix.mask(dist_matrix > weight_value, np.nan)
-    dist_matrix.dropna(how="all", inplace=True)
-    dist_matrix.dropna(how="all", axis=1, inplace=True)
+    dist_matrix, subgraph = _calculate_distance_matrix(
+        nx_graph, points["nearest_node"].values, weight_type, weight_cutoff, dist_nearest
+    )
 
     logger.info("Building isochrones geometry...")
-    subgraph = nx_graph.subgraph(dist_matrix.columns.to_list())
-    nodes = pd.DataFrame.from_dict(dict(subgraph.nodes(data=True)), orient="index")
-    nodes["geometry"] = nodes.apply(lambda x: Point(x["x"], x["y"]), axis=1)
-    nodes = gpd.GeoDataFrame(nodes, geometry="geometry", crs=local_crs)
+    nodes, edges = graph_to_gdf(subgraph)
+    if isochrone_type == "radius":
+        isochrone_geoms = _build_radius_isochrones(
+            dist_matrix, weight_value, weight_type, speed, nodes, buffer_params["buffer_factor"]
+        )
+    else:  # isochrone_type == 'ways':
+        if graph_type in ["intermodal", "walk"]:
+            isochrone_edges = edges[edges["type"] == "walk"]
+        else:
+            isochrone_edges = edges.copy()
+        all_isochrones_edges = isochrone_edges.buffer(buffer_params["road_buffer_size"], resolution=1).union_all()
+        isochrone_geoms = _build_ways_isochrones(
+            dist_matrix,
+            weight_value,
+            weight_type,
+            speed,
+            nodes,
+            all_isochrones_edges,
+            local_crs,
+            buffer_params["buffer_factor"],
+        )
 
+    isochrones = _create_isochrones_gdf(points, isochrone_geoms, dist_matrix, local_crs, weight_type, weight_value)
+    pt_nodes, pt_edges = _process_pt_data(nodes, edges, graph_type)
+    return isochrones, pt_nodes, pt_edges
+
+
+def _build_radius_isochrones(dist_matrix, weight_value, weight_type, speed, nodes, buffer_factor):
     results = []
     for source in dist_matrix.index:
-        buffers = (weight_value - dist_matrix.loc[source]) * 0.8
+        buffers = (weight_value - dist_matrix.loc[source]) * buffer_factor
         if weight_type == "time_min":
             buffers = buffers * speed
         buffers = nodes.merge(buffers, left_index=True, right_index=True)
-        buffers.geometry = buffers.geometry.buffer(buffers[source],resolution=8)
+        buffers.geometry = buffers.geometry.buffer(buffers[source], resolution=8)
         results.append(buffers.union_all())
-
-    isochrones = gpd.GeoDataFrame(geometry=results, index=dist_matrix.index, crs=local_crs)
-    isochrones = (
-        points.drop(columns="geometry")
-        .merge(isochrones, left_on="nearest_node", right_index=True, how="left")
-        .drop(columns="nearest_node")
-    )
-    isochrones = gpd.GeoDataFrame(isochrones, geometry="geometry", crs=local_crs)
-    isochrones["weight_type"] = weight_type
-    isochrones["weight_value"] = weight_value
-
-    if "desc" in nodes.columns and "stop" in nodes["desc"].unique():
-        pt_nodes = nodes[nodes["desc"] == "stop"]
-        edges = graph_to_gdf(subgraph.subgraph(pt_nodes.index),nodes=False)
-        pt_nodes.reset_index(drop=True, inplace=True)
-        pt_nodes = pt_nodes[["desc", "route", "geometry"]]
-        edges.reset_index(drop=True, inplace=True)
-        edges = edges[["type", "route", "geometry"]]
-        return isochrones, pt_nodes, edges
-    return isochrones, None, None
+    return results
 
 
-def get_accessibility_isochrones_by_roads(
-    points: gpd.GeoDataFrame,
-    weight_value: float,
-    weight_type: Literal["time_min", "length_meter"],
-    nx_graph: nx.Graph,
-) -> tuple[gpd.GeoDataFrame, gpd.GeoDataFrame | None, gpd.GeoDataFrame | None]:
-    if weight_value <= 0:
-        raise ValueError("Weight value must be greater than 0")
-    if weight_type not in ["time_min", "length_meter"]:
-        raise UserWarning("Weight type should be either 'time_min' or 'length_meter'")
+def _build_ways_isochrones(
+    dist_matrix, weight_value, weight_type, speed, nodes, all_isochrones_edges, local_crs, buffer_factor
+):
+    results = []
+    for source in dist_matrix.index:
+        reachable_nodes = dist_matrix.loc[source]
+        reachable_nodes = reachable_nodes[reachable_nodes <= weight_value]
+        reachable_nodes = (weight_value - reachable_nodes) * buffer_factor
+        if weight_type == "time_min":
+            reachable_nodes = reachable_nodes * speed
+        reachable_nodes = nodes.merge(reachable_nodes, left_index=True, right_index=True)
+        clip_zone = reachable_nodes.buffer(reachable_nodes[source], resolution=4).union_all()
 
-    try:
-        local_crs = nx_graph.graph["crs"]
-    except KeyError as exc:
-        raise ValueError("Graph does not have crs attribute") from exc
-    try:
-        points = points.to_crs(local_crs)
-    except CRSError as e:
-        raise CRSError(f"Graph crs ({local_crs}) has invalid format.") from e
-
-    nx_graph = remove_weakly_connected_nodes(nx_graph)
-    distances, nearest_nodes = get_closest_nodes_from_gdf(points, nx_graph)
-    points["nearest_node"] = nearest_nodes
-
-    dist_nearest = pd.DataFrame(data=distances, index=nearest_nodes, columns=["dist"]).drop_duplicates()
-    speed = 0
-    if nx_graph.graph["type"] in ["walk", "intermodal"] and weight_type == "time_min":
-        try:
-            speed = nx_graph.graph["walk_speed"]
-        except KeyError:
-            logger.warning("There is no walk_speed in graph, set to the default speed - 83.33 m/min")
-            speed = 83.33
-        dist_nearest = dist_nearest / speed
-    elif weight_type == "time_min":
-        speed = 20 * 1000 / 60
-        dist_nearest = dist_nearest / speed
-
-    if (dist_nearest > weight_value).all().all():
-        raise RuntimeError(
-            "The point(s) lie further from the graph than weight_value, it's impossible to "
-            "construct isochrones. Check the coordinates of the point(s)/their projection"
+        isochrone_edges = (
+            gpd.GeoDataFrame(geometry=[all_isochrones_edges], crs=local_crs)
+            .clip(clip_zone, keep_geom_type=True)
+            .explode(ignore_index=True)
         )
-
-    data = {}
-    for source in nearest_nodes:
-        dist = nx.single_source_dijkstra_path_length(nx_graph, source, weight=weight_type, cutoff=weight_value)
-        data.update({source: dist})
-    dist_matrix = pd.DataFrame.from_dict(data, orient="index")
-    dist_matrix = dist_matrix.add(dist_nearest.dist, axis=0)
-    dist_matrix = dist_matrix.mask(dist_matrix >= weight_value, np.nan)
-    dist_matrix.dropna(how="all", inplace=True)
-    dist_matrix.dropna(how="all", axis=1, inplace=True)
-
-    return isochrones, None, None
+        geom_to_keep = isochrone_edges.sjoin(reachable_nodes, how="inner").index.unique()
+        isochrone = remove_inner_geom(isochrone_edges.loc[geom_to_keep].union_all())
+        results.append(isochrone)
+    return results

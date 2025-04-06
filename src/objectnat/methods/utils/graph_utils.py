@@ -46,7 +46,7 @@ def _restore_edges_geom(nodes_gdf, edges_gdf) -> gpd.GeoDataFrame:
 
 
 def graph_to_gdf(
-    graph: nx.MultiDiGraph, edges: bool = True, nodes: bool = True, restore_edge_geom=False
+    graph: nx.MultiDiGraph | nx.Graph | nx.DiGraph, edges: bool = True, nodes: bool = True, restore_edge_geom=False
 ) -> gpd.GeoDataFrame | tuple[gpd.GeoDataFrame, gpd.GeoDataFrame]:
     """
     Converts nx graph to gpd.GeoDataFrame as edges.
