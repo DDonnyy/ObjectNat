@@ -3,8 +3,6 @@ from typing import Literal
 import geopandas as gpd
 import networkx as nx
 import numpy as np
-import pandas as pd
-from shapely import Point
 from shapely.ops import polygonize
 
 from objectnat import config
@@ -61,38 +59,37 @@ def get_accessibility_isochrone_stepped(
 
     logger.info("Building isochrones geometry...")
     nodes, edges = graph_to_gdf(subgraph)
+    nodes.loc[dist_matrix.columns, "dist"] = dist_matrix.iloc[0]
+    steps = np.arange(0, weight_value + step, step)
+    if steps[-1] > weight_value:
+        steps[-1] = weight_value  # Ensure last step doesn't exceed weight_value
 
+    print(steps)
     if isochrone_type == "separate":
-        distances = dist_matrix.iloc[0]
-        steps = np.arange(0, weight_value + step, step)
-        if steps[-1] > weight_value:
-            steps[-1] = weight_value  # Ensure last step doesn't exceed weight_value
-        results = []
         for i in range(len(steps) - 1):
             min_dist = steps[i]
             max_dist = steps[i + 1]
-            nodes_in_step = distances.between(min_dist, max_dist, inclusive="left")
-            step_nodes = nodes.loc[nodes_in_step[nodes_in_step].index]
-            if not step_nodes.empty:
-                buffer_size = (max_dist - distances.loc[step_nodes.index]) * 0.7
+            nodes_in_step = nodes["dist"].between(min_dist, max_dist, inclusive="left")
+            nodes_in_step = nodes_in_step[nodes_in_step].index
+            if not nodes_in_step.empty:
+                buffer_size = (max_dist - nodes.loc[nodes_in_step, "dist"]) * 0.7
                 if weight_type == "time_min":
                     buffer_size = buffer_size * speed
-                step_nodes["buffer_size"] = buffer_size
-                step_polygon = step_nodes.geometry.buffer(step_nodes["buffer_size"], resolution=4).union_all()
-                results.append((min_dist, max_dist, step_polygon))
-        stepped_iso = gpd.GeoDataFrame(
-            results, columns=["start", "end", "geometry"], geometry="geometry", crs=local_crs
-        )
+                nodes.loc[nodes_in_step, "buffer_size"] = buffer_size
+        nodes.geometry = nodes.geometry.buffer(nodes["buffer_size"])
+        nodes["dist"] = np.round(nodes["dist"], 0)
+        nodes = nodes.dissolve(by="dist", as_index=False)
         polygons = gpd.GeoDataFrame(
-            geometry=list(polygonize(stepped_iso.geometry.apply(polygons_to_multilinestring).union_all())),
+            geometry=list(polygonize(nodes.geometry.apply(polygons_to_multilinestring).union_all())),
             crs=local_crs,
         )
         polygons_points = polygons.copy()
         polygons_points.geometry = polygons.representative_point()
-        stepped_iso = polygons_points.sjoin(stepped_iso, predicate="within").reset_index()
-        stepped_iso = stepped_iso.groupby("index").agg({"start": "mean", "end": "mean"})
+
+        stepped_iso = polygons_points.sjoin(nodes, predicate="within").reset_index()
+        stepped_iso = stepped_iso.groupby("index").agg({"dist": "mean"})
         stepped_iso["geometry"] = polygons
-        stepped_iso = gpd.GeoDataFrame(stepped_iso, geometry="geometry", crs=local_crs)
+        stepped_iso = gpd.GeoDataFrame(stepped_iso, geometry="geometry", crs=local_crs).reset_index(drop=True)
     else:
         if isochrone_type == "radius":
             isochrone_geoms = _build_radius_isochrones(
@@ -104,21 +101,25 @@ def get_accessibility_isochrone_stepped(
             else:
                 isochrone_edges = edges.copy()
             all_isochrones_edges = isochrone_edges.buffer(buffer_params["road_buffer_size"], resolution=1).union_all()
+            all_isochrones_edges = gpd.GeoDataFrame(geometry=[all_isochrones_edges], crs=local_crs)
             isochrone_geoms = _build_ways_isochrones(
-                dist_matrix,
-                weight_value,
-                weight_type,
-                speed,
-                nodes,
-                all_isochrones_edges,
-                local_crs,
-                buffer_params["buffer_factor"],
+                dist_matrix=dist_matrix,
+                weight_value=weight_value,
+                weight_type=weight_type,
+                speed=speed,
+                nodes=nodes,
+                all_isochrones_edges=all_isochrones_edges,
+                buffer_factor=buffer_params["buffer_factor"],
             )
-        nodes["dist"] = np.round(dist_matrix.iloc[0] * 2) / 2
+        nodes = nodes.clip(isochrone_geoms[0], keep_geom_type=True)
+        nodes["dist"] = np.ceil(nodes["dist"] / step) * step
         voronois = gpd.GeoDataFrame(geometry=nodes.voronoi_polygons(), crs=local_crs)
-        stepped_iso = voronois.sjoin(nodes)
+        stepped_iso = (
+            voronois.sjoin(nodes[["dist", "geometry"]]).dissolve(by="dist", as_index=False).drop(columns="index_right")
+        )
         stepped_iso = stepped_iso.clip(isochrone_geoms[0], keep_geom_type=True)
     return stepped_iso
+
 
 def get_accessibility_isochrones(
     isochrone_type: Literal["radius", "ways"],
@@ -163,17 +164,16 @@ def get_accessibility_isochrones(
         else:
             isochrone_edges = edges.copy()
         all_isochrones_edges = isochrone_edges.buffer(buffer_params["road_buffer_size"], resolution=1).union_all()
+        all_isochrones_edges = gpd.GeoDataFrame(geometry=[all_isochrones_edges], crs=local_crs)
         isochrone_geoms = _build_ways_isochrones(
-            dist_matrix,
-            weight_value,
-            weight_type,
-            speed,
-            nodes,
-            all_isochrones_edges,
-            local_crs,
-            buffer_params["buffer_factor"],
+            dist_matrix=dist_matrix,
+            weight_value=weight_value,
+            weight_type=weight_type,
+            speed=speed,
+            nodes=nodes,
+            all_isochrones_edges=all_isochrones_edges,
+            buffer_factor=buffer_params["buffer_factor"],
         )
-
     isochrones = _create_isochrones_gdf(points, isochrone_geoms, dist_matrix, local_crs, weight_type, weight_value)
     pt_nodes, pt_edges = _process_pt_data(nodes, edges, graph_type)
     return isochrones, pt_nodes, pt_edges
@@ -191,9 +191,7 @@ def _build_radius_isochrones(dist_matrix, weight_value, weight_type, speed, node
     return results
 
 
-def _build_ways_isochrones(
-    dist_matrix, weight_value, weight_type, speed, nodes, all_isochrones_edges, local_crs, buffer_factor
-):
+def _build_ways_isochrones(dist_matrix, weight_value, weight_type, speed, nodes, all_isochrones_edges, buffer_factor):
     results = []
     for source in dist_matrix.index:
         reachable_nodes = dist_matrix.loc[source]
@@ -204,11 +202,7 @@ def _build_ways_isochrones(
         reachable_nodes = nodes.merge(reachable_nodes, left_index=True, right_index=True)
         clip_zone = reachable_nodes.buffer(reachable_nodes[source], resolution=4).union_all()
 
-        isochrone_edges = (
-            gpd.GeoDataFrame(geometry=[all_isochrones_edges], crs=local_crs)
-            .clip(clip_zone, keep_geom_type=True)
-            .explode(ignore_index=True)
-        )
+        isochrone_edges = all_isochrones_edges.clip(clip_zone, keep_geom_type=True).explode(ignore_index=True)
         geom_to_keep = isochrone_edges.sjoin(reachable_nodes, how="inner").index.unique()
         isochrone = remove_inner_geom(isochrone_edges.loc[geom_to_keep].union_all())
         results.append(isochrone)
