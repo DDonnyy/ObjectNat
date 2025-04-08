@@ -9,15 +9,6 @@ import geopandas as gpd
 from objectnat import get_accessibility_isochrones
 
 
-@pytest.fixture(scope="module")
-def intermodal_graph(buildings_data, services_data):
-    time.sleep(0.5)
-    polygon = unary_union(
-        [buildings_data.to_crs(4326).geometry.to_list() + services_data.to_crs(4326).geometry.to_list()]
-    ).convex_hull.buffer(0.001)
-    print("\n Downloading intermodal graph for bounds \n")
-    return get_intermodal_graph(polygon=polygon)
-
 
 def test_1point_isochrone(intermodal_graph, buildings_data):
     build_point = buildings_data.sample(n=1)

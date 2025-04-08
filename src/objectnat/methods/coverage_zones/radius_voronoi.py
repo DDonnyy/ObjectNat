@@ -18,7 +18,7 @@ def get_radius_coverage(gdf_from: gpd.GeoDataFrame, radius: float, resolution: i
     Returns
     -------
     gpd.GeoDataFrame
-        GeoDataFrame with smoothed coverage zone polygons.
+        GeoDataFrame with smoothed coverage zone polygons in the same CRS as original gdf_from.
 
     Notes
     -----
@@ -30,6 +30,7 @@ def get_radius_coverage(gdf_from: gpd.GeoDataFrame, radius: float, resolution: i
     >>> facilities = gpd.read_file('healthcare.shp')
     >>> coverage = get_radius_coverage(facilities, radius=500)
     """
+    original_crs = gdf_from.crs
     local_crs = gdf_from.estimate_utm_crs()
     gdf_from = gdf_from.to_crs(local_crs)
     bounds = gdf_from.buffer(radius).union_all()
@@ -41,4 +42,4 @@ def get_radius_coverage(gdf_from: gpd.GeoDataFrame, radius: float, resolution: i
         coverage_polys["buffer"] * 0.9, resolution=resolution
     )
     coverage_polys.drop(columns=["buffer", "area"], inplace=True)
-    return coverage_polys
+    return coverage_polys.to_crs(original_crs)

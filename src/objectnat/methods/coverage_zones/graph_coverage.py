@@ -43,7 +43,8 @@ def get_graph_coverage(
     Returns
     -------
     gpd.GeoDataFrame
-        GeoDataFrame with coverage zones polygons, each associated with its source point.
+        GeoDataFrame with coverage zones polygons, each associated with its source point, returns in the same CRS as
+        original gdf_from.
 
     Notes
     -----
@@ -57,6 +58,7 @@ def get_graph_coverage(
     >>> graph = get_intermodal_graph(osm_id=1114252)
     >>> coverage = get_graph_coverage(points, graph, "time_min", 15)
     """
+    original_crs = gdf_from.crs
     try:
         local_crs = nx_graph.graph["crs"]
     except KeyError as exc:
@@ -113,5 +115,4 @@ def get_graph_coverage(
         zone = concave_hull(graph_nodes_gdf[~graph_nodes_gdf["node_to"].isna()].union_all(), ratio=0.5)
     else:
         zone = zone.to_crs(local_crs)
-
-    return zone_coverages.clip(zone)
+    return zone_coverages.clip(zone).to_crs(original_crs)

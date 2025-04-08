@@ -64,7 +64,6 @@ def get_accessibility_isochrone_stepped(
     if steps[-1] > weight_value:
         steps[-1] = weight_value  # Ensure last step doesn't exceed weight_value
 
-    print(steps)
     if isochrone_type == "separate":
         for i in range(len(steps) - 1):
             min_dist = steps[i]
@@ -112,7 +111,7 @@ def get_accessibility_isochrone_stepped(
                 buffer_factor=buffer_params["buffer_factor"],
             )
         nodes = nodes.clip(isochrone_geoms[0], keep_geom_type=True)
-        nodes["dist"] = np.ceil(nodes["dist"] / step) * step
+        nodes["dist"] = np.minimum(np.ceil(nodes["dist"] / step) * step, weight_value)
         voronois = gpd.GeoDataFrame(geometry=nodes.voronoi_polygons(), crs=local_crs)
         stepped_iso = (
             voronois.sjoin(nodes[["dist", "geometry"]]).dissolve(by="dist", as_index=False).drop(columns="index_right")
