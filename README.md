@@ -62,8 +62,8 @@
    - A **accurate method** for detailed local analysis.
 
    <p align="center">
-     <img src="https://github.com/user-attachments/assets/aa139d29-07d4-4560-b835-9646c8802fe1" alt="visibility_comparison_methods" height="400">
-     <img src="https://github.com/user-attachments/assets/b5b0d4b3-a02f-4ade-8772-475703cd6435" alt="visibility-catchment-area" height="400">
+     <img src="https://github.com/user-attachments/assets/aa139d29-07d4-4560-b835-9646c8802fe1" alt="visibility_comparison_methods" height="250">
+     <img src="https://github.com/user-attachments/assets/b5b0d4b3-a02f-4ade-8772-475703cd6435" alt="visibility-catchment-area" height="250">
    </p>
 
 5. **[Noise Simulation](./examples/noise_simulation.ipynb)** — Simulates noise propagation from a set of source points, taking into account **obstacles**, **vegetation**, and **environmental factors**.
