@@ -1,4 +1,4 @@
-CODE := src/objectnat
+CODE := src
 
 build-and-publish: clean build publish
 

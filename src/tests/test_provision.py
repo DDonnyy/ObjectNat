@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from matplotlib import pyplot as plt
 
-from objectnat import get_service_provision, recalculate_links, clip_provision
+from objectnat import clip_provision, get_service_provision, recalculate_links
 from tests.conftest import output_dir
 
 

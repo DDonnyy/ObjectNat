@@ -86,7 +86,7 @@ def remove_inner_geom(polygon: Polygon | MultiPolygon):
     """function to get rid of inner polygons"""
     if isinstance(polygon, Polygon):
         return Polygon(polygon.exterior.coords)
-    elif isinstance(polygon, MultiPolygon):
+    if isinstance(polygon, MultiPolygon):
         polys = []
         for poly in polygon.geoms:
             polys.append(Polygon(poly.exterior.coords))

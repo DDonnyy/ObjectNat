@@ -1,10 +1,11 @@
 import os
 
+import geopandas as gpd
 import pytest
 from matplotlib import pyplot as plt
 from pyproj.exceptions import CRSError
+
 from objectnat import get_graph_coverage, get_radius_coverage
-import geopandas as gpd
 from tests.conftest import output_dir
 
 

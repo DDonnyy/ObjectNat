@@ -1,12 +1,12 @@
 import os
 
-import pytest
 import geopandas as gpd
+import pytest
 from matplotlib import pyplot as plt
 from matplotlib.patches import Patch
 from shapely import Point
 
-from objectnat import get_visibility, get_visibility_accurate, get_visibilities_from_points
+from objectnat import get_visibilities_from_points, get_visibility, get_visibility_accurate
 from tests.conftest import output_dir
 
 

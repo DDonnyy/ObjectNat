@@ -1,11 +1,10 @@
 import os
 
+import geopandas as gpd
 import pytest
 from matplotlib import pyplot as plt
 
-from objectnat import simulate_noise, config
-import geopandas as gpd
-
+from objectnat import config, simulate_noise
 from objectnat.methods.noise import InvalidStepError
 from objectnat.methods.noise.noise_reduce import get_air_resist_ratio
 from tests.conftest import output_dir

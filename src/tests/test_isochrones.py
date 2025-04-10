@@ -4,7 +4,7 @@ import pytest
 from matplotlib import pyplot as plt
 from pyproj.exceptions import CRSError
 
-from objectnat import get_accessibility_isochrones, get_accessibility_isochrone_stepped
+from objectnat import get_accessibility_isochrone_stepped, get_accessibility_isochrones
 from tests.conftest import output_dir
 
 

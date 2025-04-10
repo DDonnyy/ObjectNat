@@ -1,10 +1,10 @@
+import os
 import pickle
 
-import pytest
-import os
 import geopandas as gpd
 import pandas as pd
-from iduedu import get_intermodal_graph, get_boundary, config
+import pytest
+from iduedu import config, get_boundary, get_intermodal_graph
 from shapely import Point
 
 logger = config.logger
