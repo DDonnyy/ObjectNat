@@ -1,71 +1,99 @@
-# ObjectNat - Meta Library
+# ObjectNat
 
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![PyPI version](https://img.shields.io/pypi/v/objectnat.svg)](https://pypi.org/project/objectnat/)
+[![CI](https://github.com/DDonnyy/ObjecNat/actions/workflows/ci_pipeline.yml/badge.svg)](https://github.com/DDonnyy/ObjecNat/actions/workflows/ci_pipeline.yml)
+[![Coverage](https://codecov.io/gh/DDonnyy/ObjecNat/graph/badge.svg?token=VN8CBP8ZW3)](https://codecov.io/gh/DDonnyy/ObjecNat)
+[![License](https://img.shields.io/badge/license-BSD--3--Clause-blue.svg)](https://opensource.org/licenses/MIT)
 
 - [РИДМИ (Russian)](README_ru.md)
 <p align="center">
-<img src="https://github.com/user-attachments/assets/d3878cce-8eba-4f96-8458-9a798d436120" alt="logo" width="400">
+<img src="https://github.com/user-attachments/assets/ed0f226e-1728-4659-9e21-b4d499e703cd" alt="logo" width="400">
 </p>
 
 #### **ObjectNat** is an open-source library created for geospatial analysis created by **IDU team**
 
-## ObjectNat Components
-
-- [IduEdu](https://github.com/DDonnyy/IduEdu) : `IduEdu` provides graph functions
-- [population-restorator](https://github.com/kanootoko/population-restorator) : `restorator` provides city resettlement
-
 ## Features and how to use
 
-1. **[City graph from OSM (IduEdu)](./examples/get_any_graph.ipynb)** - Functions to assemble a road, pedestrian, and public transport graph
-from OpenStreetMap (OSM) and creating Intermodal graph. 
+1. **[Isochrones and Transport Accessibility](./examples/isochrone_generator.ipynb)** — Isochrones represent areas reachable from a starting point within a given time limit along a transport network. This function enables analysis of transport accessibility using pedestrian, automobile, public transport graphs, or their combination.
 
-   <img src="https://github.com/user-attachments/assets/8dc98da9-8462-415e-8cc8-bdfca788e206" alt="IntermodalGraph" height="250">
+   The library offers multiple isochrone generation methods:
+   - **Baseline isochrones**: show a single area reachable within a specified time.
+   - **Stepped isochrones**: show accessibility ranges divided into time intervals (e.g., 5, 10, 15 minutes).
 
-2. **[Adjacency matrix](./examples/calculate_adjacency_matrix.ipynb)** - Calculate adjacency matrix based on the provided graph and edge weight type
-(time or distance). The intermodal graph can be obtained using the previous example.
+   <p align="center">
+     <img src="https://github.com/user-attachments/assets/b1787430-63e1-4907-9198-a6171d546599" alt="isochrone_ways_15_min" width="300">
+     <img src="https://github.com/user-attachments/assets/64fce6bf-6509-490c-928c-dbd8daf9f570" alt="isochrone_radius_15_min" width="300">
+   </p>
+   <p align="center">
+     <img src="https://github.com/user-attachments/assets/ac9f8840-a867-4eb5-aec8-91a411d4e545" alt="stepped_isochrone_stepped_ways_15_min" width="300">
+     <img src="https://github.com/user-attachments/assets/b5429aa1-4625-44d1-982f-8bd4264148fb" alt="stepped_isochrone_stepped_radius_15_min" width="300">
+     <img src="https://github.com/user-attachments/assets/042c7362-70e1-45df-b2e1-02fc76bf638c" alt="stepped_isochrone_stepped_separate_15_min" width="300">
+   </p>
 
-3. **[Isochrones,transport accessibility](./examples/isochrone_generator.ipynb)** - Function for generating isochrones to
-analyze transportation accessibility from specified starting coordinates. Isochrones can be constructed based on
-pedestrian, automobile, or public transport graphs, or a combination thereof.
 
-   <img src="https://github.com/user-attachments/assets/37f308a5-db56-497d-b080-4edef3584fe5" alt="isochrones" height="250">
+2. **[Coverage Zones](./examples/graph_coverage.ipynb)** — Function for generating **coverage zones** from a set of source points using a transport network. It calculates the area each point can reach based on **travel time** or **distance**, then builds polygons via **Voronoi diagrams** and clips them to a custom boundary if provided.
 
-4. **[Population restoration](./examples/restore_population.ipynb)** - Function for resettling population into the provided
-layer of residential buildings. This function distributes people among dwellings based on the total city population
-and the living area of each house.
-5. **[Service provision](./examples/calculate_provision.ipynb)** - Function for calculating the provision of residential buildings and population
-with services. 
+   <p align="center">
+		<img src="https://github.com/user-attachments/assets/fa8057d7-77aa-48a2-aa10-ea3e292a918d" alt="coverage_zones_time_10min" width="350">
+   	<img src="https://github.com/user-attachments/assets/44362dde-c3b0-4321-9a0a-aa547f0f2e04" alt="coverage_zones_distance_600m" width="350">
+   </p>
+ 
+3. **[Service Provision Analysis](./examples/calculate_provision.ipynb)** — Function for evaluating the provision of residential buildings and their population with services (e.g., schools, clinics)
+    that have limited **capacity** and a defined **accessibility threshold** (in minutes or distance). The function models **demand-supply balance**, estimating how well services meet the needs of nearby buildings within the allowed time.
 
-   <img src="https://github.com/user-attachments/assets/5f2b3c55-9a02-4d70-80f4-503b77023eda" alt="ProvisionSchools" height="250">
+   The library also supports:
+   - **Recalculation** of existing provision results using a new time threshold.
+   - **Clipping** of provision results to a custom analysis area (e.g., administrative boundaries).
 
-6. **[Visibility analysis](./examples/visibility_analysis.ipynb)** - Function to get a quick estimate of visibility from a
-given point(s) to buildings within a given distance. Also, there is a visibility catchment area calculator for a large
-urban area. This function is designed to work with at least 1000 points spaced 10-20 meters apart for optimal
-results. Points can be generated using a road graph and random point distribution along edges.
+   <p align="center">
+     <img src="https://github.com/user-attachments/assets/ff1ed08d-9a35-4035-9e1f-9a7fdae5b0e0" alt="service_provision_initial" width="300">
+     <img src="https://github.com/user-attachments/assets/a0c0a6b0-f83f-4982-bfb3-4a476b2153ea" alt="service_provision_recalculated" width="300">
+     <img src="https://github.com/user-attachments/assets/f57dc1c6-21a0-458d-85f4-fe1b17c77695" alt="service_provision_clipped" width="300">
+   </p>
 
-   <img src="https://github.com/user-attachments/assets/2927ac86-01e8-4b0e-9ea8-72ad81c13cf5" alt="visibility-from-point" height="250"> 
+4. **[Visibility Analysis](./examples/visibility_analysis.ipynb)** — Function for estimating visibility from a given point or multiple points to nearby buildings within a certain distance.
+   This can be used to assess visual accessibility in urban environments.
+   The library also includes a **catchment area calculator** for large-scale visibility analysis based on a dense grid of observer points (recommended: ~1000 points spaced 10–20 meters apart).
+   Points can be generated using a road network and distributed along edges.
 
-   <img src="https://github.com/user-attachments/assets/b5b0d4b3-a02f-4ade-8772-475703cd6435" alt="visibility-catchment-area" height="250">
+   The module includes:
+   - A **fast approximate method** for large datasets.
+   - A **accurate method** for detailed local analysis.
 
-7. **[Noise simulation](./examples/noise_simulation.ipynb)** - Simulates noise propagation from a set of source points
-considering obstacles, trees, and environmental factors.
-**[Detailed information in Wiki](https://github.com/DDonnyy/ObjectNat/wiki/Noise-simulation)**
+   <p align="center">
+     <img src="https://github.com/user-attachments/assets/aa139d29-07d4-4560-b835-9646c8802fe1" alt="visibility_comparison_methods" height="250">
+     <img src="https://github.com/user-attachments/assets/b5b0d4b3-a02f-4ade-8772-475703cd6435" alt="visibility-catchment-area" height="250">
+   </p>
 
-   <img src="https://github.com/user-attachments/assets/dd185867-67c4-4d03-8905-d06dd1d36fb3" alt="noise_sim" height="250">
+5. **[Noise Simulation](./examples/noise_simulation.ipynb)** — Simulates noise propagation from a set of source points, taking into account **obstacles**, **vegetation**, and **environmental factors**.
 
-8. **[Point clusterization](./examples/point_clusterization.ipynb)** - Function to generate cluster polygons for given
-points based on a specified minimum distance and minimum points per cluster. Optionally, calculate the relative ratio
-between types of services within the clusters.
+   🔗 **[See detailed explanation in the Wiki](https://github.com/DDonnyy/ObjectNat/wiki/Noise-simulation)**
 
-   <img src="https://github.com/user-attachments/assets/2a9ad722-87d2-4954-9612-5ac3765aa824" alt="service-clusterization" height="250">
-   
-9. **[Living buildings from OSM](./examples/download_buildings_from_osm.ipynb)** - This function downloads building geometries from OpenStreetMap (OSM)
-for a specified territory and assigns attributes to each building. Specifically, it determines whether a building
-is residential (`is_living` attribute) and estimates the approximate number of inhabitants (`approximate_pop` attribute).
-   
-   <img src="https://github.com/user-attachments/assets/d60dcd85-1a2e-4342-aae4-561aeda18858" alt="Living buildings" height="250">
-   
+   <p align="center">
+     <img src="https://github.com/user-attachments/assets/b3a41962-6220-49c4-90d4-2e756f9706cf" alt="noise_simulation_test_result" width="400">
+   </p>
+
+
+6. **[Point Clusterization](./examples/point_clusterization.ipynb)** — Function to generate **cluster polygons** from a set of input points based on:
+   - Minimum **distance** between points.
+   - Minimum **number of points** per cluster.
+
+   Additionally, the function can calculate the **relative ratio** of different service types within each cluster, enabling spatial analysis of service composition.
+
+   <p align="center">
+     <img src="https://github.com/user-attachments/assets/f86aac61-497a-4330-b4cf-68f4fc47fd34" alt="building_clusters" width="400">
+   </p>
+
+## City graphs
+
+To ensure optimal performance of ObjectNat's geospatial analysis functions, it's recommended to utilize urban graphs sourced from the [IduEdu](https://github.com/DDonnyy/IduEdu) library.
+**IduEdu** is an open-source Python library designed for the creation and manipulation of complex city networks derived from OpenStreetMap data. 
+
+**IduEdu** can be installed with ``pip``:
+```
+pip install IduEdu
+```
 ## Installation
 
 **ObjectNat** can be installed with ``pip``:
@@ -78,10 +106,8 @@ pip install ObjectNat
 ```python
 from objectnat import config
 
-config.set_timeout(10)  # Timeout for overpass queries
 config.change_logger_lvl('INFO')  # To mute all debug msgs
 config.set_enable_tqdm(False)  # To mute all tqdm's progress bars
-config.set_overpass_url('http://your.overpass-api.de/interpreter/URL')
 ```
 ## Contacts
 

@@ -37,7 +37,7 @@ def get_clusters_polygon(
 ) -> tuple[gpd.GeoDataFrame, gpd.GeoDataFrame]:
     """
     Generate cluster polygons for given points based on a specified minimum distance and minimum points per cluster.
-    Optionally, calculate the relative ratio between types of services within the clusters.
+    Optionally, calculate the relative ratio between types of points within the clusters.
 
     Parameters
     ----------
@@ -56,22 +56,12 @@ def get_clusters_polygon(
     -------
     tuple[gpd.GeoDataFrame, gpd.GeoDataFrame]
         A tuple containing the clustered polygons GeoDataFrame and the original points GeoDataFrame with cluster labels.
-
-    Examples
-    --------
-    >>> import geopandas as gpd
-    >>> from shapely.geometry import Point
-
-    >>> points = gpd.GeoDataFrame({
-    ...     'geometry': [Point(0, 0), Point(1, 1), Point(2, 2)],
-    ...     'service_code': [1, 1, 2]
-    ... }, crs=4326)
-
-    >>> clusters, services = get_clusters_polygon(points, min_dist=50, min_point=2)
     """
     if method not in ["DBSCAN", "HDBSCAN"]:
         raise ValueError("Method must be either 'DBSCAN' or 'HDBSCAN'")
-
+    original_crs = points.crs
+    local_crs = points.estimate_utm_crs()
+    points = points.to_crs(local_crs)
     services_select = _get_cluster(points, min_dist, min_point, method)
 
     if service_code_column not in points.columns:
@@ -80,43 +70,47 @@ def get_clusters_polygon(
         )
         points[service_code_column] = service_code_column
 
-    services_normal = services_select[services_select["cluster"] != -1]
-    services_outlier = services_select[services_select["cluster"] == -1]
+    points_normal = services_select[services_select["cluster"] != -1].copy()
+    points_outlier = services_select[services_select["cluster"] == -1].copy()
 
-    if len(services_normal) > 0:
-        cluster_service = services_normal.groupby("cluster", group_keys=True).apply(
+    if len(points_normal) > 0:
+        cluster_service = points_normal.groupby("cluster", group_keys=True).apply(
             _get_service_ratio, service_code_column=service_code_column
         )
         if isinstance(cluster_service, pd.Series):
             cluster_service = cluster_service.unstack(level=1, fill_value=0)
 
-        polygons_normal = services_normal.dissolve("cluster").concave_hull(ratio=0.7, allow_holes=False)
+        polygons_normal = points_normal.dissolve("cluster").concave_hull(ratio=0.1, allow_holes=True)
         df_clusters_normal = pd.concat([cluster_service, polygons_normal.rename("geometry")], axis=1)
         cluster_normal = df_clusters_normal.index.max()
+        points_normal["outlier"] = False
+        df_clusters_normal["outlier"] = False
     else:
         df_clusters_normal = None
         cluster_normal = 0
 
-    if len(services_outlier) > 0:
+    if len(points_outlier) > 0:
         clusters_outlier = cluster_normal + 1
-        new_clusters = list(range(clusters_outlier, clusters_outlier + len(services_outlier)))
-        services_outlier.loc[:, "cluster"] = new_clusters
+        new_clusters = list(range(clusters_outlier, clusters_outlier + len(points_outlier)))
+        points_outlier.loc[:, "cluster"] = new_clusters
 
-        cluster_service = services_outlier.groupby("cluster", group_keys=True).apply(
+        cluster_service = points_outlier.groupby("cluster", group_keys=True).apply(
             _get_service_ratio, service_code_column=service_code_column
         )
         if isinstance(cluster_service, pd.Series):
             cluster_service = cluster_service.unstack(level=1, fill_value=0)
 
-        df_clusters_outlier = cluster_service.join(services_outlier.set_index("cluster")["geometry"])
+        df_clusters_outlier = cluster_service.join(points_outlier.set_index("cluster")["geometry"])
+        points_outlier["outlier"] = True
+        df_clusters_outlier["outlier"] = True
     else:
-        services_outlier = None
+        points_outlier = None
         df_clusters_outlier = None
 
     df_clusters = pd.concat([df_clusters_normal, df_clusters_outlier]).fillna(0).set_geometry("geometry")
     df_clusters["geometry"] = df_clusters["geometry"].buffer(min_dist / 2)
-    df_clusters = df_clusters.rename(columns={"index": "cluster_id"})
+    df_clusters = df_clusters.reset_index().rename(columns={"index": "cluster"})
 
-    services = pd.concat([services_normal, services_outlier])
+    points = pd.concat([points_normal, points_outlier])
 
-    return df_clusters, services
+    return df_clusters.to_crs(original_crs), points.to_crs(original_crs)

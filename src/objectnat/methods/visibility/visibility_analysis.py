@@ -6,30 +6,33 @@ import numpy as np
 import pandas as pd
 from pandarallel import pandarallel
 from shapely import LineString, MultiPolygon, Point, Polygon
-from shapely.ops import polygonize, unary_union
+from shapely.ops import unary_union
 from tqdm.contrib.concurrent import process_map
 
 from objectnat import config
 from objectnat.methods.utils.geom_utils import (
+    combine_geometry,
     explode_linestring,
     get_point_from_a_thorough_b,
     point_side_of_line,
     polygons_to_multilinestring,
 )
+from objectnat.methods.utils.math_utils import min_max_normalization
 
 logger = config.logger
 
 
 def get_visibility_accurate(
-    point_from: Point, obstacles: gpd.GeoDataFrame, view_distance, return_max_view_dist=False
-) -> Polygon | tuple[Polygon, float]:
+    point_from: Point | gpd.GeoDataFrame, obstacles: gpd.GeoDataFrame, view_distance, return_max_view_dist=False
+) -> Polygon | gpd.GeoDataFrame | tuple[Polygon | gpd.GeoDataFrame, float]:
     """
     Function to get accurate visibility from a given point to buildings within a given distance.
 
     Parameters
     ----------
-    point_from : Point
-        The point from which the line of sight is drawn.
+    point_from : Point | gpd.GeoDataFrame
+        The point or GeoDataFrame with 1 point from which the line of sight is drawn.
+        If Point is provided it should be in the same crs as obstacles
     obstacles : gpd.GeoDataFrame
         A GeoDataFrame containing the geometry of the obstacles.
     view_distance : float
@@ -39,20 +42,21 @@ def get_visibility_accurate(
 
     Returns
     -------
-    Polygon | tuple[Polygon, float]
+    Polygon | gpd.GeoDataFrame | tuple[Polygon | gpd.GeoDataFrame, float]
         A polygon representing the area of visibility from the given point or polygon with max view distance.
+        if point_from was a GeoDataFrame, return GeoDataFrame with one feature, else Polygon.
 
     Notes
     -----
-    If a quick result is important, consider using the `get_visibility_result()` function instead.
-    However, please note that `get_visibility_result()` may provide less accurate results.
+    If a quick result is important, consider using the `get_visibility()` function instead.
+    However, please note that `get_visibility()` may provide less accurate results.
 
     Examples
     --------
-    >>> point_from = Point(1, 1)
-    >>> buildings = gpd.read_file('buildings.shp')
-    >>> view_distance = 1000
-    >>> visibility = get_visibility_accurate(point_from, obstacles, view_distance)
+    >>> from objectnat import get_visibility_accurate
+    >>> obstacles = gpd.read_parquet('examples_data/buildings.parquet')
+    >>> point_from = gpd.GeoDataFrame(geometry=[Point(30.2312112, 59.9482336)], crs=4326)
+    >>> result = get_visibility_accurate(point_from, obstacles, 500)
     """
 
     def find_furthest_point(point_from, view_polygon):
@@ -63,7 +67,27 @@ def get_visibility_accurate(
             raise e
         return res
 
-    obstacles = obstacles.copy()
+    local_crs = None
+    original_crs = None
+    return_gdf = False
+    if isinstance(point_from, gpd.GeoDataFrame):
+        original_crs = point_from.crs
+        return_gdf = True
+        if len(obstacles) > 0:
+            local_crs = obstacles.estimate_utm_crs()
+        else:
+            local_crs = point_from.estimate_utm_crs()
+        obstacles = obstacles.to_crs(local_crs)
+        point_from = point_from.to_crs(local_crs)
+        if len(point_from) > 1:
+            logger.warning(
+                f"This method processes only single point. The GeoDataFrame contains {len(point_from)} points - "
+                "only the first geometry will be used for isochrone calculation. "
+            )
+        point_from = point_from.iloc[0].geometry
+    else:
+        obstacles = obstacles.copy()
+
     obstacles.reset_index(inplace=True, drop=True)
 
     point_buffer = point_from.buffer(view_distance, resolution=32)
@@ -130,30 +154,32 @@ def get_visibility_accurate(
     logger.debug("Done calculating!")
     res = point_buffer.difference(unary_union(polygons + obstacles_in_buffer.to_list()))
 
-    if isinstance(res, Polygon):
-        if return_max_view_dist:
-            return res, find_furthest_point(point_from, res)
-        return res
-    res = list(res.geoms)
-    polygon_containing_point = None
+    if isinstance(res, MultiPolygon):
+        res = list(res.geoms)
+        for polygon in res:
+            if polygon.intersects(point_from):
+                res = polygon
+                break
 
-    for polygon in res:
-        if polygon.intersects(point_from):
-            polygon_containing_point = polygon
-            break
+    if return_gdf:
+        res = gpd.GeoDataFrame(geometry=[res], crs=local_crs).to_crs(original_crs)
+
     if return_max_view_dist:
-        return polygon_containing_point, find_furthest_point(point_from, polygon_containing_point)
-    return polygon_containing_point
+        return res, find_furthest_point(point_from, res)
+    return res
 
 
-def get_visibility(point: Point, obstacles: gpd.GeoDataFrame, view_distance: float, resolution: int = 32) -> Polygon:
+def get_visibility(
+    point_from: Point | gpd.GeoDataFrame, obstacles: gpd.GeoDataFrame, view_distance: float, resolution: int = 32
+) -> Polygon | gpd.GeoDataFrame:
     """
     Function to get a quick estimate of visibility from a given point to buildings within a given distance.
 
     Parameters
     ----------
-    point : Point
-        The point from which the line of sight is drawn.
+    point_from : Point | gpd.GeoDataFrame
+        The point or GeoDataFrame with 1 point from which the line of sight is drawn.
+        If Point is provided it should be in the same crs as obstacles
     obstacles : gpd.GeoDataFrame
         A GeoDataFrame containing the geometry of the buildings.
     view_distance : float
@@ -163,8 +189,9 @@ def get_visibility(point: Point, obstacles: gpd.GeoDataFrame, view_distance: flo
 
     Returns
     -------
-    Polygon
-        A polygon representing the estimated area of visibility from the given point.
+    Polygon | gpd.GeoDataFrame
+        A polygon representing the area of visibility from the given point.
+        if point_from was a GeoDataFrame, return GeoDataFrame with one feature, else Polygon.
 
     Notes
     -----
@@ -173,19 +200,36 @@ def get_visibility(point: Point, obstacles: gpd.GeoDataFrame, view_distance: flo
 
     Examples
     --------
-    >>> point = Point(1, 1)
-    >>> buildings = gpd.read_file('buildings.shp')
-    >>> view_distance = 1000
-    >>> visibility = get_visibility(point, obstacles, view_distance)
+    >>> from objectnat import get_visibility
+    >>> obstacles = gpd.read_parquet('examples_data/buildings.parquet')
+    >>> point_from = gpd.GeoDataFrame(geometry=[Point(30.2312112, 59.9482336)], crs=4326)
+    >>> result = get_visibility(point_from, obstacles, 500)
     """
-
-    point_buffer = point.buffer(view_distance, resolution=resolution)
-    s = obstacles.within(point_buffer)
+    return_gdf = False
+    if isinstance(point_from, gpd.GeoDataFrame):
+        original_crs = point_from.crs
+        return_gdf = True
+        if len(obstacles) > 0:
+            local_crs = obstacles.estimate_utm_crs()
+        else:
+            local_crs = point_from.estimate_utm_crs()
+        obstacles = obstacles.to_crs(local_crs)
+        point_from = point_from.to_crs(local_crs)
+        if len(point_from) > 1:
+            logger.warning(
+                f"This method processes only single point. The GeoDataFrame contains {len(point_from)} points - "
+                "only the first geometry will be used for isochrone calculation. "
+            )
+        point_from = point_from.iloc[0].geometry
+    else:
+        obstacles = obstacles.copy()
+    point_buffer = point_from.buffer(view_distance, resolution=resolution)
+    s = obstacles.intersects(point_buffer)
     buildings_in_buffer = obstacles.loc[s[s].index].reset_index(drop=True)
     buffer_exterior_ = list(point_buffer.exterior.coords)
-    line_geometry = [LineString([point, ext]) for ext in buffer_exterior_]
+    line_geometry = [LineString([point_from, ext]) for ext in buffer_exterior_]
     buffer_lines_gdf = gpd.GeoDataFrame(geometry=line_geometry)
-    united_buildings = buildings_in_buffer.unary_union
+    united_buildings = buildings_in_buffer.union_all()
     if united_buildings:
         splited_lines = buffer_lines_gdf["geometry"].apply(lambda x: x.difference(united_buildings))
     else:
@@ -199,158 +243,10 @@ def get_visibility(point: Point, obstacles: gpd.GeoDataFrame, view_distance: flo
     circuit = Polygon(splited_lines_list)
     if united_buildings:
         circuit = circuit.difference(united_buildings)
+
+    if return_gdf:
+        circuit = gpd.GeoDataFrame(geometry=[circuit], crs=local_crs).to_crs(original_crs)
     return circuit
-
-
-def _multiprocess_get_vis(args):
-    point, buildings, view_distance, sectors_n = args
-    result = get_visibility_accurate(point, buildings, view_distance)
-
-    if sectors_n is not None:
-        sectors = []
-
-        cx, cy = point.x, point.y
-
-        angle_increment = 2 * math.pi / sectors_n
-        view_distance = math.sqrt((view_distance**2) * (1 + (math.tan(angle_increment / 2) ** 2)))
-        for i in range(sectors_n):
-            angle1 = i * angle_increment
-            angle2 = (i + 1) * angle_increment
-
-            x1, y1 = cx + view_distance * math.cos(angle1), cy + view_distance * math.sin(angle1)
-            x2, y2 = cx + view_distance * math.cos(angle2), cy + view_distance * math.sin(angle2)
-
-            sector_triangle = Polygon([point, (x1, y1), (x2, y2)])
-            sector = result.intersection(sector_triangle)
-
-            if not sector.is_empty:
-                sectors.append(sector)
-        result = sectors
-    return result
-
-
-def _polygons_to_linestring(geom):
-    # pylint: disable-next=redefined-outer-name,reimported,import-outside-toplevel
-    from shapely import LineString, MultiLineString, MultiPolygon
-
-    def convert_polygon(polygon: Polygon):
-        lines = []
-        exterior = LineString(polygon.exterior.coords)
-        lines.append(exterior)
-        interior = [LineString(p.coords) for p in polygon.interiors]
-        lines = lines + interior
-        return lines
-
-    def convert_multipolygon(polygon: MultiPolygon):
-        return MultiLineString(sum([convert_polygon(p) for p in polygon.geoms], []))
-
-    if geom.geom_type == "Polygon":
-        return MultiLineString(convert_polygon(geom))
-    if geom.geom_type == "MultiPolygon":
-        return convert_multipolygon(geom)
-    return geom
-
-
-def _combine_geometry(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
-    """
-    Combine geometry of intersecting layers into a single GeoDataFrame.
-    Parameters
-    ----------
-    gdf: gpd.GeoDataFrame
-        A GeoPandas GeoDataFrame
-
-    Returns
-    -------
-    gpd.GeoDataFrame
-        The combined GeoDataFrame with aggregated in lists columns.
-
-    Examples
-    --------
-    >>> gdf = gpd.read_file('path_to_your_file.geojson')
-    >>> result = _combine_geometry(gdf)
-    """
-
-    crs = gdf.crs
-    polygons = polygonize(gdf["geometry"].apply(_polygons_to_linestring).unary_union)
-    enclosures = gpd.GeoSeries(list(polygons), crs=crs)
-    enclosures_points = gpd.GeoDataFrame(enclosures.representative_point(), columns=["geometry"], crs=crs)
-    joined = gpd.sjoin(enclosures_points, gdf, how="inner", predicate="within").reset_index()
-    cols = joined.columns.tolist()
-    cols.remove("geometry")
-    joined = joined.groupby("index").agg({column: list for column in cols})
-    joined["geometry"] = enclosures
-    joined = gpd.GeoDataFrame(joined, geometry="geometry", crs=crs)
-    return joined
-
-
-def _min_max_normalization(data, new_min=0, new_max=1):
-    """
-    Min-max normalization for a given array of data.
-
-    Parameters
-    ----------
-    data: numpy.ndarray
-        Input data to be normalized.
-    new_min: float, optional
-        New minimum value for normalization. Defaults to 0.
-    new_max: float, optional
-        New maximum value for normalization. Defaults to 1.
-
-    Returns
-    -------
-    numpy.ndarray
-        Normalized data.
-
-    Examples
-    --------
-    >>> import numpy as np
-    >>> data = np.array([1, 2, 3, 4, 5])
-    >>> normalized_data = min_max_normalization(data, new_min=0, new_max=1)
-    """
-
-    min_value = np.min(data)
-    max_value = np.max(data)
-    normalized_data = (data - min_value) / (max_value - min_value) * (new_max - new_min) + new_min
-    return normalized_data
-
-
-def _process_group(group):
-    geom = group
-    combined_geometry = _combine_geometry(geom)
-    combined_geometry.drop(columns=["index", "index_right"], inplace=True)
-    combined_geometry["count_n"] = combined_geometry["ratio"].apply(len)
-    combined_geometry["new_ratio"] = combined_geometry.apply(
-        lambda x: np.power(np.prod(x.ratio), 1 / x.count_n) * x.count_n, axis=1
-    )
-
-    threshold = combined_geometry["new_ratio"].quantile(0.25)
-    combined_geometry = combined_geometry[combined_geometry["new_ratio"] > threshold]
-
-    combined_geometry["new_ratio_normalized"] = _min_max_normalization(
-        combined_geometry["new_ratio"].values, new_min=1, new_max=10
-    )
-
-    combined_geometry["new_ratio_normalized"] = np.round(combined_geometry["new_ratio_normalized"]).astype(int)
-
-    result_union = (
-        combined_geometry.groupby("new_ratio_normalized")
-        .agg({"geometry": lambda x: unary_union(MultiPolygon(list(x)).buffer(0))})
-        .reset_index(drop=True)
-    )
-    result_union.set_geometry("geometry", inplace=True)
-    result_union.set_crs(geom.crs, inplace=True)
-
-    result_union = result_union.explode("geometry", index_parts=False).reset_index(drop=True)
-
-    representative_points = combined_geometry.copy()
-    representative_points["geometry"] = representative_points["geometry"].representative_point()
-
-    joined = gpd.sjoin(result_union, representative_points, how="inner", predicate="contains").reset_index()
-    joined = joined.groupby("index").agg({"geometry": "first", "new_ratio": lambda x: np.mean(list(x))})
-
-    joined.set_geometry("geometry", inplace=True)
-    joined.set_crs(geom.crs, inplace=True)
-    return joined
 
 
 def get_visibilities_from_points(
@@ -385,23 +281,17 @@ def get_visibilities_from_points(
     -----
     This function uses `get_visibility_accurate()` in multiprocessing way.
 
-    Examples
-    --------
-    >>> import geopandas as gpd
-    >>> from shapely.geometry import Point, Polygon
-    >>> points = gpd.GeoDataFrame({'geometry': [Point(0, 0), Point(1, 1)]}, crs='epsg:4326')
-    >>> obstacles = gpd.GeoDataFrame({'geometry': [Polygon([(0, 0), (0, 1), (1, 1), (1, 0)])]}, crs='epsg:4326')
-    >>> view_distance = 100
-
-    >>> visibilities = get_visibilities_from_points(points, obstacles, view_distance)
-    >>> visibilities
     """
+    if points.crs != obstacles.crs:
+        raise ValueError(f"CRS mismatch, points crs:{points.crs} != obstacles crs:{obstacles.crs}")
+    if points.crs.is_geographic:
+        logger.warning("Points crs is geographic, it may produce invalid results")
     # remove points inside polygons
     joined = gpd.sjoin(points, obstacles, how="left", predicate="intersects")
     points = joined[joined.index_right.isnull()]
 
     # remove unused obstacles
-    points_view = points.geometry.buffer(view_distance).unary_union
+    points_view = points.geometry.buffer(view_distance).union_all()
     s = obstacles.intersects(points_view)
     buildings_in_buffer = obstacles.loc[s[s].index].reset_index(drop=True)
 
@@ -417,6 +307,7 @@ def get_visibilities_from_points(
         "big amount of points",
         max_workers=max_workers,
     )
+
     # could return sectorized visions if sectors_n is set
     return all_visions
 
@@ -479,16 +370,18 @@ def calculate_visibility_catchment_area(
 
     pandarallel.initialize(progress_bar=True, verbose=0)
 
-    assert points.crs == obstacles.crs
-    crs = obstacles.crs
+    local_crs = obstacles.estimate_utm_crs()
+    obstacles = obstacles.to_crs(local_crs)
+    points = points.to_crs(local_crs)
+
     sectors_n = 12
     logger.info("Calculating Visibility Catchment Area from each point")
     all_visions_sectorized = get_visibilities_from_points(points, obstacles, view_distance, sectors_n, max_workers)
     all_visions_sectorized = gpd.GeoDataFrame(
-        geometry=[item for sublist in all_visions_sectorized for item in sublist], crs=crs
+        geometry=[item for sublist in all_visions_sectorized for item in sublist], crs=local_crs
     )
     logger.info("Calculating non-vision part...")
-    all_visions_unary = all_visions_sectorized.unary_union
+    all_visions_unary = all_visions_sectorized.union_all()
     convex = all_visions_unary.convex_hull
     dif = convex.difference(all_visions_unary)
 
@@ -496,7 +389,7 @@ def calculate_visibility_catchment_area(
 
     buf_area = (math.pi * view_distance**2) / sectors_n
     all_visions_sectorized["ratio"] = all_visions_sectorized.area / buf_area
-    all_visions_sectorized["ratio"] = _min_max_normalization(
+    all_visions_sectorized["ratio"] = min_max_normalization(
         all_visions_sectorized["ratio"].values, new_min=1, new_max=10
     )
     groups = all_visions_sectorized.sample(frac=1).groupby(all_visions_sectorized.index // 6000)
@@ -511,7 +404,7 @@ def calculate_visibility_catchment_area(
         max_workers=max_workers,
     )
     logger.info("Calculating all groups intersection...")
-    all_in = _combine_geometry(gpd.GeoDataFrame(data=pd.concat(groups_result), geometry="geometry", crs=crs))
+    all_in = combine_geometry(gpd.GeoDataFrame(data=pd.concat(groups_result), geometry="geometry", crs=local_crs))
 
     del groups_result
 
@@ -523,7 +416,7 @@ def calculate_visibility_catchment_area(
     all_in = all_in[all_in["factor"] > threshold]
 
     all_in["factor_normalized"] = np.round(
-        _min_max_normalization(np.sqrt(all_in["factor"].values), new_min=1, new_max=5)
+        min_max_normalization(np.sqrt(all_in["factor"].values), new_min=1, new_max=5)
     ).astype(int)
     logger.info("Calculating normalized groups geometry...")
     all_in = all_in.groupby("factor_normalized").parallel_apply(unary_union_groups).reset_index()
@@ -550,3 +443,69 @@ def calculate_visibility_catchment_area(
     all_in = all_in.explode(index_parts=True)
     logger.info("Done!")
     return all_in
+
+
+def _multiprocess_get_vis(args):  # pragma: no cover
+    point, buildings, view_distance, sectors_n = args
+    result = get_visibility_accurate(point, buildings, view_distance)
+
+    if sectors_n is not None:
+        sectors = []
+
+        cx, cy = point.x, point.y
+
+        angle_increment = 2 * math.pi / sectors_n
+        view_distance = math.sqrt((view_distance**2) * (1 + (math.tan(angle_increment / 2) ** 2)))
+        for i in range(sectors_n):
+            angle1 = i * angle_increment
+            angle2 = (i + 1) * angle_increment
+
+            x1, y1 = cx + view_distance * math.cos(angle1), cy + view_distance * math.sin(angle1)
+            x2, y2 = cx + view_distance * math.cos(angle2), cy + view_distance * math.sin(angle2)
+
+            sector_triangle = Polygon([point, (x1, y1), (x2, y2)])
+            sector = result.intersection(sector_triangle)
+
+            if not sector.is_empty:
+                sectors.append(sector)
+        result = sectors
+    return result
+
+
+def _process_group(group):  # pragma: no cover
+    geom = group
+    combined_geometry = combine_geometry(geom)
+    combined_geometry.drop(columns=["index", "index_right"], inplace=True)
+    combined_geometry["count_n"] = combined_geometry["ratio"].apply(len)
+    combined_geometry["new_ratio"] = combined_geometry.apply(
+        lambda x: np.power(np.prod(x.ratio), 1 / x.count_n) * x.count_n, axis=1
+    )
+
+    threshold = combined_geometry["new_ratio"].quantile(0.25)
+    combined_geometry = combined_geometry[combined_geometry["new_ratio"] > threshold]
+
+    combined_geometry["new_ratio_normalized"] = min_max_normalization(
+        combined_geometry["new_ratio"].values, new_min=1, new_max=10
+    )
+
+    combined_geometry["new_ratio_normalized"] = np.round(combined_geometry["new_ratio_normalized"]).astype(int)
+
+    result_union = (
+        combined_geometry.groupby("new_ratio_normalized")
+        .agg({"geometry": lambda x: unary_union(MultiPolygon(list(x)).buffer(0))})
+        .reset_index(drop=True)
+    )
+    result_union.set_geometry("geometry", inplace=True)
+    result_union.set_crs(geom.crs, inplace=True)
+
+    result_union = result_union.explode("geometry", index_parts=False).reset_index(drop=True)
+
+    representative_points = combined_geometry.copy()
+    representative_points["geometry"] = representative_points["geometry"].representative_point()
+
+    joined = gpd.sjoin(result_union, representative_points, how="inner", predicate="contains").reset_index()
+    joined = joined.groupby("index").agg({"geometry": "first", "new_ratio": lambda x: np.mean(list(x))})
+
+    joined.set_geometry("geometry", inplace=True)
+    joined.set_crs(geom.crs, inplace=True)
+    return joined

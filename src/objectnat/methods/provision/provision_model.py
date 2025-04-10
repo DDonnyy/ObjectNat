@@ -23,7 +23,6 @@ class Provision:
         demanded_buildings (gpd.GeoDataFrame): GeoDataFrame representing the buildings with demands for services.
         adjacency_matrix (pd.DataFrame): DataFrame representing the adjacency matrix between buildings.
         threshold (int): Threshold value for the provision calculations.
-        calculation_type (str, optional): Type of calculation ("gravity" or "linear"). Defaults to "gravity".
 
     Returns:
         Provision: The CityProvision object.
@@ -48,7 +47,7 @@ class Provision:
             adjacency_matrix.copy(), demanded_buildings, services
         ).copy()
         self.threshold = threshold
-        self.check_crs(self.demanded_buildings, self.services)
+        self.services.to_crs(self.demanded_buildings.crs, inplace=True)
         pandarallel.initialize(progress_bar=False, verbose=0, use_memory_fs=config.pandarallel_use_file_system)
 
     @staticmethod
@@ -64,14 +63,6 @@ class Provision:
             raise CapacityKeyError
         v["capacity_left"] = v["capacity"]
         return v
-
-    @staticmethod
-    def check_crs(demanded_buildings, services):
-        assert demanded_buildings.crs == services.crs, (
-            f"\nThe CRS in the provided geodataframes are different."
-            f"\nBuildings CRS:{demanded_buildings.crs}"
-            f"\nServices CRS:{services.crs}"
-        )
 
     @staticmethod
     def delete_useless_matrix_rows_columns(adjacency_matrix, demanded_buildings, services):
@@ -268,7 +259,15 @@ def _calc_links(
     flat_matrix = destination_matrix.transpose().apply(lambda x: subfunc(x[x > 0]), result_type="reduce")
 
     distribution_links = gpd.GeoDataFrame(data=[item for sublist in list(flat_matrix) for item in sublist])
-
+    if distribution_links.empty:
+        logger.warning(
+            "Unable to create distribution links - no demand could be matched with service locations. "
+            "This is likely because either: "
+            "1) The demand column in buildings contains zero values, or "
+            "2) The capacity column in services contains zero values, or "
+            "3) There are no service locations within the maximum allowed distance"
+        )
+        return distribution_links
     distribution_links["distance"] = distribution_links.apply(
         lambda x: distance_matrix.loc[x["service_index"]][x["building_index"]],
         axis=1,
@@ -292,8 +291,8 @@ def _additional_options(
     normative_distance,
 ):
     buildings["avg_dist"] = 0
-    buildings["supplyed_demands_within"] = 0
-    buildings["supplyed_demands_without"] = 0
+    buildings["supplied_demands_within"] = 0
+    buildings["supplied_demands_without"] = 0
     services["carried_capacity_within"] = 0
     services["carried_capacity_without"] = 0
     for _, loc in destination_matrix.iterrows():
@@ -310,8 +309,8 @@ def _additional_options(
             .add(distances_all.multiply(without, fill_value=0), fill_value=0)
         )
         buildings["demand_left"] = buildings["demand_left"].sub(within.add(without, fill_value=0), fill_value=0)
-        buildings["supplyed_demands_within"] = buildings["supplyed_demands_within"].add(within, fill_value=0)
-        buildings["supplyed_demands_without"] = buildings["supplyed_demands_without"].add(without, fill_value=0)
+        buildings["supplied_demands_within"] = buildings["supplied_demands_within"].add(within, fill_value=0)
+        buildings["supplied_demands_without"] = buildings["supplied_demands_without"].add(without, fill_value=0)
 
         services.at[loc.name, "capacity_left"] = (
             services.at[loc.name, "capacity_left"] - within.add(without, fill_value=0).sum()
@@ -329,10 +328,10 @@ def _additional_options(
     buildings["avg_dist"] = buildings.apply(
         lambda x: np.nan if (x["demand"] == x["demand_left"]) else round(x["avg_dist"], 2), axis=1
     )
-    buildings["provison_value"] = (buildings["supplyed_demands_within"] / buildings["demand"]).astype(float).round(2)
+    buildings["provision_value"] = (buildings["supplied_demands_within"] / buildings["demand"]).astype(float).round(2)
     services["service_load"] = (services["capacity"] - services["capacity_left"]).astype(np.uint16)
-    buildings["supplyed_demands_within"] = buildings["supplyed_demands_within"].astype(np.uint16)
-    buildings["supplyed_demands_without"] = buildings["supplyed_demands_without"].astype(np.uint16)
+    buildings["supplied_demands_within"] = buildings["supplied_demands_within"].astype(np.uint16)
+    buildings["supplied_demands_without"] = buildings["supplied_demands_without"].astype(np.uint16)
     services["carried_capacity_within"] = services["carried_capacity_within"].astype(np.uint16)
     services["carried_capacity_without"] = services["carried_capacity_without"].astype(np.uint16)
     logger.debug("Done adding additional options")

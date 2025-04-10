@@ -11,14 +11,14 @@ from shapely.ops import polygonize, unary_union
 from tqdm import tqdm
 
 from objectnat import config
-from objectnat.methods.noise.noise_reduce import dist_to_target_db, green_noise_reduce_db
 from objectnat.methods.noise.noise_exceptions import InvalidStepError
+from objectnat.methods.noise.noise_reduce import dist_to_target_db, green_noise_reduce_db
 from objectnat.methods.utils.geom_utils import (
     gdf_to_circle_zones_from_point,
     get_point_from_a_thorough_b,
     polygons_to_multilinestring,
 )
-from objectnat.methods.visibility_analysis import get_visibility_accurate
+from objectnat.methods.visibility.visibility_analysis import get_visibility_accurate
 
 logger = config.logger
 
@@ -87,10 +87,14 @@ def simulate_noise(
     db_sim_step = kwargs.get("db_sim_step", 1)
     reflection_n = kwargs.get("reflection_n", 3)
     dead_area_r = kwargs.get("dead_area_r", 5)
+
+    original_crs = source_points.crs
+
     div_ = (source_noise_db - target_noise_db) % db_sim_step
     if div_ != 0:
         raise InvalidStepError(source_noise_db, target_noise_db, db_sim_step, div_)
     # Choosing crs and simplifying obs if any
+    source_points = source_points.copy()
     if len(obstacles) > 0:
         obstacles = obstacles.copy()
         obstacles.geometry = obstacles.geometry.simplify(tolerance=1)
@@ -99,7 +103,6 @@ def simulate_noise(
         source_points.to_crs(local_crs, inplace=True)
     else:
         local_crs = source_points.estimate_utm_crs()
-        source_points = source_points.copy()
         source_points.to_crs(local_crs, inplace=True)
         source_points.reset_index(drop=True)
         source_points.geometry = source_points.centroid
@@ -158,7 +161,7 @@ def simulate_noise(
 
         noise_gdf = gpd.GeoDataFrame(pd.concat(noise_gdf, ignore_index=True), crs=local_crs)
         polygons = gpd.GeoDataFrame(
-            geometry=list(polygonize(noise_gdf.geometry.apply(polygons_to_multilinestring).unary_union)), crs=local_crs
+            geometry=list(polygonize(noise_gdf.geometry.apply(polygons_to_multilinestring).union_all())), crs=local_crs
         )
         polygons_points = polygons.copy()
         polygons_points.geometry = polygons.representative_point()
@@ -171,10 +174,10 @@ def simulate_noise(
         sim_result["source_point_ind"] = ind
         all_p_res.append(sim_result)
 
-    return gpd.GeoDataFrame(pd.concat(all_p_res, ignore_index=True), crs=local_crs)
+    return gpd.GeoDataFrame(pd.concat(all_p_res, ignore_index=True), crs=local_crs).to_crs(original_crs)
 
 
-def _noise_from_point_task(task, **kwargs) -> tuple[gpd.GeoDataFrame, list[tuple] | None]:
+def _noise_from_point_task(task, **kwargs) -> tuple[gpd.GeoDataFrame, list[tuple] | None]:  # pragma: no cover
     # Unpacking task
     point_from, obstacles, trees_orig, passed_dist, deep, dist_db = task
 
@@ -207,7 +210,7 @@ def _noise_from_point_task(task, **kwargs) -> tuple[gpd.GeoDataFrame, list[tuple
     if len(obstacles) == 0:
         obstacles_union = Polygon()
     else:
-        obstacles_union = obstacles.unary_union
+        obstacles_union = obstacles.union_all()
 
     vis_poly, max_view_dist = get_visibility_accurate(point_from, obstacles, dist, return_max_view_dist=True)
 
@@ -332,7 +335,7 @@ def _noise_from_point_task(task, **kwargs) -> tuple[gpd.GeoDataFrame, list[tuple
     vis_poly_points = gpd.GeoDataFrame(geometry=vis_poly_points, crs=local_crs)
 
     # Generating reflection points
-    vis_poly_points["point"] = vis_poly_points.geometry
+    vis_poly_points["point"] = vis_poly_points["geometry"].copy()
     vis_poly_points.geometry = vis_poly_points.geometry.buffer(1, resolution=1)
     vis_poly_points = vis_poly_points.sjoin(obstacles, predicate="intersects").drop(columns="index_right")
     vis_poly_points = vis_poly_points[~vis_poly_points.index.duplicated(keep="first")]
@@ -346,7 +349,7 @@ def _noise_from_point_task(task, **kwargs) -> tuple[gpd.GeoDataFrame, list[tuple
         return noise_from_point, None
     vis_poly_points = vis_poly_points[~vis_poly_points.is_empty]
     vis_poly_points = vis_poly_points[vis_poly_points.area >= 0.01]
-    vis_poly_points.geometry = vis_poly_points["point"]
+    vis_poly_points["geometry"] = vis_poly_points["point"]
     vis_poly_points["dist"] = vis_poly_points.distance(point_from)
     vis_poly_points = vis_poly_points[vis_poly_points["dist"] < max_dist - 5]
     vis_poly_points = vis_poly_points.sjoin(noise_from_point, predicate="intersects", how="left")
@@ -359,6 +362,8 @@ def _noise_from_point_task(task, **kwargs) -> tuple[gpd.GeoDataFrame, list[tuple
     # Creating new reflection tasks
     new_tasks = []
     for _, loc in vis_poly_points.iterrows():
+        if not isinstance(loc.geometry, Point):
+            continue
         new_passed_dist = round(loc.dist + passed_dist, 2)
         dist_last = max_dist - new_passed_dist
         if dist_last > 1:
