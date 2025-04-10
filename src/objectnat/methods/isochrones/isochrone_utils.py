@@ -74,11 +74,11 @@ def _process_pt_data(
     nodes: gpd.GeoDataFrame, edges: gpd.GeoDataFrame, graph_type: str
 ) -> tuple[gpd.GeoDataFrame, gpd.GeoDataFrame] | tuple[None, None]:
     """Process public transport data if available."""
-    if "desc" in nodes.columns and "stop" in nodes["desc"].unique():
-        pt_nodes = nodes[nodes["desc"] == "stop"]
+    if "type" in nodes.columns and "platform" in nodes["type"].unique():
+        pt_nodes = nodes[(nodes["type"] != "platform") & (~nodes["type"].isna())]
         if graph_type == "intermodal":
             edges = edges[~edges["type"].isin(["walk", "boarding"])]
-        pt_nodes = pt_nodes[["desc", "route", "geometry"]]
+        pt_nodes = pt_nodes[["type", "route", "geometry"]]
         edges = edges[["type", "route", "geometry"]]
         return pt_nodes, edges
     return None, None
