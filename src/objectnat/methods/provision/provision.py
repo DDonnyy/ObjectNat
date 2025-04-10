@@ -61,7 +61,7 @@ def clip_provision(
     links = links.copy()
     services = services.copy()
 
-    s = buildings.intersects(selection_zone.unary_union)
+    s = buildings.intersects(selection_zone.union_all())
     buildings = buildings.loc[s[s].index]
     links = links[links["building_index"].isin(buildings.index.tolist())]
     services_to_keep = set(links["service_index"].tolist())

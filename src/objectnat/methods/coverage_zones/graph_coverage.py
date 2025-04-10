@@ -88,7 +88,7 @@ def get_graph_coverage(
 
     points["nearest_node"] = nearest_nodes
 
-    dists, nearest_paths = nx.multi_source_dijkstra(
+    _, nearest_paths = nx.multi_source_dijkstra(
         reversed_graph, nearest_nodes, weight=weight_type, cutoff=weight_value_cutoff
     )
     reachable_nodes = list(nearest_paths.keys())

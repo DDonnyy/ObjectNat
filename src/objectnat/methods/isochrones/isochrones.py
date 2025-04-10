@@ -7,13 +7,13 @@ from shapely.ops import polygonize
 
 from objectnat import config
 from objectnat.methods.isochrones.isochrone_utils import (
+    _calculate_distance_matrix,
     _create_isochrones_gdf,
     _prepare_graph_and_nodes,
-    _validate_inputs,
-    _calculate_distance_matrix,
     _process_pt_data,
+    _validate_inputs,
 )
-from objectnat.methods.utils.geom_utils import remove_inner_geom, polygons_to_multilinestring
+from objectnat.methods.utils.geom_utils import polygons_to_multilinestring, remove_inner_geom
 from objectnat.methods.utils.graph_utils import graph_to_gdf
 
 logger = config.logger
@@ -27,13 +27,69 @@ def get_accessibility_isochrone_stepped(
     nx_graph: nx.Graph,
     step: float = None,
     **kwargs,
-):
+) -> tuple[gpd.GeoDataFrame, gpd.GeoDataFrame | None, gpd.GeoDataFrame | None]:
+    """
+    Calculate stepped accessibility isochrones for a single point with specified intervals.
+
+    Parameters
+    ----------
+    isochrone_type : Literal["radius", "ways", "separate"]
+        Visualization method for stepped isochrones:
+        - "radius": Voronoi-based in circular buffers
+        - "ways": Voronoi-based in road network polygons
+        - "separate": Circular buffers for each step
+    point : gpd.GeoDataFrame
+        Single source point for isochrone calculation (uses first geometry if multiple provided).
+    weight_value : float
+        Maximum travel time (minutes) or distance (meters) threshold.
+    weight_type : Literal["time_min", "length_meter"]
+        Type of weight calculation:
+        - "time_min": Time-based in minutes
+        - "length_meter": Distance-based in meters
+    nx_graph : nx.Graph
+        NetworkX graph representing the transportation network.
+    step : float, optional
+        Interval between isochrone steps. Defaults to:
+        - 100 meters for distance-based
+        - 1 minute for time-based
+    **kwargs
+        Additional buffer parameters:
+        - buffer_factor: Size multiplier for buffers (default: 0.7)
+        - road_buffer_size: Buffer size for road edges in meters (default: 5)
+
+    Returns
+    -------
+    tuple[gpd.GeoDataFrame, gpd.GeoDataFrame | None, gpd.GeoDataFrame | None]
+        Tuple containing:
+        - stepped_isochrones: GeoDataFrame with stepped polygons and distance/time attributes
+        - pt_stops: Public transport stops within isochrones (if available)
+        - pt_routes: Public transport routes within isochrones (if available)
+
+    Examples
+    --------
+    >>> from iduedu import get_intermodal_graph # pip install iduedu to get OSM city network graph
+    >>> graph = get_intermodal_graph(polygon=my_territory_polygon)
+    >>> point = gpd.GeoDataFrame(geometry=[Point(30.33, 59.95)], crs=4326)
+    >>> # Stepped radius isochrones with 5-minute intervals
+    >>> radius_stepped, stops, _ = get_accessibility_isochrone_stepped(
+    ...     "radius", point, 30, "time_min", graph, step=5
+    ... )
+    >>> # Stepped road isochrones with 200m intervals
+    >>> ways_stepped, _, routes = get_accessibility_isochrone_stepped(
+    ...     "ways", point, 1000, "length_meter", graph, step=200
+    ... )
+    >>> # Voronoi-based stepped isochrones
+    >>> separate_stepped, stops, _ = get_accessibility_isochrone_stepped(
+    ...     "separate", point, 15, "time_min", graph
+    ... )
+    """
     buffer_params = {
         "buffer_factor": 0.7,
         "road_buffer_size": 5,
     }
 
     buffer_params.update(kwargs)
+    original_crs = point.crs
     point = point.copy()
     if len(point) > 1:
         logger.warning(
@@ -117,7 +173,13 @@ def get_accessibility_isochrone_stepped(
             voronois.sjoin(nodes[["dist", "geometry"]]).dissolve(by="dist", as_index=False).drop(columns="index_right")
         )
         stepped_iso = stepped_iso.clip(isochrone_geoms[0], keep_geom_type=True)
-    return stepped_iso
+
+    pt_nodes, pt_edges = _process_pt_data(nodes, edges, graph_type)
+    if pt_nodes is not None:
+        pt_nodes.to_crs(original_crs, inplace=True)
+    if pt_edges is not None:
+        pt_edges.to_crs(original_crs, inplace=True)
+    return stepped_iso.to_crs(original_crs), pt_nodes, pt_edges
 
 
 def get_accessibility_isochrones(
@@ -128,12 +190,63 @@ def get_accessibility_isochrones(
     nx_graph: nx.Graph,
     **kwargs,
 ) -> tuple[gpd.GeoDataFrame, gpd.GeoDataFrame | None, gpd.GeoDataFrame | None]:
+    """
+    Calculate accessibility isochrones from input points based on the provided city graph.
+
+    Supports two types of isochrones:
+    - 'radius': Circular buffer-based isochrones
+    - 'ways': Road network-based isochrones
+
+    Parameters
+    ----------
+    isochrone_type : Literal["radius", "ways"]
+        Type of isochrone to calculate:
+        - "radius": Creates circular buffers around reachable nodes
+        - "ways": Creates polygons based on reachable road network
+    points : gpd.GeoDataFrame
+        GeoDataFrame containing source points for isochrone calculation.
+    weight_value : float
+        Maximum travel time (minutes) or distance (meters) threshold.
+    weight_type : Literal["time_min", "length_meter"]
+        Type of weight calculation:
+        - "time_min": Time-based accessibility in minutes
+        - "length_meter": Distance-based accessibility in meters
+    nx_graph : nx.Graph
+        NetworkX graph representing the transportation network.
+        Must contain CRS and speed attributes for time calculations.
+    **kwargs
+        Additional buffer parameters:
+        - buffer_factor: Size multiplier for buffers (default: 0.7)
+        - road_buffer_size: Buffer size for road edges in meters (default: 5)
+
+    Returns
+    -------
+    tuple[gpd.GeoDataFrame, gpd.GeoDataFrame | None, gpd.GeoDataFrame | None]
+        Tuple containing:
+        - isochrones: GeoDataFrame with calculated isochrone polygons
+        - pt_stops: Public transport stops within isochrones (if available)
+        - pt_routes: Public transport routes within isochrones (if available)
+
+    Examples
+    --------
+    >>> from iduedu import get_intermodal_graph # pip install iduedu to get OSM city network graph
+    >>> graph = get_intermodal_graph(polygon=my_territory_polygon)
+    >>> points = gpd.GeoDataFrame(geometry=[Point(30.33, 59.95)], crs=4326)
+    >>> # Radius isochrones
+    >>> radius_iso, stops, routes = get_accessibility_isochrones(
+    ...     "radius", points, 15, "time_min", graph, buffer_factor=0.8
+    ... )
+    >>> # Road network isochrones
+    >>> ways_iso, stops, routes = get_accessibility_isochrones(
+    ...     "ways", points, 1000, "length_meter", graph, road_buffer_size=7
+    ... )
+    """
 
     buffer_params = {
         "buffer_factor": 0.7,
         "road_buffer_size": 5,
     }
-
+    original_crs = points.crs
     buffer_params.update(kwargs)
 
     points = points.copy()
@@ -175,7 +288,11 @@ def get_accessibility_isochrones(
         )
     isochrones = _create_isochrones_gdf(points, isochrone_geoms, dist_matrix, local_crs, weight_type, weight_value)
     pt_nodes, pt_edges = _process_pt_data(nodes, edges, graph_type)
-    return isochrones, pt_nodes, pt_edges
+    if pt_nodes is not None:
+        pt_nodes.to_crs(original_crs, inplace=True)
+    if pt_edges is not None:
+        pt_edges.to_crs(original_crs, inplace=True)
+    return isochrones.to_crs(original_crs), pt_nodes, pt_edges
 
 
 def _build_radius_isochrones(dist_matrix, weight_value, weight_type, speed, nodes, buffer_factor):
