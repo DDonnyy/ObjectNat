@@ -5,15 +5,27 @@ import pytest
 from matplotlib import pyplot as plt
 from pyproj.exceptions import CRSError
 
-from objectnat import get_graph_coverage, get_radius_coverage
+from objectnat import get_graph_coverage, get_radius_coverage,get_stepped_graph_coverage
 from tests.conftest import output_dir
 
+def test_stepped_time_min(services_data, buildings_data, intermodal_osm_1114252, boundary_osm_1114252):
+    zone = gpd.GeoDataFrame(geometry=[boundary_osm_1114252], crs=4326)
+    weight = 30
+    result = get_stepped_graph_coverage(
+        gdf_to=services_data,
+        nx_graph=intermodal_osm_1114252,
+        weight_type="time_min",
+        weight_value_cutoff=weight,
+        zone=zone,
+        step=4
+    )
+    # result.explore(column="dist",cmap="viridis",tiles='cartoDB Positron').save('subways_spb.html')
 
 def test_graph_time_min(services_data, buildings_data, intermodal_osm_1114252, boundary_osm_1114252):
     zone = gpd.GeoDataFrame(geometry=[boundary_osm_1114252], crs=4326)
     weight = 10
     result = get_graph_coverage(
-        gdf_from=services_data,
+        gdf_to=services_data,
         nx_graph=intermodal_osm_1114252,
         weight_type="time_min",
         weight_value_cutoff=weight,
@@ -34,7 +46,7 @@ def test_graph_time_min(services_data, buildings_data, intermodal_osm_1114252, b
 def test_graph_length_meter(services_data, buildings_data, intermodal_osm_1114252):
     weight = 600
     result = get_graph_coverage(
-        gdf_from=services_data, nx_graph=intermodal_osm_1114252, weight_type="length_meter", weight_value_cutoff=weight
+        gdf_to=services_data, nx_graph=intermodal_osm_1114252, weight_type="length_meter", weight_value_cutoff=weight
     )
     assert isinstance(result, gpd.GeoDataFrame)
     assert len(result) == len(services_data)
@@ -51,7 +63,7 @@ def test_graph_length_meter(services_data, buildings_data, intermodal_osm_111425
 def test_graph_same_crs(services_data, intermodal_osm_1114252):
     services_data = services_data.to_crs(3857)
     result = get_graph_coverage(
-        gdf_from=services_data, nx_graph=intermodal_osm_1114252, weight_type="length_meter", weight_value_cutoff=600
+        gdf_to=services_data, nx_graph=intermodal_osm_1114252, weight_type="length_meter", weight_value_cutoff=600
     )
     assert isinstance(result, gpd.GeoDataFrame)
     assert len(result) == len(services_data)
@@ -63,22 +75,29 @@ def test_wrong_graph_crs(services_data, intermodal_osm_1114252):
     wrong_graph.graph["crs"] = "Wrong CRS"
     with pytest.raises(CRSError) as _:
         _ = get_graph_coverage(
-            gdf_from=services_data, nx_graph=wrong_graph, weight_type="length_meter", weight_value_cutoff=600
+            gdf_to=services_data, nx_graph=wrong_graph, weight_type="length_meter", weight_value_cutoff=600
         )
     wrong_graph.graph = {}
     with pytest.raises(ValueError) as _:
         _ = get_graph_coverage(
-            gdf_from=services_data, nx_graph=wrong_graph, weight_type="length_meter", weight_value_cutoff=600
+            gdf_to=services_data, nx_graph=wrong_graph, weight_type="length_meter", weight_value_cutoff=600
         )
 
 
-def test_radius_coverage(services_data):
+def test_radius_coverage(services_data, buildings_data):
     services_data = services_data.to_crs(4326)
-    result = get_radius_coverage(services_data, radius=1000)
+    weight = 800
+    result = get_radius_coverage(services_data, radius=weight)
     assert isinstance(result, gpd.GeoDataFrame)
     assert len(result) == len(services_data)
     assert result.crs == services_data.crs
-
+    visualize_coverage_zones(
+        result,
+        buildings_data,
+        services_data,
+        title_suffix=f"radius-voronoi (Distance cutoff {weight} meters)",
+        filename_suffix="distance_800m",
+    )
 
 def visualize_coverage_zones(coverage_gdf, buildings_data, services_data, title_suffix="", filename_suffix=""):
     local_crs = buildings_data.estimate_utm_crs()

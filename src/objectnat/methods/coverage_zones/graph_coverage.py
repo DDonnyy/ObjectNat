@@ -10,7 +10,7 @@ from objectnat.methods.utils.graph_utils import get_closest_nodes_from_gdf, remo
 
 
 def get_graph_coverage(
-    gdf_from: gpd.GeoDataFrame,
+    gdf_to: gpd.GeoDataFrame,
     nx_graph: nx.Graph,
     weight_type: Literal["time_min", "length_meter"],
     weight_value_cutoff: float = None,
@@ -29,8 +29,8 @@ def get_graph_coverage(
 
     Parameters
     ----------
-    gdf_from : gpd.GeoDataFrame
-        Source points from which coverage is calculated.
+    gdf_to : gpd.GeoDataFrame
+        Source points to which coverage is calculated.
     nx_graph : nx.Graph
         NetworkX graph representing the transportation network.
     weight_type : Literal["time_min", "length_meter"]
@@ -58,14 +58,14 @@ def get_graph_coverage(
     >>> graph = get_intermodal_graph(osm_id=1114252)
     >>> coverage = get_graph_coverage(points, graph, "time_min", 15)
     """
-    original_crs = gdf_from.crs
+    original_crs = gdf_to.crs
     try:
         local_crs = nx_graph.graph["crs"]
     except KeyError as exc:
         raise ValueError("Graph does not have crs attribute") from exc
 
     try:
-        points = gdf_from.copy()
+        points = gdf_to.copy()
         points.to_crs(local_crs, inplace=True)
     except CRSError as e:
         raise CRSError(f"Graph crs ({local_crs}) has invalid format.") from e
