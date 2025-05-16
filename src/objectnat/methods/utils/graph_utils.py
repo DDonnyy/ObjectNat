@@ -90,6 +90,28 @@ def graph_to_gdf(
 
 
 def get_closest_nodes_from_gdf(gdf: gpd.GeoDataFrame, nx_graph: nx.Graph) -> tuple:
+    """
+    Finds the closest graph nodes to the geometries in a GeoDataFrame.
+
+    Parameters
+    ----------
+    gdf : gpd.GeoDataFrame
+        GeoDataFrame with geometries for which the nearest graph nodes will be found.
+    nx_graph : nx.Graph
+        A NetworkX graph where nodes have 'x' and 'y' attributes (coordinates).
+
+    Returns
+    -------
+    tuple
+        A tuple of (distances, nearest_nodes), where:
+        - distances: List of distances from each geometry to the nearest node.
+        - nearest_nodes: List of node IDs closest to each geometry in the input GeoDataFrame.
+
+    Raises
+    ------
+    ValueError
+        If any node in the graph is missing 'x' or 'y' attributes.
+    """
     nodes_with_data = list(nx_graph.nodes(data=True))
     try:
         coordinates = np.array([(data["x"], data["y"]) for node, data in nodes_with_data])
@@ -103,6 +125,24 @@ def get_closest_nodes_from_gdf(gdf: gpd.GeoDataFrame, nx_graph: nx.Graph) -> tup
 
 
 def remove_weakly_connected_nodes(graph: nx.DiGraph) -> nx.DiGraph:
+    """
+    Removes all nodes that are not part of the largest strongly connected component in the graph.
+
+    Parameters
+    ----------
+    graph : nx.DiGraph
+        A directed NetworkX graph.
+
+    Returns
+    -------
+    nx.DiGraph
+        A new graph with only the largest strongly connected component retained.
+
+    Notes
+    -----
+    - Also logs a warning if multiple weakly connected components are detected.
+    - Logs the number of nodes removed and size of the remaining component.
+    """
     graph = graph.copy()
 
     weakly_connected_components = list(nx.weakly_connected_components(graph))
@@ -125,3 +165,7 @@ def remove_weakly_connected_nodes(graph: nx.DiGraph) -> nx.DiGraph:
         graph.remove_nodes_from(nodes_to_del)
 
     return graph
+
+def reverse_graph(graph: nx.DiGraph|nx.MultiDiGraph) -> nx.DiGraph:
+    # TODO
+    pass

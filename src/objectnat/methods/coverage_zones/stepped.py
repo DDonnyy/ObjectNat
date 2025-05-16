@@ -14,9 +14,11 @@ def get_stepped_graph_coverage(
     gdf_to: gpd.GeoDataFrame,
     nx_graph: nx.Graph,
     weight_type: Literal["time_min", "length_meter"],
+    step_type: Literal["voronoi", "separate"],
     weight_value_cutoff: float = None,
     zone: gpd.GeoDataFrame = None,
     step: float = None,
+
 ):
 
     if step is None:
@@ -42,7 +44,12 @@ def get_stepped_graph_coverage(
             nx_graph = nx.DiGraph(nx_graph)
         else:
             nx_graph = nx.Graph(nx_graph)
+
     nx_graph = remove_weakly_connected_nodes(nx_graph)
+
+    mapping = {old_label: new_label for new_label, old_label in enumerate(nx_graph.nodes())}
+    nx_graph = nx.relabel_nodes(nx_graph, mapping)
+
     sparse_matrix = nx.to_scipy_sparse_array(nx_graph, weight=weight_type)
     transposed_matrix = sparse_matrix.transpose()
     reversed_graph = nx.from_scipy_sparse_array(
@@ -62,12 +69,12 @@ def get_stepped_graph_coverage(
 
     graph_points = pd.DataFrame(
         data=[{"node": node, "geometry": Point(data["x"], data["y"])} for node, data in nx_graph.nodes(data=True)]
-    ).set_index("node")
+    )
 
-    nearest_nodes = pd.DataFrame.from_dict(dist, orient="index", columns=["dist"])
+    nearest_nodes = pd.DataFrame.from_dict(dist, orient="index", columns=["dist"]).reset_index()
 
     graph_nodes_gdf = gpd.GeoDataFrame(
-        graph_points.merge(nearest_nodes, left_index=True, right_index=True, how="left").reset_index(drop=True),
+        graph_points.merge(nearest_nodes, left_on="node", right_on="index", how="left").reset_index(drop=True),
         geometry="geometry",
         crs=local_crs,
     )

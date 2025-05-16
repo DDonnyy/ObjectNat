@@ -76,6 +76,10 @@ def get_graph_coverage(
         else:
             nx_graph = nx.Graph(nx_graph)
     nx_graph = remove_weakly_connected_nodes(nx_graph)
+
+    mapping = {old_label: new_label for new_label, old_label in enumerate(nx_graph.nodes())}
+    nx_graph = nx.relabel_nodes(nx_graph, mapping)
+
     sparse_matrix = nx.to_scipy_sparse_array(nx_graph, weight=weight_type)
     transposed_matrix = sparse_matrix.transpose()
     reversed_graph = nx.from_scipy_sparse_array(
@@ -88,7 +92,7 @@ def get_graph_coverage(
 
     points["nearest_node"] = nearest_nodes
 
-    _, nearest_paths = nx.multi_source_dijkstra(
+    nearest_paths = nx.multi_source_dijkstra_path(
         reversed_graph, nearest_nodes, weight=weight_type, cutoff=weight_value_cutoff
     )
     reachable_nodes = list(nearest_paths.keys())
