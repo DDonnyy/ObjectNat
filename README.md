@@ -32,7 +32,7 @@
    </p>
 
 
-2. **[Coverage Zones](./examples/graph_coverage.ipynb)** — Function for generating **coverage zones** from a set of source points using a transport network. It calculates the area each point can reach based on **travel time** or **distance**, then builds polygons via **Voronoi diagrams** and clips them to a custom boundary if provided.
+2. **[Coverage Zones](./examples/coverage_zones.ipynb)** — Function for generating **coverage zones** from a set of source points using a transport network. It calculates the area each point can reach based on **travel time** or **distance**, then builds polygons via **Voronoi diagrams** and clips them to a custom boundary if provided.
 
    <p align="center">
 		<img src="https://github.com/user-attachments/assets/fa8057d7-77aa-48a2-aa10-ea3e292a918d" alt="coverage_zones_time_10min" width="350">

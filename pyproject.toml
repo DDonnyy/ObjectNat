@@ -17,6 +17,7 @@ tqdm = "^4.66.2"
 pandarallel = "^1.6.5"
 networkx = "^3.4.2"
 scikit-learn = "^1.4.0"
+loguru = "^0.7.3"
 
 
 [tool.poetry.group.dev.dependencies]
