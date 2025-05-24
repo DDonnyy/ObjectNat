@@ -37,7 +37,7 @@
    <p align="center">
       <img src="https://raw.githubusercontent.com/DDonnyy/ObjectNat/assets/coverage_zones_time_10min.png" alt="coverage_zones_time_10min" width="350">
       <img src="https://raw.githubusercontent.com/DDonnyy/ObjectNat/assets/coverage_zones_distance_600m.png" alt="coverage_zones_distance_600m" width="350">
-      <img src="https://raw.githubusercontent.com/DDonnyy/ObjectNat/assets/coverage_zones_distance_800m.png" alt="coverage_zones_distance_radius_voronoi" width="350">
+      <img src="https://raw.githubusercontent.com/DDonnyy/ObjectNat/assets/coverage_zones_radius_distance_800m.png" alt="coverage_zones_distance_radius_voronoi" width="350">
    </p>
    <p align="center">
       <img src="https://raw.githubusercontent.com/DDonnyy/ObjectNat/assets/stepped_coverage_zones_separate.png" alt="stepped_coverage_zones_separate" width="350">

@@ -139,6 +139,7 @@ jobs:
             git checkout --orphan assets
             git reset --hard
           fi
+          rm -f ./*.png || echo "No PNG files to remove"
           cp -r src/tests/test_output/*.png . || echo "No images to copy"
           git add ./*.png
           git commit -m "Update stepped coverage zone test images" || echo "No changes to commit"
