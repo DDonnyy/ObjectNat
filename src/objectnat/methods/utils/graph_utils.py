@@ -90,6 +90,28 @@ def graph_to_gdf(
 
 
 def get_closest_nodes_from_gdf(gdf: gpd.GeoDataFrame, nx_graph: nx.Graph) -> tuple:
+    """
+    Finds the closest graph nodes to the geometries in a GeoDataFrame.
+
+    Parameters
+    ----------
+    gdf : gpd.GeoDataFrame
+        GeoDataFrame with geometries for which the nearest graph nodes will be found.
+    nx_graph : nx.Graph
+        A NetworkX graph where nodes have 'x' and 'y' attributes (coordinates).
+
+    Returns
+    -------
+    tuple
+        A tuple of (distances, nearest_nodes), where:
+        - distances: List of distances from each geometry to the nearest node.
+        - nearest_nodes: List of node IDs closest to each geometry in the input GeoDataFrame.
+
+    Raises
+    ------
+    ValueError
+        If any node in the graph is missing 'x' or 'y' attributes.
+    """
     nodes_with_data = list(nx_graph.nodes(data=True))
     try:
         coordinates = np.array([(data["x"], data["y"]) for node, data in nodes_with_data])
@@ -103,6 +125,24 @@ def get_closest_nodes_from_gdf(gdf: gpd.GeoDataFrame, nx_graph: nx.Graph) -> tup
 
 
 def remove_weakly_connected_nodes(graph: nx.DiGraph) -> nx.DiGraph:
+    """
+    Removes all nodes that are not part of the largest strongly connected component in the graph.
+
+    Parameters
+    ----------
+    graph : nx.DiGraph
+        A directed NetworkX graph.
+
+    Returns
+    -------
+    nx.DiGraph
+        A new graph with only the largest strongly connected component retained.
+
+    Notes
+    -----
+    - Also logs a warning if multiple weakly connected components are detected.
+    - Logs the number of nodes removed and size of the remaining component.
+    """
     graph = graph.copy()
 
     weakly_connected_components = list(nx.weakly_connected_components(graph))
@@ -125,3 +165,42 @@ def remove_weakly_connected_nodes(graph: nx.DiGraph) -> nx.DiGraph:
         graph.remove_nodes_from(nodes_to_del)
 
     return graph
+
+
+def reverse_graph(nx_graph: nx.Graph, weight: str) -> tuple[nx.Graph, nx.DiGraph]:
+    """
+    Generate a reversed version of a directed or weighted graph.
+
+    If the input graph is undirected, the original graph is returned as-is.
+    For directed graphs, the function returns a new graph with all edge directions reversed,
+    preserving the specified edge weight.
+
+    Parameters
+    ----------
+    nx_graph : nx.Graph
+        Input NetworkX graph (can be directed or undirected).
+    weight : str
+        Name of the edge attribute to use as weight in graph conversion.
+
+    Returns
+    -------
+    tuple[nx.Graph, nx.DiGraph]
+        A tuple containing:
+        - normalized_graph: Original graph with relabeled nodes (if needed)
+        - reversed_graph: Directed graph with reversed edges and preserved weights
+    """
+
+    if nx_graph.is_multigraph():
+        nx_graph = nx.DiGraph(nx_graph) if nx_graph.is_directed() else nx.Graph(nx_graph)
+    if not nx_graph.is_multigraph() and not nx_graph.is_directed():
+        return nx_graph, nx_graph
+
+    nx_graph = remove_weakly_connected_nodes(nx_graph)
+
+    mapping = {old_label: new_label for new_label, old_label in enumerate(nx_graph.nodes())}
+    nx_graph = nx.relabel_nodes(nx_graph, mapping)
+
+    sparse_matrix = nx.to_scipy_sparse_array(nx_graph, weight=weight)
+    transposed_matrix = sparse_matrix.transpose()
+    reversed_graph = nx.from_scipy_sparse_array(transposed_matrix, edge_attribute=weight, create_using=type(nx_graph))
+    return nx_graph, reversed_graph

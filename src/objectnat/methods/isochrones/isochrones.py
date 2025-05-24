@@ -3,7 +3,6 @@ from typing import Literal
 import geopandas as gpd
 import networkx as nx
 import numpy as np
-from shapely.ops import polygonize
 
 from objectnat import config
 from objectnat.methods.isochrones.isochrone_utils import (
@@ -12,8 +11,9 @@ from objectnat.methods.isochrones.isochrone_utils import (
     _prepare_graph_and_nodes,
     _process_pt_data,
     _validate_inputs,
+    create_separated_dist_polygons,
 )
-from objectnat.methods.utils.geom_utils import polygons_to_multilinestring, remove_inner_geom
+from objectnat.methods.utils.geom_utils import remove_inner_geom
 from objectnat.methods.utils.graph_utils import graph_to_gdf
 
 logger = config.logger
@@ -116,35 +116,9 @@ def get_accessibility_isochrone_stepped(
     logger.info("Building isochrones geometry...")
     nodes, edges = graph_to_gdf(subgraph)
     nodes.loc[dist_matrix.columns, "dist"] = dist_matrix.iloc[0]
-    steps = np.arange(0, weight_value + step, step)
-    if steps[-1] > weight_value:
-        steps[-1] = weight_value  # Ensure last step doesn't exceed weight_value
 
     if isochrone_type == "separate":
-        for i in range(len(steps) - 1):
-            min_dist = steps[i]
-            max_dist = steps[i + 1]
-            nodes_in_step = nodes["dist"].between(min_dist, max_dist, inclusive="left")
-            nodes_in_step = nodes_in_step[nodes_in_step].index
-            if not nodes_in_step.empty:
-                buffer_size = (max_dist - nodes.loc[nodes_in_step, "dist"]) * 0.7
-                if weight_type == "time_min":
-                    buffer_size = buffer_size * speed
-                nodes.loc[nodes_in_step, "buffer_size"] = buffer_size
-        nodes.geometry = nodes.geometry.buffer(nodes["buffer_size"])
-        nodes["dist"] = np.round(nodes["dist"], 0)
-        nodes = nodes.dissolve(by="dist", as_index=False)
-        polygons = gpd.GeoDataFrame(
-            geometry=list(polygonize(nodes.geometry.apply(polygons_to_multilinestring).union_all())),
-            crs=local_crs,
-        )
-        polygons_points = polygons.copy()
-        polygons_points.geometry = polygons.representative_point()
-
-        stepped_iso = polygons_points.sjoin(nodes, predicate="within").reset_index()
-        stepped_iso = stepped_iso.groupby("index").agg({"dist": "mean"})
-        stepped_iso["geometry"] = polygons
-        stepped_iso = gpd.GeoDataFrame(stepped_iso, geometry="geometry", crs=local_crs).reset_index(drop=True)
+        stepped_iso = create_separated_dist_polygons(nodes, weight_value, weight_type, step, speed)
     else:
         if isochrone_type == "radius":
             isochrone_geoms = _build_radius_isochrones(

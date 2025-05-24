@@ -6,11 +6,11 @@ import pandas as pd
 from pyproj.exceptions import CRSError
 from shapely import Point, concave_hull
 
-from objectnat.methods.utils.graph_utils import get_closest_nodes_from_gdf, remove_weakly_connected_nodes
+from objectnat.methods.utils.graph_utils import get_closest_nodes_from_gdf, reverse_graph
 
 
 def get_graph_coverage(
-    gdf_from: gpd.GeoDataFrame,
+    gdf_to: gpd.GeoDataFrame,
     nx_graph: nx.Graph,
     weight_type: Literal["time_min", "length_meter"],
     weight_value_cutoff: float = None,
@@ -29,8 +29,8 @@ def get_graph_coverage(
 
     Parameters
     ----------
-    gdf_from : gpd.GeoDataFrame
-        Source points from which coverage is calculated.
+    gdf_to : gpd.GeoDataFrame
+        Source points to which coverage is calculated.
     nx_graph : nx.Graph
         NetworkX graph representing the transportation network.
     weight_type : Literal["time_min", "length_meter"]
@@ -58,29 +58,19 @@ def get_graph_coverage(
     >>> graph = get_intermodal_graph(osm_id=1114252)
     >>> coverage = get_graph_coverage(points, graph, "time_min", 15)
     """
-    original_crs = gdf_from.crs
+    original_crs = gdf_to.crs
     try:
         local_crs = nx_graph.graph["crs"]
     except KeyError as exc:
         raise ValueError("Graph does not have crs attribute") from exc
 
     try:
-        points = gdf_from.copy()
+        points = gdf_to.copy()
         points.to_crs(local_crs, inplace=True)
     except CRSError as e:
         raise CRSError(f"Graph crs ({local_crs}) has invalid format.") from e
 
-    if nx_graph.is_multigraph():
-        if nx_graph.is_directed():
-            nx_graph = nx.DiGraph(nx_graph)
-        else:
-            nx_graph = nx.Graph(nx_graph)
-    nx_graph = remove_weakly_connected_nodes(nx_graph)
-    sparse_matrix = nx.to_scipy_sparse_array(nx_graph, weight=weight_type)
-    transposed_matrix = sparse_matrix.transpose()
-    reversed_graph = nx.from_scipy_sparse_array(
-        transposed_matrix, edge_attribute=weight_type, create_using=type(nx_graph)
-    )
+    nx_graph, reversed_graph = reverse_graph(nx_graph, weight_type)
 
     points.geometry = points.representative_point()
 
@@ -88,7 +78,7 @@ def get_graph_coverage(
 
     points["nearest_node"] = nearest_nodes
 
-    _, nearest_paths = nx.multi_source_dijkstra(
+    nearest_paths = nx.multi_source_dijkstra_path(
         reversed_graph, nearest_nodes, weight=weight_type, cutoff=weight_value_cutoff
     )
     reachable_nodes = list(nearest_paths.keys())

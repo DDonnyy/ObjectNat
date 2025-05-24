@@ -5,8 +5,10 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 from pyproj.exceptions import CRSError
+from shapely.ops import polygonize
 
 from objectnat import config
+from objectnat.methods.utils.geom_utils import polygons_to_multilinestring
 from objectnat.methods.utils.graph_utils import get_closest_nodes_from_gdf, remove_weakly_connected_nodes
 
 logger = config.logger
@@ -128,3 +130,38 @@ def _create_isochrones_gdf(
     isochrones["weight_type"] = weight_type
     isochrones["weight_value"] = weight_value
     return isochrones
+
+
+def create_separated_dist_polygons(
+    points: gpd.GeoDataFrame, weight_value, weight_type, step, speed
+) -> gpd.GeoDataFrame:
+    points["dist"] = points["dist"].clip(lower=0.1)
+    steps = np.arange(0, weight_value + step, step)
+    if steps[-1] > weight_value:
+        steps[-1] = weight_value  # Ensure last step doesn't exceed weight_value
+    for i in range(len(steps) - 1):
+        min_dist = steps[i]
+        max_dist = steps[i + 1]
+        nodes_in_step = points["dist"].between(min_dist, max_dist, inclusive="left")
+        nodes_in_step = nodes_in_step[nodes_in_step].index
+        if not nodes_in_step.empty:
+            buffer_size = (max_dist - points.loc[nodes_in_step, "dist"]) * 0.7
+            if weight_type == "time_min":
+                buffer_size = buffer_size * speed
+            points.loc[nodes_in_step, "buffer_size"] = buffer_size
+    points.geometry = points.geometry.buffer(points["buffer_size"])
+    points["dist"] = np.minimum(np.ceil(points["dist"] / step) * step, weight_value)
+    points = points.dissolve(by="dist", as_index=False)
+    polygons = gpd.GeoDataFrame(
+        geometry=list(polygonize(points.geometry.apply(polygons_to_multilinestring).union_all())),
+        crs=points.crs,
+    )
+    polygons_points = polygons.copy()
+    polygons_points.geometry = polygons.representative_point()
+    stepped_polygons = polygons_points.sjoin(points, predicate="within").reset_index()
+    stepped_polygons = stepped_polygons.groupby("index").agg({"dist": "mean"})
+    stepped_polygons["dist"] = np.minimum(np.floor(stepped_polygons["dist"] / step) * step, weight_value)
+    stepped_polygons["geometry"] = polygons
+    stepped_polygons = gpd.GeoDataFrame(stepped_polygons, geometry="geometry", crs=points.crs).reset_index(drop=True)
+    stepped_polygons = stepped_polygons.dissolve(by="dist", as_index=False).explode(ignore_index=True)
+    return stepped_polygons

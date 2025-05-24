@@ -4,9 +4,14 @@ on:
   push:
     branches:
       - master
+      - dev
   pull_request:
     branches:
       - master
+      - dev
+
+permissions:
+  contents: write
 
 jobs:
   check-version:
@@ -105,9 +110,6 @@ jobs:
       - name: Install dependencies
         run: poetry install
 
-      - name: Install pyarrow for reading example data
-        run: poetry add pyarrow
-
       - name: Run tests with coverage
         run: |
           poetry run pytest src/tests --cov=objectnat --cov-report=xml
@@ -124,3 +126,24 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           file: coverage.xml
           slug: DDonnyy/ObjectNat
+
+      - name: Commit and push test images to assets branch
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+          
+          if git ls-remote --exit-code --heads origin assets; then
+            git fetch origin assets
+            git checkout assets
+          else
+            git checkout --orphan assets
+            git reset --hard
+          fi
+          rm -f ./*.png || echo "No old PNGs to remove"
+          git rm -f ./*.png || echo "No old PNGs to remove from Git"
+          cp -r src/tests/test_output/*.png . || echo "No images to copy"
+          git add ./*.png
+          git commit -m "Update stepped coverage zone test images" || echo "No changes to commit"
+          git push --force origin assets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

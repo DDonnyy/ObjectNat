@@ -22,26 +22,33 @@ from objectnat.methods.visibility.visibility_analysis import get_visibility_accu
 
 logger = config.logger
 
+MAX_DB_VALUE = 194
+
 
 def simulate_noise(
-    source_points: gpd.GeoDataFrame, obstacles: gpd.GeoDataFrame, source_noise_db, geometric_mean_freq_hz, **kwargs
+    source_points: gpd.GeoDataFrame,
+    obstacles: gpd.GeoDataFrame,
+    source_noise_db: float = None,
+    geometric_mean_freq_hz: float = None,
+    **kwargs,
 ):
     """
     Simulates noise propagation from a set of source points considering obstacles, trees, and environmental factors.
 
     Args:
-        source_points (gpd.GeoDataFrame): A GeoDataFrame containing one or more points representing the noise sources.
-            A separate simulation will be run for each point.
+         source_points (gpd.GeoDataFrame): A GeoDataFrame with one or more point geometries representing noise sources.
+            Optionally, it can include 'source_noise_db' and 'geometric_mean_freq_hz' columns for per-point simulation.
         obstacles (gpd.GeoDataFrame): A GeoDataFrame representing obstacles in the environment. If a column with
             sound absorption coefficients is present, its name should be provided in the `absorb_ratio_column` argument.
             Missing values will be filled with the `standart_absorb_ratio`.
-        source_noise_db (float): The noise level of the point source in decibels (dB). Decibels are logarithmic units
-            used to measure sound intensity. A value of 20 dB represents a barely audible whisper, while 140 dB
-            is comparable to the noise of jet engines.
-        geometric_mean_freq_hz (float): The geometric mean frequency of the sound (in Hz). This parameter influences
-            the sound wave's propagation and scattering in the presence of trees. Lower frequencies travel longer
-            distances than higher frequencies. It's recommended to use values between 63 Hz and 8000 Hz; values outside
-            this range will be clamped to the nearest boundary for the sound absorption coefficient calculation.
+        source_noise_db  (float, optional): Default noise level (dB) to use if not specified per-point. Decibels are
+            logarithmic units used to measure sound intensity. A value of 20 dB represents a barely audible whisper,
+            while 140 dB is comparable to the noise of jet engines.
+        geometric_mean_freq_hz (float, optional):  Default frequency (Hz) to use if not specified per-point.
+            This parameter influences the sound wave's propagation and scattering in the presence of trees.
+            Lower frequencies travel longer distances than higher frequencies.
+            It's recommended to use values between 63 Hz and 8000 Hz; values outside this range will be clamped to the
+            nearest boundary for the sound absorption coefficient calculation.
 
     Optional kwargs:
         absorb_ratio_column (str, optional): The name of the column in the `obstacles` GeoDataFrame that contains the
@@ -88,12 +95,40 @@ def simulate_noise(
     reflection_n = kwargs.get("reflection_n", 3)
     dead_area_r = kwargs.get("dead_area_r", 5)
 
-    original_crs = source_points.crs
+    # Validate optional columns or default values
+    use_column_db = False
+    if "source_noise_db" in source_points.columns:
+        if (source_points["source_noise_db"] > MAX_DB_VALUE).any():
+            raise ValueError(
+                f"One or more values in 'source_noise_db' column exceed the physical limit of {MAX_DB_VALUE} dB."
+            )
+        use_column_db = True
 
-    div_ = (source_noise_db - target_noise_db) % db_sim_step
-    if div_ != 0:
-        raise InvalidStepError(source_noise_db, target_noise_db, db_sim_step, div_)
-    # Choosing crs and simplifying obs if any
+    use_column_freq = "geometric_mean_freq_hz" in source_points.columns
+
+    if not use_column_db:
+        if source_noise_db is None:
+            raise ValueError(
+                "Either `source_noise_db` must be provided or the `source_points` must contain a 'source_noise_db' column."
+            )
+        if source_noise_db > MAX_DB_VALUE:
+            raise ValueError(
+                f"source_noise_db ({source_noise_db} dB) exceeds the physical limit of {MAX_DB_VALUE} dB in air."
+            )
+
+    if not use_column_freq:
+        if geometric_mean_freq_hz is None:
+            raise ValueError(
+                "Either `geometric_mean_freq_hz` must be provided or the `source_points` must contain a 'geometric_mean_freq_hz' column."
+            )
+    if not use_column_db and not use_column_freq and len(source_points) > 1:
+        logger.warning(
+            "`source_noise_db` and `geometric_mean_freq_hz` will be used for all points. Per-point simulation parameters not found."
+        )
+
+    original_crs = source_points.crs
+    source_points = source_points.copy()
+
     source_points = source_points.copy()
     if len(obstacles) > 0:
         obstacles = obstacles.copy()
@@ -118,63 +153,54 @@ def simulate_noise(
     if absorb_ratio_column is None:
         obstacles["absorb_ratio"] = standart_absorb_ratio
     else:
-        obstacles["absorb_ratio"] = obstacles[absorb_ratio_column]
-        obstacles["absorb_ratio"] = obstacles["absorb_ratio"].fillna(standart_absorb_ratio)
+        obstacles["absorb_ratio"] = obstacles[absorb_ratio_column].fillna(standart_absorb_ratio)
     obstacles = obstacles[["absorb_ratio", "geometry"]]
 
-    logger.info(
-        dist_to_target_db(
-            source_noise_db,
-            target_noise_db,
-            geometric_mean_freq_hz,
-            air_temperature,
-            return_desc=True,
-            check_temp_freq=True,
-        )
-    )
-    # calculating layer dist and db values
-    dist_db = [(0, source_noise_db)]
-    cur_db = source_noise_db - db_sim_step
-    while cur_db != target_noise_db - db_sim_step:
-        max_dist = dist_to_target_db(source_noise_db, cur_db, geometric_mean_freq_hz, air_temperature)
-        dist_db.append((max_dist, cur_db))
-        cur_db = cur_db - db_sim_step
-
     # creating initial task and simulating for each point
-    all_p_res = []
+    task_queue = multiprocessing.Queue()
+    dead_area_dict = {}
     for ind, row in source_points.iterrows():
-        logger.info(f"Started simulation for point {ind+1} / {len(source_points)}")
         source_point = row.geometry
-        task_queue = multiprocessing.Queue()
+        local_db = row["source_noise_db"] if use_column_db else source_noise_db
+        local_freq = row["geometric_mean_freq_hz"] if use_column_freq else geometric_mean_freq_hz
+        div_ = (local_db - target_noise_db) % db_sim_step
+        if div_ != 0:
+            raise InvalidStepError(local_db, target_noise_db, db_sim_step, div_)
+        # calculating layer dist and db values
+        dist_db = [(0, local_db)]
+        cur_db = local_db - db_sim_step
+        while cur_db != target_noise_db - db_sim_step:
+            max_dist = dist_to_target_db(local_db, cur_db, local_freq, air_temperature)
+            dist_db.append((max_dist, cur_db))
+            cur_db -= db_sim_step
+
         args = (source_point, obstacles, trees, 0, 0, dist_db)
         kwargs = {
             "reflection_n": reflection_n,
-            "geometric_mean_freq_hz": geometric_mean_freq_hz,
+            "geometric_mean_freq_hz": local_freq,
             "tree_res": tree_res,
             "min_db": target_noise_db,
+            "simulation_ind": ind,
         }
         task_queue.put((_noise_from_point_task, args, kwargs))
+        dead_area_dict[ind] = source_point.buffer(dead_area_r, resolution=2)
 
-        noise_gdf = _parallel_split_queue(
-            task_queue, dead_area=source_point.buffer(dead_area_r, resolution=2), dead_area_r=dead_area_r
-        )
+    noise_gdf = _parallel_split_queue(task_queue, dead_area_dict=dead_area_dict, dead_area_r=dead_area_r)
 
-        noise_gdf = gpd.GeoDataFrame(pd.concat(noise_gdf, ignore_index=True), crs=local_crs)
-        polygons = gpd.GeoDataFrame(
-            geometry=list(polygonize(noise_gdf.geometry.apply(polygons_to_multilinestring).union_all())), crs=local_crs
-        )
-        polygons_points = polygons.copy()
-        polygons_points.geometry = polygons.representative_point()
-        sim_result = polygons_points.sjoin(noise_gdf, predicate="within").reset_index()
-        sim_result = sim_result.groupby("index").agg({"noise_level": "max"})
-        sim_result["geometry"] = polygons
-        sim_result = (
-            gpd.GeoDataFrame(sim_result, geometry="geometry", crs=local_crs).dissolve(by="noise_level").reset_index()
-        )
-        sim_result["source_point_ind"] = ind
-        all_p_res.append(sim_result)
+    noise_gdf = gpd.GeoDataFrame(pd.concat(noise_gdf, ignore_index=True), crs=local_crs)
+    polygons = gpd.GeoDataFrame(
+        geometry=list(polygonize(noise_gdf.geometry.apply(polygons_to_multilinestring).union_all())), crs=local_crs
+    )
+    polygons_points = polygons.copy()
+    polygons_points.geometry = polygons.representative_point()
+    sim_result = polygons_points.sjoin(noise_gdf, predicate="within").reset_index()
+    sim_result = sim_result.groupby("index").agg({"noise_level": "max"})
+    sim_result["geometry"] = polygons
+    sim_result = (
+        gpd.GeoDataFrame(sim_result, geometry="geometry", crs=local_crs).dissolve(by="noise_level").reset_index()
+    )
 
-    return gpd.GeoDataFrame(pd.concat(all_p_res, ignore_index=True), crs=local_crs).to_crs(original_crs)
+    return sim_result.to_crs(original_crs)
 
 
 def _noise_from_point_task(task, **kwargs) -> tuple[gpd.GeoDataFrame, list[tuple] | None]:  # pragma: no cover
@@ -383,34 +409,34 @@ def _noise_from_point_task(task, **kwargs) -> tuple[gpd.GeoDataFrame, list[tuple
     return noise_from_point, new_tasks
 
 
-def _parallel_split_queue(task_queue: multiprocessing.Queue, dead_area: Polygon, dead_area_r: int):
+def _parallel_split_queue(task_queue: multiprocessing.Queue, dead_area_dict: dict, dead_area_r: int):
     results = []
     total_tasks = task_queue.qsize()
 
     with tqdm(total=total_tasks, desc="Simulating noise") as pbar:
         with concurrent.futures.ProcessPoolExecutor() as executor:
+            # with concurrent.futures.ThreadPoolExecutor() as executor:
             future_to_task = {}
             while True:
                 while not task_queue.empty() and len(future_to_task) < executor._max_workers:
                     func, task, kwargs = task_queue.get_nowait()
                     future = executor.submit(func, task, **kwargs)
-                    future_to_task[future] = task
-
+                    future_to_task[future] = kwargs["simulation_ind"]
                 done, _ = concurrent.futures.wait(future_to_task.keys(), return_when=concurrent.futures.FIRST_COMPLETED)
-
                 for future in done:
-                    future_to_task.pop(future)
+                    simulation_ind = future_to_task.pop(future)
                     result, new_tasks = future.result()
                     if new_tasks:
                         new_tasks_n = 0
-                        new_dead_area_points = [dead_area]
-                        for func, new_task, kwargs in new_tasks:
-                            if not dead_area.covers(new_task[0]):
-                                new_tasks_n = new_tasks_n + 1
-                                task_queue.put((func, new_task, kwargs))
-                                new_dead_area_points.append(new_task[0].buffer(dead_area_r, resolution=2))
-
-                        dead_area = unary_union(new_dead_area_points)
+                        local_dead_area = dead_area_dict.get(simulation_ind)
+                        new_dead_area_points = [local_dead_area]
+                        for func, new_task, new_kwargs in new_tasks:
+                            new_point = new_task[0]
+                            if not local_dead_area.covers(new_point):
+                                task_queue.put((func, new_task, new_kwargs))
+                                new_dead_area_points.append(new_point.buffer(dead_area_r, resolution=2))
+                                new_tasks_n += 1
+                        dead_area_dict[simulation_ind] = unary_union(new_dead_area_points)
                         total_tasks += new_tasks_n
                         pbar.total = total_tasks
                         pbar.refresh()
@@ -419,5 +445,4 @@ def _parallel_split_queue(task_queue: multiprocessing.Queue, dead_area: Polygon,
                 time.sleep(0.01)
                 if not future_to_task and task_queue.empty():
                     break
-
     return results
