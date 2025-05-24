@@ -1,6 +1,6 @@
 # pylint: disable=unused-import,wildcard-import,unused-wildcard-import
 
-from .methods.coverage_zones import get_graph_coverage, get_radius_coverage,get_stepped_graph_coverage
+from .methods.coverage_zones import get_graph_coverage, get_radius_coverage, get_stepped_graph_coverage
 from .methods.isochrones import get_accessibility_isochrone_stepped, get_accessibility_isochrones
 from .methods.noise import simulate_noise
 from .methods.point_clustering import get_clusters_polygon

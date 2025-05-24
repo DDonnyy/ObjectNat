@@ -124,3 +124,19 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           file: coverage.xml
           slug: DDonnyy/ObjectNat
+
+      - name: Commit and push test images to assets branch
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+          git stash
+          git fetch origin assets || git checkout --orphan assets
+          git switch assets || git checkout assets
+          git restore --source=stash --staged --worktree -- test_output || git stash pop
+          mkdir -p test_output
+          cp -r test_output/*.png . || echo "No images to copy"
+          git add *.png
+          git commit -m "Update stepped coverage zone test images" || echo "No changes to commit"
+          git push --force origin assets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

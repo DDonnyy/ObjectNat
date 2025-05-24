@@ -6,7 +6,7 @@ import pandas as pd
 from pyproj.exceptions import CRSError
 from shapely import Point, concave_hull
 
-from objectnat.methods.utils.graph_utils import get_closest_nodes_from_gdf, remove_weakly_connected_nodes
+from objectnat.methods.utils.graph_utils import get_closest_nodes_from_gdf, reverse_graph
 
 
 def get_graph_coverage(
@@ -70,21 +70,7 @@ def get_graph_coverage(
     except CRSError as e:
         raise CRSError(f"Graph crs ({local_crs}) has invalid format.") from e
 
-    if nx_graph.is_multigraph():
-        if nx_graph.is_directed():
-            nx_graph = nx.DiGraph(nx_graph)
-        else:
-            nx_graph = nx.Graph(nx_graph)
-    nx_graph = remove_weakly_connected_nodes(nx_graph)
-
-    mapping = {old_label: new_label for new_label, old_label in enumerate(nx_graph.nodes())}
-    nx_graph = nx.relabel_nodes(nx_graph, mapping)
-
-    sparse_matrix = nx.to_scipy_sparse_array(nx_graph, weight=weight_type)
-    transposed_matrix = sparse_matrix.transpose()
-    reversed_graph = nx.from_scipy_sparse_array(
-        transposed_matrix, edge_attribute=weight_type, create_using=type(nx_graph)
-    )
+    nx_graph, reversed_graph = reverse_graph(nx_graph, weight_type)
 
     points.geometry = points.representative_point()
 

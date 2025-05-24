@@ -166,6 +166,41 @@ def remove_weakly_connected_nodes(graph: nx.DiGraph) -> nx.DiGraph:
 
     return graph
 
-def reverse_graph(graph: nx.DiGraph|nx.MultiDiGraph) -> nx.DiGraph:
-    # TODO
-    pass
+
+def reverse_graph(nx_graph: nx.Graph, weight: str) -> tuple[nx.Graph, nx.DiGraph]:
+    """
+    Generate a reversed version of a directed or weighted graph.
+
+    If the input graph is undirected, the original graph is returned as-is.
+    For directed graphs, the function returns a new graph with all edge directions reversed,
+    preserving the specified edge weight.
+
+    Parameters
+    ----------
+    nx_graph : nx.Graph
+        Input NetworkX graph (can be directed or undirected).
+    weight : str
+        Name of the edge attribute to use as weight in graph conversion.
+
+    Returns
+    -------
+    tuple[nx.Graph, nx.DiGraph]
+        A tuple containing:
+        - normalized_graph: Original graph with relabeled nodes (if needed)
+        - reversed_graph: Directed graph with reversed edges and preserved weights
+    """
+
+    if nx_graph.is_multigraph():
+        nx_graph = nx.DiGraph(nx_graph) if nx_graph.is_directed() else nx.Graph(nx_graph)
+    if not nx_graph.is_multigraph() and not nx_graph.is_directed():
+        return nx_graph, nx_graph
+
+    nx_graph = remove_weakly_connected_nodes(nx_graph)
+
+    mapping = {old_label: new_label for new_label, old_label in enumerate(nx_graph.nodes())}
+    nx_graph = nx.relabel_nodes(nx_graph, mapping)
+
+    sparse_matrix = nx.to_scipy_sparse_array(nx_graph, weight=weight)
+    transposed_matrix = sparse_matrix.transpose()
+    reversed_graph = nx.from_scipy_sparse_array(transposed_matrix, edge_attribute=weight, create_using=type(nx_graph))
+    return nx_graph, reversed_graph

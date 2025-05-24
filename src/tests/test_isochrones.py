@@ -54,16 +54,25 @@ def test_1point_isochrone_ways(intermodal_osm_1114252, gdf_1point, buildings_dat
     )
 
 
-def test_3point_isochrone_radius(intermodal_osm_1114252, gdf_3points):
+def test_3point_isochrone_radius(intermodal_osm_1114252, gdf_3points, buildings_data):
+    weight_value = 8
     isochrones, stops, routes = get_accessibility_isochrones(
         isochrone_type="radius",
         points=gdf_3points,
-        weight_value=15,
+        weight_value=weight_value,
         weight_type="time_min",
         nx_graph=intermodal_osm_1114252,
     )
     assert isochrones is not None
     assert len(isochrones) == 3
+    visualize_isochrones(
+        isochrones,
+        gdf_3points,
+        routes,
+        buildings_data,
+        title_suffix=f"(3 points radius mode, {weight_value} minutes)",
+        filename_suffix=f"3points_radius_{weight_value}_min",
+    )
 
 
 def test_3point_isochrone_ways(intermodal_osm_1114252, gdf_3points):
@@ -196,12 +205,14 @@ def visualize_isochrones(isochrones, point_from, routes, buildings_data, title_s
     ax.set_ylim(miny, maxy)
 
     buildings_data.plot(ax=ax, edgecolor="gray", facecolor="none", linewidth=0.5)
-    isochrones.plot(
+    isochrones.reset_index().plot(
         ax=ax,
-        alpha=0.9,
-        color="#d1e5f0",  # Светло-голубая заливка
-        edgecolor="#2166ac",  # Темно-синяя граница
+        alpha=0.8,
+        column="index",
+        cmap="tab20",  # Светло-голубая заливка
+        # edgecolor="#2166ac",
         linewidth=0.8,
+        categorical=True,
         label="Isochrones",
     )
     routes.plot(ax=ax, column="type", linewidth=0.5, label="Public transport routes")
