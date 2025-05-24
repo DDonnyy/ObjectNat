@@ -10,6 +10,9 @@ on:
       - master
       - dev
 
+permissions:
+  contents: write
+
 jobs:
   check-version:
     runs-on: ubuntu-latest
