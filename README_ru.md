@@ -24,13 +24,14 @@
    - **Шаговые изохроны**: делят зону доступности на интервалы времени (например, 3, 5, 10 минут).
 
    <p align="center">
-     <img src="https://github.com/user-attachments/assets/b1787430-63e1-4907-9198-a6171d546599" alt="isochrone_ways_15_min" width="300">
-     <img src="https://github.com/user-attachments/assets/64fce6bf-6509-490c-928c-dbd8daf9f570" alt="isochrone_radius_15_min" width="300">
+      <img src="https://raw.githubusercontent.com/DDonnyy/ObjectNat/assets/isochrone_ways_15_min.png" alt="isochrone_ways_15_min" width="300">
+      <img src="https://raw.githubusercontent.com/DDonnyy/ObjectNat/assets/isochrone_radius_15_min.png" alt="isochrone_radius_15_min" width="300">
+      <img src="https://raw.githubusercontent.com/DDonnyy/ObjectNat/assets/isochrone_3points_radius_8_min.png" alt="isochrone_3points_radius_8_min" width="300">
    </p>
    <p align="center">
-     <img src="https://github.com/user-attachments/assets/ac9f8840-a867-4eb5-aec8-91a411d4e545" alt="stepped_isochrone_stepped_ways_15_min" width="300">
-     <img src="https://github.com/user-attachments/assets/b5429aa1-4625-44d1-982f-8bd4264148fb" alt="stepped_isochrone_stepped_radius_15_min" width="300">
-     <img src="https://github.com/user-attachments/assets/042c7362-70e1-45df-b2e1-02fc76bf638c" alt="stepped_isochrone_stepped_separate_15_min" width="300">
+     <img src="https://raw.githubusercontent.com/DDonnyy/ObjectNat/assets/stepped_isochrone_ways_15_min.png" alt="stepped_isochrone_ways_15_min" width="300">
+     <img src="https://raw.githubusercontent.com/DDonnyy/ObjectNat/assets/stepped_isochrone_radius_15_min.png" alt="stepped_isochrone_radius_15_min" width="300">
+     <img src="https://raw.githubusercontent.com/DDonnyy/ObjectNat/assets/stepped_isochrone_separate_15_min.png" alt="stepped_isochrone_separate_15_min" width="300">
    </p>
 
 2. **[Зоны покрытия](./examples/graph_coverage.ipynb)** — Функция генерации **зон покрытия** от набора исходных точек
@@ -38,8 +39,13 @@
 затем строит полигоны с помощью **диаграмм Вороного** и обрезает их по заданной границе, если она указана.
 
    <p align="center">
-   <img src="https://github.com/user-attachments/assets/fa8057d7-77aa-48a2-aa10-ea3e292a918d" alt="coverage_zones_time_10min" width="350">
-   <img src="https://github.com/user-attachments/assets/44362dde-c3b0-4321-9a0a-aa547f0f2e04" alt="coverage_zones_distance_600m" width="350">
+      <img src="https://raw.githubusercontent.com/DDonnyy/ObjectNat/assets/coverage_zones_time_10min.png" alt="coverage_zones_time_10min" width="350">
+      <img src="https://raw.githubusercontent.com/DDonnyy/ObjectNat/assets/coverage_zones_distance_600m.png" alt="coverage_zones_distance_600m" width="350">
+      <img src="https://raw.githubusercontent.com/DDonnyy/ObjectNat/assets/coverage_zones_radius_distance_800m.png" alt="coverage_zones_distance_radius_voronoi" width="350">
+   </p>
+   <p align="center">
+      <img src="https://raw.githubusercontent.com/DDonnyy/ObjectNat/assets/stepped_coverage_zones_separate.png" alt="stepped_coverage_zones_separate" width="350">
+      <img src="https://raw.githubusercontent.com/DDonnyy/ObjectNat/assets/stepped_coverage_zones_voronoi.png" alt="stepped_coverage_zones_voronoi" width="350">
    </p>
 
 3. **[Анализ обеспеченности сервисами](./examples/calculate_provision.ipynb)** — Функция оценки обеспеченности жилых зданий
@@ -52,9 +58,9 @@
    - **Обрезку** результатов анализа по заданной зоне (например, границе района).
 
    <p align="center">
-     <img src="https://github.com/user-attachments/assets/ff1ed08d-9a35-4035-9e1f-9a7fdae5b0e0" alt="service_provision_initial" width="300">
-     <img src="https://github.com/user-attachments/assets/a0c0a6b0-f83f-4982-bfb3-4a476b2153ea" alt="service_provision_recalculated" width="300">
-     <img src="https://github.com/user-attachments/assets/f57dc1c6-21a0-458d-85f4-fe1b17c77695" alt="service_provision_clipped" width="300">
+      <img src="https://raw.githubusercontent.com/DDonnyy/ObjectNat/assets/service_provision_initial.png" alt="service_provision_initial" width="300">
+      <img src="https://raw.githubusercontent.com/DDonnyy/ObjectNat/assets/service_provision_recalculated.png" alt="service_provision_recalculated" width="300">
+      <img src="https://raw.githubusercontent.com/DDonnyy/ObjectNat/assets/service_provision_clipped.png" alt="service_provision_clipped" width="300">
    </p>
 
 4. **[Анализ видимости](./examples/visibility_analysis.ipynb)** — Функция оценки видимости от заданной точки или множества
@@ -67,7 +73,7 @@
    - **Точный метод** для локального детального анализа.
 
    <p align="center">
-     <img src="https://github.com/user-attachments/assets/aa139d29-07d4-4560-b835-9646c8802fe1" alt="visibility_comparison_methods" height="250">
+     <img src="https://raw.githubusercontent.com/DDonnyy/ObjectNat/assets/visibility_comparison_methods.png" alt="visibility_comparison_methods" height="250">
      <img src="https://github.com/user-attachments/assets/b5b0d4b3-a02f-4ade-8772-475703cd6435" alt="visibility-catchment-area" height="250">
    </p>
 
@@ -77,7 +83,7 @@
    🔗 **[Подробное описание в Wiki](https://github.com/DDonnyy/ObjectNat/wiki/Симуляция-шумового-распространения)**
 
    <p align="center">
-     <img src="https://github.com/user-attachments/assets/b3a41962-6220-49c4-90d4-2e756f9706cf" alt="noise_simulation_test_result" width="400">
+      <img src="https://raw.githubusercontent.com/DDonnyy/ObjectNat/assets/noise_simulation_1point.png" alt="noise_simulation_1point" width="400">
    </p>
 
 6. **[Кластеризация точек](./examples/point_clusterization.ipynb)** — Функция построения **кластерных полигонов** по множеству точек на основе:
@@ -87,8 +93,9 @@
    Также функция может рассчитывать **соотношение типов услуг** в каждом кластере для пространственного анализа состава услуг.
 
    <p align="center">
-     <img src="https://github.com/user-attachments/assets/f86aac61-497a-4330-b4cf-68f4fc47fd34" alt="building_clusters" width="400">
+     <img src="https://raw.githubusercontent.com/DDonnyy/ObjectNat/assets/building_clusters.png" alt="building_clusters" width="400">
    </p>
+
 ## Городские графы
 
 Для достижения оптимальной производительности функций пространственного анализа ObjectNat рекомендуется использовать городские графы,
