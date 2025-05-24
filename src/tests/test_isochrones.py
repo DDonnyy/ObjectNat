@@ -128,7 +128,7 @@ def test_isochrone_stepped_radius(intermodal_osm_1114252, gdf_1point, buildings_
         routes,
         buildings_data,
         title_suffix=f"(radius mode, {weight_value} minutes)",
-        filename_suffix=f"stepped_radius_{weight_value}_min",
+        filename_suffix=f"radius_{weight_value}_min",
     )
 
 
@@ -151,7 +151,7 @@ def test_isochrone_stepped_ways(intermodal_osm_1114252, gdf_1point, buildings_da
         routes,
         buildings_data,
         title_suffix=f"(ways mode, {weight_value} minutes)",
-        filename_suffix=f"stepped_ways_{weight_value}_min",
+        filename_suffix=f"ways_{weight_value}_min",
     )
 
 
@@ -172,7 +172,7 @@ def test_isochrone_stepped_separate(intermodal_osm_1114252, gdf_1point, building
         routes,
         buildings_data,
         title_suffix=f"(separate mode, {weight_value} minutes)",
-        filename_suffix=f"stepped_separate_{weight_value}_min",
+        filename_suffix=f"separate_{weight_value}_min",
     )
 
 

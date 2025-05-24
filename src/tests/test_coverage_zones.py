@@ -126,7 +126,7 @@ def test_radius_coverage(services_data, buildings_data):
         buildings_data,
         services_data,
         title_suffix=f"radius-voronoi (Distance cutoff {weight} meters)",
-        filename_suffix="distance_800m",
+        filename_suffix="radius_distance_800m",
     )
 
 
