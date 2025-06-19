@@ -87,9 +87,9 @@ def get_visibility_accurate(
         point_from = point_from.iloc[0].geometry
     else:
         obstacles = obstacles.copy()
-
+    if obstacles.contains(point_from).any():
+        return Polygon()
     obstacles.reset_index(inplace=True, drop=True)
-
     point_buffer = point_from.buffer(view_distance, resolution=32)
     allowed_geom_types = ["MultiPolygon", "Polygon", "LineString", "MultiLineString"]
     obstacles = obstacles[obstacles.geom_type.isin(allowed_geom_types)]
