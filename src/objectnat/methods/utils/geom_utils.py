@@ -15,9 +15,9 @@ def polygons_to_multilinestring(geom: Polygon | MultiPolygon):
 
     def convert_polygon(polygon: Polygon):
         lines = []
-        exterior = LineString(polygon.exterior.coords)
+        exterior = LineString(polygon.exterior)
         lines.append(exterior)
-        interior = [LineString(p.coords) for p in polygon.interiors]
+        interior = [LineString(p) for p in polygon.interiors]
         lines = lines + interior
         return lines
 
@@ -128,3 +128,46 @@ def combine_geometry(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     joined["geometry"] = enclosures
     joined = gpd.GeoDataFrame(joined, geometry="geometry", crs=crs)
     return joined
+
+
+def distribute_points_on_linestrings(lines: gpd.GeoDataFrame, radius, lloyd_relax_n=2) -> gpd.GeoDataFrame:
+    lines = lines.copy()
+    lines = lines.explode(ignore_index=True)
+    lines = lines[lines.geom_type == "LineString"]
+    original_crs = lines.crs
+    lines = lines.to_crs(crs=lines.estimate_utm_crs())
+    lines = lines.reset_index(drop=True)
+    lines = lines[["geometry"]]
+    radius = radius * 1.1
+    segmentized = lines.geometry.apply(lambda x: x.simplify(radius).segmentize(radius))
+    points = [Point(pt) for line in segmentized for pt in line.coords]
+
+    points = gpd.GeoDataFrame(geometry=points, crs=lines.crs)
+    lines["lines"] = lines.geometry
+    geom_concave = lines.buffer(5, resolution=1).union_all()
+
+    for i in range(lloyd_relax_n):
+        points.geometry = points.voronoi_polygons().clip(geom_concave).centroid
+        points = points.sjoin_nearest(lines, how="left")
+        points = points[~points.index.duplicated(keep="first")]
+        points["geometry"] = points["lines"].interpolate(points["lines"].project(points.geometry))
+        points.drop(columns=["lines", "index_right"], inplace=True)
+
+    return points.dropna().to_crs(original_crs)
+
+
+def distribute_points_on_polygons(
+    polygons: gpd.GeoDataFrame, radius, only_exterior=True, lloyd_relax_n=2
+) -> gpd.GeoDataFrame:
+    polygons = polygons.copy()
+    polygons = polygons.explode(ignore_index=True)
+    polygons = polygons[polygons.geom_type == "Polygon"]
+
+    if only_exterior:
+        polygons.geometry = polygons.geometry.apply(lambda x: LineString(x.exterior))
+    else:
+        polygons = gpd.GeoDataFrame(
+            geometry=list(polygons.geometry.apply(polygons_to_multilinestring)), crs=polygons.crs
+        )
+
+    return distribute_points_on_linestrings(polygons, radius, lloyd_relax_n=lloyd_relax_n)

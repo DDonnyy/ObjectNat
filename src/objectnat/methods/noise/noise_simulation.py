@@ -13,6 +13,7 @@ from tqdm import tqdm
 from objectnat import config
 from objectnat.methods.noise.noise_exceptions import InvalidStepError
 from objectnat.methods.noise.noise_reduce import dist_to_target_db, green_noise_reduce_db
+from objectnat.methods.noise.noise_simulation_simplified import _eval_donuts_gdf
 from objectnat.methods.utils.geom_utils import (
     gdf_to_circle_zones_from_point,
     get_point_from_a_thorough_b,
@@ -102,9 +103,15 @@ def simulate_noise(
             raise ValueError(
                 f"One or more values in 'source_noise_db' column exceed the physical limit of {MAX_DB_VALUE} dB."
             )
+        if source_points["source_noise_db"].isnull().any():
+            raise ValueError(f"Column 'source_noise_db' contains missing (NaN) values")
         use_column_db = True
 
-    use_column_freq = "geometric_mean_freq_hz" in source_points.columns
+    use_column_freq = False
+    if "geometric_mean_freq_hz" in source_points.columns:
+        if source_points["geometric_mean_freq_hz"].isnull().any():
+            raise ValueError(f"Column 'geometric_mean_freq_hz' contains missing (NaN) values")
+        use_column_freq = True
 
     if not use_column_db:
         if source_noise_db is None:
@@ -298,22 +305,7 @@ def _noise_from_point_task(task, **kwargs) -> tuple[gpd.GeoDataFrame, list[tuple
                     noise_reduce = int(round(green_noise_reduce_db(geometric_mean_freq_hz, r_tree_new)))
                     reduce_polygons.append((red_polygon, noise_reduce))
 
-    # Generating donuts - db values
-    donuts = []
-    don_values = []
-    to_cut_off = point_from
-    for i in range(len(donuts_dist_values[:-1])):
-        cur_buffer = point_from.buffer(donuts_dist_values[i + 1][0])
-        donuts.append(cur_buffer.difference(to_cut_off))
-        don_values.append(donuts_dist_values[i][1])
-        to_cut_off = cur_buffer
-
-    noise_from_point = (
-        gpd.GeoDataFrame(geometry=donuts, data={"noise_level": don_values}, crs=local_crs)
-        .clip(vis_poly, keep_geom_type=True)
-        .explode(ignore_index=True)
-    )
-
+    noise_from_point = _eval_donuts_gdf(point_from, donuts_dist_values, local_crs, vis_poly)
     # intersect noise poly with noise reduce
     if len(reduce_polygons) > 0:
         reduce_polygons = gpd.GeoDataFrame(
