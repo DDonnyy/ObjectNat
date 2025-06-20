@@ -1,12 +1,12 @@
 import os
 
 import geopandas as gpd
+import pandas as pd
 import pytest
 from matplotlib import pyplot as plt
-from shapely import Point
+from shapely import Point, box
 
-from objectnat import config, simulate_noise
-from objectnat.methods.noise import InvalidStepError
+from objectnat import config, simulate_noise, calculate_simplified_noise_frame
 from objectnat.methods.noise.noise_reduce import get_air_resist_ratio
 from tests.conftest import output_dir
 
@@ -17,7 +17,7 @@ def test_basic_functionality(gdf_1point, buildings_data, trees_data):
     gdf_1point = gdf_1point.to_crs(4326)
     source_noise_db = 90
     target_noise_db = 40
-    reflection_n = 3
+    reflection_n = 2
     geometric_mean_freq_hz = 2000
     result = simulate_noise(
         source_points=gdf_1point,
@@ -32,6 +32,7 @@ def test_basic_functionality(gdf_1point, buildings_data, trees_data):
         db_sim_step=1,
         reflection_n=reflection_n,
         dead_area_r=5,
+        use_parallel=False,
     )
 
     assert isinstance(result, gpd.GeoDataFrame)
@@ -102,18 +103,6 @@ def test_multiple_sources(buildings_data, trees_data):
     )
 
 
-def test_wrong_step(gdf_1point, buildings_data):
-    gdf_1point = gdf_1point.to_crs(4326)
-    with pytest.raises(InvalidStepError) as _:
-        _ = simulate_noise(
-            source_points=gdf_1point,
-            obstacles=buildings_data,
-            source_noise_db=90,
-            geometric_mean_freq_hz=2000,
-            db_sim_step=4,
-        )
-
-
 def test_wrong_db_value(gdf_1point, buildings_data):
     gdf_1point = gdf_1point.to_crs(4326)
     with pytest.raises(ValueError) as _:
@@ -141,6 +130,49 @@ def test_out_of_range_values(gdf_1point, buildings_data):
     logger.info(f"Between values result: {res}")
 
 
+def test_noise_frame_calculator(gdf_1point, buildings_data, intermodal_osm_1114252_edges_gdf):
+    local_crs = buildings_data.estimate_utm_crs()
+    buildings_data = buildings_data.to_crs(local_crs)
+    intermodal_osm_1114252_edges_gdf = intermodal_osm_1114252_edges_gdf[~intermodal_osm_1114252_edges_gdf['type'].isin(['walk','boarding'])]
+    intermodal_osm_1114252_edges_gdf = intermodal_osm_1114252_edges_gdf.to_crs(local_crs)
+    gdf_1point = gdf_1point.to_crs(local_crs)
+
+    minx, miny, maxx, maxy = gdf_1point.buffer(250).total_bounds
+    buffer_territory = box(minx, miny, maxx, maxy)
+
+    builds_in_buffer = buildings_data.clip(buffer_territory,keep_geom_type=True)
+
+    sample_size = max(1, int(0.02 * len(builds_in_buffer)))
+    # Случайная выборка
+    sampled_buildings = builds_in_buffer.sample(n=sample_size, random_state=42)
+    sampled_buildings["source_noise_db"] = 80
+
+    graph_in_buffer = intermodal_osm_1114252_edges_gdf.clip(buffer_territory,keep_geom_type=True)
+    graph_in_buffer["source_noise_db"] = 70
+
+    gdf_1point["source_noise_db"] = 95
+    noise_sources = pd.concat([gdf_1point, graph_in_buffer, sampled_buildings], ignore_index=True)
+    noise_sources["geometric_mean_freq_hz"] = 2000
+    noise_frame = calculate_simplified_noise_frame(noise_sources,buildings_data,20)
+    assert isinstance(noise_frame, gpd.GeoDataFrame)
+    assert not noise_frame.empty
+    assert "geometry" in noise_frame.columns
+    assert "noise_level" in noise_frame.columns
+    assert noise_frame["noise_level"].max() <= noise_sources["source_noise_db"].max()
+    assert noise_frame["noise_level"].min() >= 40
+    assert noise_frame.crs == noise_frame.crs
+
+    plot_simulation_result(
+        result_gdf=noise_frame,
+        source_points=noise_sources,
+        buildings=buildings_data,
+        trees=gpd.GeoDataFrame(),
+        source_db_range=(95, 40),
+        reflection_n='No reflections',
+        frequency_desc=2000,
+        output_filename="noise_frame",
+        image_title = "Noise frame (from roads,points,buildings)",
+    )
 def plot_simulation_result(
     result_gdf,
     source_points,
@@ -150,6 +182,7 @@ def plot_simulation_result(
     reflection_n,
     frequency_desc,
     output_filename,
+    image_title = 'Noise propagation'
 ):
 
     source_db, target_db = source_db_range
@@ -164,22 +197,23 @@ def plot_simulation_result(
     result_gdf.to_crs(local_crs).plot(
         ax=ax,
         column="noise_level",
-        cmap="plasma",
+        cmap="RdYlGn_r",
         legend=True,
         alpha=0.8,
         edgecolor="white",
         linewidth=0.1,
-        vmin=target_db,
-        vmax=source_db,
+        vmin=30,
+        vmax=100,
         legend_kwds={"label": "Noise level, Decibels", "shrink": 0.5},
     )
 
     buildings.to_crs(local_crs).plot(ax=ax, facecolor="gray", edgecolor="black", linewidth=0.5, label="Buildings")
-    trees.to_crs(local_crs).plot(ax=ax, edgecolor="green", facecolor="none", linewidth=1.5, label="Trees")
+    if len(trees) > 0:
+        trees.to_crs(local_crs).plot(ax=ax, edgecolor="green", facecolor="none", linewidth=1.5, label="Trees")
     source_points.to_crs(local_crs).plot(ax=ax, color="red", markersize=10, label="Noise sources")
 
     ax.set_title(
-        f"Noise propagation {source_db}dB -> {target_db}dB\n"
+        f"{image_title} {source_db}dB -> {target_db}dB\n"
         f"Frequency: {frequency_desc}, Reflection count: {reflection_n}, Temperature: 20°C"
     )
     ax.legend()

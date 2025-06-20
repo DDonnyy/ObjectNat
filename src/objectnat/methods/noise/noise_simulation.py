@@ -11,7 +11,6 @@ from shapely.ops import polygonize, unary_union
 from tqdm import tqdm
 
 from objectnat import config
-from objectnat.methods.noise.noise_exceptions import InvalidStepError
 from objectnat.methods.noise.noise_reduce import dist_to_target_db, green_noise_reduce_db
 from objectnat.methods.noise.noise_simulation_simplified import _eval_donuts_gdf
 from objectnat.methods.utils.geom_utils import (
@@ -74,6 +73,7 @@ def simulate_noise(
         dead_area_r (float, optional): A debugging parameter that defines the radius of the "dead zone" for reflections.
             Points within this area will not generate reflections. This is useful to prevent the algorithm from getting
             stuck in corners or along building walls.
+        use_parallel (bool, optional): Whether to use ProcessPool for task distribution or not. Default is True.
 
     Returns:
         gpd.GeoDataFrame: A GeoDataFrame containing the noise simulation results, including noise levels and geometries
@@ -95,6 +95,9 @@ def simulate_noise(
     db_sim_step = kwargs.get("db_sim_step", 1)
     reflection_n = kwargs.get("reflection_n", 3)
     dead_area_r = kwargs.get("dead_area_r", 5)
+
+    # Use paralleling
+    use_parallel = kwargs.get("use_parallel", True)
 
     # Validate optional columns or default values
     use_column_db = False
@@ -170,13 +173,13 @@ def simulate_noise(
         source_point = row.geometry
         local_db = row["source_noise_db"] if use_column_db else source_noise_db
         local_freq = row["geometric_mean_freq_hz"] if use_column_freq else geometric_mean_freq_hz
-        div_ = (local_db - target_noise_db) % db_sim_step
-        if div_ != 0:
-            raise InvalidStepError(local_db, target_noise_db, db_sim_step, div_)
+
         # calculating layer dist and db values
         dist_db = [(0, local_db)]
         cur_db = local_db - db_sim_step
-        while cur_db != target_noise_db - db_sim_step:
+        while cur_db > target_noise_db - db_sim_step:
+            if cur_db - db_sim_step < target_noise_db:
+                cur_db = target_noise_db
             max_dist = dist_to_target_db(local_db, cur_db, local_freq, air_temperature)
             dist_db.append((max_dist, cur_db))
             cur_db -= db_sim_step
@@ -192,7 +195,9 @@ def simulate_noise(
         task_queue.put((_noise_from_point_task, args, kwargs))
         dead_area_dict[ind] = source_point.buffer(dead_area_r, resolution=2)
 
-    noise_gdf = _parallel_split_queue(task_queue, dead_area_dict=dead_area_dict, dead_area_r=dead_area_r)
+    noise_gdf = _recursive_simulation_queue(
+        task_queue, dead_area_dict=dead_area_dict, dead_area_r=dead_area_r, use_parallel=use_parallel
+    )
 
     noise_gdf = gpd.GeoDataFrame(pd.concat(noise_gdf, ignore_index=True), crs=local_crs)
     polygons = gpd.GeoDataFrame(
@@ -210,7 +215,7 @@ def simulate_noise(
     return sim_result.to_crs(original_crs)
 
 
-def _noise_from_point_task(task, **kwargs) -> tuple[gpd.GeoDataFrame, list[tuple] | None]:  # pragma: no cover
+def _noise_from_point_task(task, **kwargs) -> tuple[gpd.GeoDataFrame, list[tuple] | None]:
     # Unpacking task
     point_from, obstacles, trees_orig, passed_dist, deep, dist_db = task
 
@@ -401,13 +406,18 @@ def _noise_from_point_task(task, **kwargs) -> tuple[gpd.GeoDataFrame, list[tuple
     return noise_from_point, new_tasks
 
 
-def _parallel_split_queue(task_queue: multiprocessing.Queue, dead_area_dict: dict, dead_area_r: int):
+def _recursive_simulation_queue(
+    task_queue: multiprocessing.Queue, dead_area_dict: dict, dead_area_r: int, use_parallel: bool
+):
     results = []
     total_tasks = task_queue.qsize()
 
     with tqdm(total=total_tasks, desc="Simulating noise") as pbar:
-        with concurrent.futures.ProcessPoolExecutor() as executor:
-            # with concurrent.futures.ThreadPoolExecutor() as executor:
+        if use_parallel:
+            executor_class = concurrent.futures.ProcessPoolExecutor()
+        else:
+            executor_class = concurrent.futures.ThreadPoolExecutor()
+        with executor_class as executor:
             future_to_task = {}
             while True:
                 while not task_queue.empty() and len(future_to_task) < executor._max_workers:
