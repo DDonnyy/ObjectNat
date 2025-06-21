@@ -21,15 +21,22 @@ def get_service_provision(
 ) -> Tuple[gpd.GeoDataFrame, gpd.GeoDataFrame, gpd.GeoDataFrame]:
     """Calculate load from buildings with demands on the given services using the distances matrix between them.
 
-    Args:
-        services (gpd.GeoDataFrame): GeoDataFrame of services
-        adjacency_matrix (pd.DataFrame): DataFrame representing the adjacency matrix
-        buildings (gpd.GeoDataFrame): GeoDataFrame of demanded buildings
-        threshold (int): Threshold value
-        buildings_demand_column (str): column name of buildings demands
-        services_capacity_column (str): column name of services capacity
+    Parameters:
+        services (gpd.GeoDataFrame):
+            GeoDataFrame of services
+        adjacency_matrix (pd.DataFrame):
+            DataFrame representing the adjacency matrix
+        buildings (gpd.GeoDataFrame):
+            GeoDataFrame of demanded buildings
+        threshold (int):
+            Threshold value
+        buildings_demand_column (str):
+            column name of buildings demands
+        services_capacity_column (str):
+            column name of services capacity
+
     Returns:
-        Tuple[gpd.GeoDataFrame, gpd.GeoDataFrame, gpd.GeoDataFrame]: Tuple of GeoDataFrames representing provision
+        (Tuple[gpd.GeoDataFrame, gpd.GeoDataFrame, gpd.GeoDataFrame]): Tuple of GeoDataFrames representing provision
         buildings, provision services, and provision links
     """
     buildings = buildings.copy()

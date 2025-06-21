@@ -7,6 +7,8 @@ import pytest
 from iduedu import config, get_boundary, get_intermodal_graph
 from shapely import Point
 
+from objectnat import graph_to_gdf
+
 logger = config.logger
 
 path_to_data = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../examples/examples_data/")
@@ -80,6 +82,12 @@ def intermodal_osm_1114252(boundary_osm_1114252):
     except IOError as e:
         logger.error(f"Failed to cache graph: {e}")
     return graph
+
+
+@pytest.fixture(scope="session")
+def intermodal_osm_1114252_edges_gdf(intermodal_osm_1114252):
+    graph_gdf = graph_to_gdf(intermodal_osm_1114252, nodes=False, restore_edge_geom=True)
+    return graph_gdf
 
 
 @pytest.fixture(scope="session")

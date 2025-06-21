@@ -21,42 +21,32 @@ def get_graph_coverage(
     and Voronoi diagrams.
 
     The function works by:
-    1. Finding nearest graph nodes for each input point
-    2. Calculating all reachable nodes within cutoff distance using Dijkstra
-    3. Creating Voronoi polygons around graph nodes
-    4. Combining reachability information with Voronoi cells
-    5. Clipping results to specified zone boundary
+        1. Finding nearest graph nodes for each input point
+        2. Calculating all reachable nodes within cutoff distance using Dijkstra
+        3. Creating Voronoi polygons around graph nodes
+        4. Combining reachability information with Voronoi cells
+        5. Clipping results to specified zone boundary
 
-    Parameters
-    ----------
-    gdf_to : gpd.GeoDataFrame
-        Source points to which coverage is calculated.
-    nx_graph : nx.Graph
-        NetworkX graph representing the transportation network.
-    weight_type : Literal["time_min", "length_meter"]
-        Edge attribute to use as weight for path calculations.
-    weight_value_cutoff : float, optional
-        Maximum weight value for path calculations (e.g., max travel time/distance).
-    zone : gpd.GeoDataFrame, optional
-        Boundary polygon to clip the resulting coverage zones. If None, concave hull of reachable nodes will be used.
+    Parameters:
+        gdf_to (gpd.GeoDataFrame):
+            Source points to which coverage is calculated.
+        nx_graph (nx.Graph):
+            NetworkX graph representing the transportation network.
+        weight_type (Literal["time_min", "length_meter"]):
+            Edge attribute to use as weight for path calculations.
+        weight_value_cutoff (float):
+            Maximum weight value for path calculations (e.g., max travel time/distance).
+        zone (gpd.GeoDataFrame):
+            Boundary polygon to clip the resulting coverage zones. If None, concave hull of reachable nodes will be used.
 
-    Returns
-    -------
-    gpd.GeoDataFrame
-        GeoDataFrame with coverage zones polygons, each associated with its source point, returns in the same CRS as
-        original gdf_from.
+    Returns:
+        (gpd.GeoDataFrame):
+            GeoDataFrame with coverage zones polygons, each associated with its source point, returns in the same CRS
+            as original gdf_from.
 
-    Notes
-    -----
-    - The graph must have a valid CRS attribute in its graph properties
-    - MultiGraph/MultiDiGraph inputs will be converted to simple Graph/DiGraph
-
-    Examples
-    --------
-    >>> from iduedu import get_intermodal_graph # pip install iduedu to get OSM city network graph
-    >>> points = gpd.read_file('points.geojson')
-    >>> graph = get_intermodal_graph(osm_id=1114252)
-    >>> coverage = get_graph_coverage(points, graph, "time_min", 15)
+    Notes:
+        - The graph must have a valid CRS attribute in its graph properties
+        - MultiGraph/MultiDiGraph inputs will be converted to simple Graph/DiGraph
     """
     original_crs = gdf_to.crs
     try:

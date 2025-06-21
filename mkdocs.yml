@@ -1,0 +1,60 @@
+site_name: ObjectNat
+site_url: https://ddonnyy.github.io/ObjectNat/
+use_directory_urls: false
+
+theme:
+  language: en
+  name: material
+  features:
+    - navigation.expand
+    - versioning
+  palette:
+    # Palette toggle for automatic mode
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
+
+plugins:
+  - search
+  - mike
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [ src ]
+
+extra:
+  version:
+    provider: mike
+
+markdown_extensions:
+  - admonition
+  - codehilite
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Usage:
+      - Isochrones: usage/isochrones.md
+      - Coverage Zones: usage/coverage.md
+      - Service Provision: usage/provision.md
+      - Visibility: usage/visibility.md
+      - Noise Simulation: usage/noise.md
+      - Clustering: usage/clustering.md
+  - API Reference: api.md
+
+watch:
+  - src

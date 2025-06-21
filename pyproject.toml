@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ObjectNat"
-version = "1.2.0"
+version = "1.2.1"
 description = "ObjectNat is an open-source library created for geospatial analysis created by IDU team"
 license = "BSD-3-Clause"
 authors = ["DDonnyy <63115678+DDonnyy@users.noreply.github.com>"]
@@ -32,6 +32,10 @@ pre-commit = "^4.2.0"
 folium = "^0.19.5"
 matplotlib = "^3.10.1"
 mapclassify = "^2.8.1"
+mkdocs = "^1.6.1"
+mkdocstrings = {extras = ["python"], version = "^0.29.1"}
+mkdocs-material = "^9.6.14"
+mike = "^2.1.3"
 
 [build-system]
 requires = ["poetry-core"]

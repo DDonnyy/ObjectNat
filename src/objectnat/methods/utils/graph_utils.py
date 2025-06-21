@@ -51,20 +51,18 @@ def graph_to_gdf(
     """
     Converts nx graph to gpd.GeoDataFrame as edges.
 
-    Parameters
-    ----------
-    graph : nx.MultiDiGraph
-        The graph to convert.
-    edges: bool, default to True
-        Keep edges in GoeDataFrame.
-    nodes: bool, default to True
-        Keep nodes in GoeDataFrame.
-    restore_edge_geom: bool, default to False
-        if True, will try to restore edge geometry from nodes.
-    Returns
-    -------
-    gpd.GeoDataFrame | tuple[gpd.GeoDataFrame, gpd.GeoDataFrame]
-        Graph representation in GeoDataFrame format, either nodes or nodes,or tuple of them nodes,edges.
+    Parameters:
+        graph (nx.MultiDiGraph):
+            The graph to convert.
+        edges (bool):
+            Keep edges in GoeDataFrame.
+        nodes (bool):
+            Keep nodes in GoeDataFrame.
+        restore_edge_geom (bool):
+            if True, will try to restore edge geometry from nodes.
+    Returns:
+        (gpd.GeoDataFrame | tuple[gpd.GeoDataFrame, gpd.GeoDataFrame]):
+            Graph representation in GeoDataFrame format, either nodes or nodes,or tuple of them nodes,edges.
     """
     try:
         crs = graph.graph["crs"]
@@ -100,36 +98,24 @@ def gdf_to_graph(
     Intersections are optionally checked and merged. Attributes from the original GeoDataFrame
     can be projected onto the graph edges using spatial matching.
 
-    Parameters
-    ----------
-    gdf : gpd.GeoDataFrame
-        A GeoDataFrame containing at least one LineString geometry.
-    project_gdf_attr : bool, default=True
-        If True, attributes from the input GeoDataFrame will be spatially projected
-        onto the resulting graph edges. This can be an expensive operation for large datasets.
-    reproject_to_utm_crs : bool, default=True
-        If True, reprojects the GeoDataFrame to the estimated local UTM CRS
-        to ensure accurate edge length calculations in meters.
-        If False, edge lengths are still computed in UTM CRS, but the final graph
-        will remain in the original CRS of the input GeoDataFrame.
-    speed : float, default=5
-        Assumed travel speed in km/h used to compute edge traversal time (in minutes).
-    check_intersections : bool, default=True
-        If True, merges geometries to ensure topological correctness.
-        Can be disabled if the input geometries already form a proper planar graph
-        with no unintended intersections.
+    Parameters:
+        gdf (gpd.GeoDataFrame): A GeoDataFrame containing at least one LineString geometry.
+        project_gdf_attr (bool): If True, attributes from the input GeoDataFrame will be spatially
+            projected onto the resulting graph edges. This can be an expensive operation for large datasets.
+        reproject_to_utm_crs (bool): If True, reprojects the GeoDataFrame to the estimated local UTM CRS to ensure
+            accurate edge length calculations in meters. If False, edge lengths are still computed in UTM CRS,
+            but the final graph will remain in the original CRS of the input GeoDataFrame.
+        speed (float): Assumed travel speed in km/h used to compute edge traversal time (in minutes).
+        check_intersections (bool): If True, merges geometries to ensure topological correctness.
+            Can be disabled if the input geometries already form a proper planar graph with no unintended intersections.
 
-    Returns
-    -------
-    nx.DiGraph
-        A directed graph where each edge corresponds to a line segment from the input GeoDataFrame.
-        Edge attributes include geometry, length in meters, travel time (in minutes), and any
-        additional projected attributes from the original GeoDataFrame.
+    Returns:
+        (nx.DiGraph): A directed graph where each edge corresponds to a line segment from the input GeoDataFrame.
+            Edge attributes include geometry, length in meters, travel time (in minutes), and any additional projected
+            attributes from the original GeoDataFrame.
 
-    Raises
-    ------
-    ValueError
-        If the input GeoDataFrame contains no valid LineStrings.
+    Raises:
+        ValueError: If the input GeoDataFrame contains no valid LineStrings.
     """
 
     def unique_list(agg_vals):

@@ -28,35 +28,25 @@ def get_visibility_accurate(
     """
     Function to get accurate visibility from a given point to buildings within a given distance.
 
-    Parameters
-    ----------
-    point_from : Point | gpd.GeoDataFrame
-        The point or GeoDataFrame with 1 point from which the line of sight is drawn.
-        If Point is provided it should be in the same crs as obstacles
-    obstacles : gpd.GeoDataFrame
-        A GeoDataFrame containing the geometry of the obstacles.
-    view_distance : float
-        The distance of view from the point.
-    return_max_view_dist
-        If True, the max view distance is returned with view polygon in tuple.
+    Parameters:
+        point_from (Point | gpd.GeoDataFrame):
+            The point or GeoDataFrame with 1 point from which the line of sight is drawn.
+            If Point is provided it should be in the same crs as obstacles.
+        obstacles (gpd.GeoDataFrame):
+            A GeoDataFrame containing the geometry of the obstacles.
+        view_distance (float):
+            The distance of view from the point.
+        return_max_view_dist (bool):
+            If True, the max view distance is returned with view polygon in tuple.
 
-    Returns
-    -------
-    Polygon | gpd.GeoDataFrame | tuple[Polygon | gpd.GeoDataFrame, float]
-        A polygon representing the area of visibility from the given point or polygon with max view distance.
-        if point_from was a GeoDataFrame, return GeoDataFrame with one feature, else Polygon.
+    Returns:
+        (Polygon | gpd.GeoDataFrame | tuple[Polygon | gpd.GeoDataFrame, float]):
+            A polygon representing the area of visibility from the given point or polygon with max view distance.
+            if point_from was a GeoDataFrame, return GeoDataFrame with one feature, else Polygon.
 
-    Notes
-    -----
-    If a quick result is important, consider using the `get_visibility()` function instead.
-    However, please note that `get_visibility()` may provide less accurate results.
-
-    Examples
-    --------
-    >>> from objectnat import get_visibility_accurate
-    >>> obstacles = gpd.read_parquet('examples_data/buildings.parquet')
-    >>> point_from = gpd.GeoDataFrame(geometry=[Point(30.2312112, 59.9482336)], crs=4326)
-    >>> result = get_visibility_accurate(point_from, obstacles, 500)
+    Notes:
+        If a quick result is important, consider using the `get_visibility()` function instead.
+        However, please note that `get_visibility()` may provide less accurate results.
     """
 
     def find_furthest_point(point_from, view_polygon):
@@ -175,35 +165,25 @@ def get_visibility(
     """
     Function to get a quick estimate of visibility from a given point to buildings within a given distance.
 
-    Parameters
-    ----------
-    point_from : Point | gpd.GeoDataFrame
-        The point or GeoDataFrame with 1 point from which the line of sight is drawn.
-        If Point is provided it should be in the same crs as obstacles
-    obstacles : gpd.GeoDataFrame
-        A GeoDataFrame containing the geometry of the buildings.
-    view_distance : float
-        The distance of view from the point.
-    resolution: int
-        Buffer resolution for more accuracy (may give result slower)
+    Parameters:
+        point_from (Point | gpd.GeoDataFrame):
+            The point or GeoDataFrame with 1 point from which the line of sight is drawn.
+            If Point is provided it should be in the same crs as obstacles.
+        obstacles (gpd.GeoDataFrame):
+            A GeoDataFrame containing the geometry of the buildings.
+        view_distance (float):
+            The distance of view from the point.
+        resolution (int) :
+            Buffer resolution for more accuracy (may give result slower)
 
-    Returns
-    -------
-    Polygon | gpd.GeoDataFrame
-        A polygon representing the area of visibility from the given point.
-        if point_from was a GeoDataFrame, return GeoDataFrame with one feature, else Polygon.
+    Returns:
+        (Polygon | gpd.GeoDataFrame):
+            A polygon representing the area of visibility from the given point.
+            if point_from was a GeoDataFrame, return GeoDataFrame with one feature, else Polygon.
 
-    Notes
-    -----
-    This function provides a quicker but less accurate result compared to `get_visibility_accurate()`.
-    If accuracy is important, consider using `get_visibility_accurate()` instead.
-
-    Examples
-    --------
-    >>> from objectnat import get_visibility
-    >>> obstacles = gpd.read_parquet('examples_data/buildings.parquet')
-    >>> point_from = gpd.GeoDataFrame(geometry=[Point(30.2312112, 59.9482336)], crs=4326)
-    >>> result = get_visibility(point_from, obstacles, 500)
+    Notes:
+        This function provides a quicker but less accurate result compared to `get_visibility_accurate()`.
+        If accuracy is important, consider using `get_visibility_accurate()` instead.
     """
     return_gdf = False
     if isinstance(point_from, gpd.GeoDataFrame):
@@ -259,27 +239,24 @@ def get_visibilities_from_points(
     """
     Calculate visibility polygons from a set of points considering obstacles within a specified view distance.
 
-    Parameters
-    ----------
-    points : gpd.GeoDataFrame
-        GeoDataFrame containing the points from which visibility is calculated.
-    obstacles : gpd.GeoDataFrame
-        GeoDataFrame containing the obstacles that block visibility.
-    view_distance : int
-        The maximum distance from each point within which visibility is calculated.
-    sectors_n : int, optional
-        Number of sectors to divide the view into for more detailed visibility calculations. Defaults to None.
-    max_workers: int, optional
-        Maximum workers in multiproccesing, multipocessing.cpu_count() by default.
+    Parameters:
+        points (gpd.GeoDataFrame):
+            GeoDataFrame containing the points from which visibility is calculated.
+        obstacles (gpd.GeoDataFrame):
+            GeoDataFrame containing the obstacles that block visibility.
+        view_distance (int):
+            The maximum distance from each point within which visibility is calculated.
+        sectors_n (int, optional):
+            Number of sectors to divide the view into for more detailed visibility calculations. Defaults to None.
+        max_workers (int, optional):
+            Maximum workers in multiproccesing, multipocessing.cpu_count() by default.
 
-    Returns
-    -------
-    list[Polygon]
-        A list of visibility polygons for each input point.
+    Returns:
+        (list[Polygon]):
+            A list of visibility polygons for each input point.
 
-    Notes
-    -----
-    This function uses `get_visibility_accurate()` in multiprocessing way.
+    Notes:
+        This function uses `get_visibility_accurate()` in multiprocessing way.
 
     """
     if points.crs != obstacles.crs:
@@ -314,38 +291,20 @@ def get_visibilities_from_points(
 
 def calculate_visibility_catchment_area(
     points: gpd.GeoDataFrame, obstacles: gpd.GeoDataFrame, view_distance: int | float, max_workers: int = cpu_count()
-) -> gpd.GeoDataFrame:
+) -> gpd.GeoDataFrame:  # pragma: no cover
     """
     Calculate visibility catchment areas for a large urban area based on given points and obstacles.
     This function is designed to work with at least 1000 points spaced 10-20 meters apart for optimal results.
     Points can be generated using a road graph.
 
-    Parameters
-    ----------
-    points : gpd.GeoDataFrame
-        GeoDataFrame containing the points from which visibility is calculated.
-    obstacles : gpd.GeoDataFrame
-        GeoDataFrame containing the obstacles that block visibility.
-    view_distance : int
-        The maximum distance from each point within which visibility is calculated.
-    max_workers: int
-        Maximum workers in multiproccesing, multipocessing.cpu_count() by default.
+    Parameters:
+        points (gpd.GeoDataFrame): GeoDataFrame containing the points from which visibility is calculated.
+        obstacles (gpd.GeoDataFrame): GeoDataFrame containing the obstacles that block visibility.
+        view_distance (int | float): The maximum distance from each point within which visibility is calculated.
+        max_workers (int): Maximum workers in multiproccesing, multipocessing.cpu_count() by default.
 
-    Returns
-    -------
-    gpd.GeoDataFrame
-        GeoDataFrame containing the calculated visibility catchment areas.
-
-    Examples
-    --------
-    >>> import geopandas as gpd
-    >>> from shapely.geometry import Point, Polygon
-    >>> points = gpd.read_file('points.shp')
-    >>> obstacles = gpd.read_file('obstacles.shp')
-    >>> view_distance = 1000
-
-    >>> visibility_areas = calculate_visibility_catchment_area(points, obstacles, view_distance)
-    >>> visibility_areas
+    Returns:
+        (gpd.GeoDataFrame): GeoDataFrame containing the calculated visibility catchment areas.
     """
 
     def filter_geoms(x):
