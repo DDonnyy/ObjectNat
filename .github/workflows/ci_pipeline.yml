@@ -185,5 +185,5 @@ jobs:
           poetry run mike deploy ${{ steps.get_version.outputs.version }}
           poetry run mike alias ${{ steps.get_version.outputs.version }} latest --update
           poetry run mike set-default latest
-          poetry run mike deploy --push
+          poetry run mike deploy ${{ steps.get_version.outputs.version }} --push
 
