@@ -1,4 +1,7 @@
 site_name: ObjectNat
+site_url: https://ddonnyy.github.io/ObjectNat/
+use_directory_urls: false
+
 theme:
   language: en
   name: material

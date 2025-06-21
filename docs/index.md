@@ -11,3 +11,10 @@
 </p>
 
 **ObjectNat** is an open-source library created for geospatial analysis created by **IDU team**
+
+## Contacts
+
+- [NCCR](https://actcognitive.org/) - National Center for Cognitive Research
+- [IDU](https://idu.itmo.ru/) - Institute of Design and Urban Studies
+- [Natalya Chichkova](https://t.me/nancy_nat) - project manager
+- [Danila Oleynikov (Donny)](https://t.me/ddonny_dd) - lead software engineer

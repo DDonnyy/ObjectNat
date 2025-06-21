@@ -148,3 +148,42 @@ jobs:
           git push --force origin assets
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  deploy-docs:
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Install dependencies
+        run: poetry install
+
+      - name: Get version from pyproject.toml
+        id: get_version
+        run: |
+          VERSION=$(poetry version -s)
+          echo "Detected version: $VERSION"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Configure git for mike
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+      - name: Deploy documentation with mike
+        run: |
+          poetry run mike deploy ${{ steps.get_version.outputs.version }}
+          poetry run mike alias ${{ steps.get_version.outputs.version }} latest --update
+          poetry run mike set-default latest
+          poetry run mike deploy --push
+
