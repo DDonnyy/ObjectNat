@@ -1,0 +1,1675 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../visibility/">
+      
+      
+        <link rel="next" href="../clustering/">
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.14">
+    
+    
+      
+        <title>Noise Simulation - ObjectNat</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.342714a4.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#noise-simulation" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="ObjectNat" class="md-header__button md-logo" aria-label="ObjectNat" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            ObjectNat
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Noise Simulation
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="ObjectNat" class="md-nav__button md-logo" aria-label="ObjectNat" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    ObjectNat
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Home
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Usage
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Usage
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../isochrones/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Isochrones
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../coverage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Coverage Zones
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../provision/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Service Provision
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../visibility/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Visibility
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    Noise Simulation
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    Noise Simulation
+    
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#full-wave-based-simulation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Full Wave-Based Simulation
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#simplified-noise-frame" class="md-nav__link">
+    <span class="md-ellipsis">
+      Simplified Noise Frame
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#more-details" class="md-nav__link">
+    <span class="md-ellipsis">
+      More Details
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../clustering/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Clustering
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    API Reference
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#full-wave-based-simulation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Full Wave-Based Simulation
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#simplified-noise-frame" class="md-nav__link">
+    <span class="md-ellipsis">
+      Simplified Noise Frame
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#more-details" class="md-nav__link">
+    <span class="md-ellipsis">
+      More Details
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="noise-simulation"><strong>Noise Simulation</strong><a class="headerlink" href="#noise-simulation" title="Permanent link">&para;</a></h1>
+<p>Noise Simulation models how sound propagates from one or more source points, taking into account <strong>obstacles</strong>, <strong>vegetation</strong>, and environmental conditions.<br />
+The outputs are noise exposure maps useful for urban planning and environmental impact assessments.</p>
+<hr />
+<p>The module provides two methods:</p>
+<h2 id="full-wave-based-simulation"><strong>Full Wave-Based Simulation</strong><a class="headerlink" href="#full-wave-based-simulation" title="Permanent link">&para;</a></h2>
+<p>Performs detailed noise modeling using full wave-based calculations.</p>
+
+
+<div class="doc doc-object doc-function">
+
+
+<hNone id="objectnat.simulate_noise" class="doc doc-heading">
+            <code class=" language-python"><span class="n">objectnat</span><span class="o">.</span><span class="n">simulate_noise</span><span class="p">(</span><span class="n">source_points</span><span class="p">,</span> <span class="n">obstacles</span><span class="p">,</span> <span class="n">source_noise_db</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">geometric_mean_freq_hz</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
+
+<a href="#objectnat.simulate_noise" class="headerlink" title="Permanent link">&para;</a></hNone>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Simulates noise propagation from a set of source points considering obstacles, trees, and environmental factors.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>source_points</code>
+            </td>
+            <td>
+                  <code><span title="geopandas.GeoDataFrame">GeoDataFrame</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A GeoDataFrame with one or more point geometries representing noise sources.
+Optionally, it can include 'source_noise_db' and 'geometric_mean_freq_hz' columns for per-point simulation.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>obstacles</code>
+            </td>
+            <td>
+                  <code><span title="geopandas.GeoDataFrame">GeoDataFrame</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A GeoDataFrame representing obstacles in the environment. If a column with sound absorption coefficients
+is present, its name should be provided in the <code>absorb_ratio_column</code> argument.
+Missing values will be filled with the <code>standart_absorb_ratio</code>.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>source_noise_db</code>
+            </td>
+            <td>
+                  <code> (float</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Default noise level (dB) to use if not specified per-point. Decibels are logarithmic units used to measure
+sound intensity. A value of 20 dB represents a barely audible whisper, while 140 dB is comparable to the
+noise of jet engines.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>geometric_mean_freq_hz</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Default frequency (Hz) to use if not specified per-point. This parameter influences the sound wave's
+propagation and scattering in the presence of trees. Lower frequencies travel longer distances than higher
+frequencies. It's recommended to use values between 63 Hz and 8000 Hz; values outside this range will be
+clamped to the nearest boundary for the sound absorption coefficient calculation.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="optional-kwargs" open>
+  <summary>Optional kwargs</summary>
+  <ul>
+<li>absorb_ratio_column (str, optional): The name of the column in the <code>obstacles</code> GeoDataFrame that contains the
+    sound absorption coefficients for each obstacle. Default is None. If not specified, all obstacles will have
+    the <code>standart_absorb_ratio</code>.</li>
+<li>standart_absorb_ratio (float, optional): The default sound absorption coefficient to use for obstacles without
+    specified values in the <code>absorb_ratio_column</code>. Default is 0.05, which is a typical value for concrete walls.</li>
+<li>trees (gpd.GeoDataFrame, optional): A GeoDataFrame containing trees or dense vegetation along the sound wave's
+    path. Trees will scatter and absorb sound waves.</li>
+<li>tree_resolution (int, optional): A resolution parameter for simulating tree interactions with sound waves.
+    Recommended values are between 2 and 16, with higher values providing more accurate simulation results.</li>
+<li>air_temperature (float, optional): The air temperature in degrees Celsius. The recommended range is from 0 to
+    30 degrees Celsius, as temperatures outside this range will be clipped. Temperature affects the sound
+    propagation in the air.</li>
+<li>target_noise_db (float, optional): The target noise level (in dB) for the simulation. Default is 40 dB.
+    Lower values may not be relevant for further analysis, as they are near the threshold of human hearing.</li>
+<li>db_sim_step (float, optional): The step size in decibels for the noise simulation. Default is 1. For more
+    precise analysis, this can be adjusted. If the difference between <code>source_noise_db</code> and <code>target_noise_db</code>
+    is not divisible by the step size, the function will raise an error.</li>
+<li>reflection_n (int, optional): The maximum number of reflections (bounces) to simulate for each sound wave.
+    Recommended values are between 1 and 3. Larger values will result in longer simulation times.</li>
+<li>dead_area_r (float, optional): A debugging parameter that defines the radius of the "dead zone" for reflections.
+    Points within this area will not generate reflections. This is useful to prevent the algorithm from getting
+    stuck in corners or along building walls.</li>
+<li>use_parallel (bool, optional): Whether to use ProcessPool for task distribution or not. Default is True.</li>
+</ul>
+</details>        <p>Returns:
+    (gpd.GeoDataFrame): A GeoDataFrame containing the noise simulation results, including noise levels and geometries
+        of the affected areas. Each point's simulation results will be merged into a single GeoDataFrame.</p>
+
+
+            <details class="quote">
+              <summary>Source code in <code>src\objectnat\methods\noise\noise_simulation.py</code></summary>
+              <div class="codehilite"><table class="codehilitetable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 28</span>
+<span class="normal"> 29</span>
+<span class="normal"> 30</span>
+<span class="normal"> 31</span>
+<span class="normal"> 32</span>
+<span class="normal"> 33</span>
+<span class="normal"> 34</span>
+<span class="normal"> 35</span>
+<span class="normal"> 36</span>
+<span class="normal"> 37</span>
+<span class="normal"> 38</span>
+<span class="normal"> 39</span>
+<span class="normal"> 40</span>
+<span class="normal"> 41</span>
+<span class="normal"> 42</span>
+<span class="normal"> 43</span>
+<span class="normal"> 44</span>
+<span class="normal"> 45</span>
+<span class="normal"> 46</span>
+<span class="normal"> 47</span>
+<span class="normal"> 48</span>
+<span class="normal"> 49</span>
+<span class="normal"> 50</span>
+<span class="normal"> 51</span>
+<span class="normal"> 52</span>
+<span class="normal"> 53</span>
+<span class="normal"> 54</span>
+<span class="normal"> 55</span>
+<span class="normal"> 56</span>
+<span class="normal"> 57</span>
+<span class="normal"> 58</span>
+<span class="normal"> 59</span>
+<span class="normal"> 60</span>
+<span class="normal"> 61</span>
+<span class="normal"> 62</span>
+<span class="normal"> 63</span>
+<span class="normal"> 64</span>
+<span class="normal"> 65</span>
+<span class="normal"> 66</span>
+<span class="normal"> 67</span>
+<span class="normal"> 68</span>
+<span class="normal"> 69</span>
+<span class="normal"> 70</span>
+<span class="normal"> 71</span>
+<span class="normal"> 72</span>
+<span class="normal"> 73</span>
+<span class="normal"> 74</span>
+<span class="normal"> 75</span>
+<span class="normal"> 76</span>
+<span class="normal"> 77</span>
+<span class="normal"> 78</span>
+<span class="normal"> 79</span>
+<span class="normal"> 80</span>
+<span class="normal"> 81</span>
+<span class="normal"> 82</span>
+<span class="normal"> 83</span>
+<span class="normal"> 84</span>
+<span class="normal"> 85</span>
+<span class="normal"> 86</span>
+<span class="normal"> 87</span>
+<span class="normal"> 88</span>
+<span class="normal"> 89</span>
+<span class="normal"> 90</span>
+<span class="normal"> 91</span>
+<span class="normal"> 92</span>
+<span class="normal"> 93</span>
+<span class="normal"> 94</span>
+<span class="normal"> 95</span>
+<span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
+<span class="normal"> 99</span>
+<span class="normal">100</span>
+<span class="normal">101</span>
+<span class="normal">102</span>
+<span class="normal">103</span>
+<span class="normal">104</span>
+<span class="normal">105</span>
+<span class="normal">106</span>
+<span class="normal">107</span>
+<span class="normal">108</span>
+<span class="normal">109</span>
+<span class="normal">110</span>
+<span class="normal">111</span>
+<span class="normal">112</span>
+<span class="normal">113</span>
+<span class="normal">114</span>
+<span class="normal">115</span>
+<span class="normal">116</span>
+<span class="normal">117</span>
+<span class="normal">118</span>
+<span class="normal">119</span>
+<span class="normal">120</span>
+<span class="normal">121</span>
+<span class="normal">122</span>
+<span class="normal">123</span>
+<span class="normal">124</span>
+<span class="normal">125</span>
+<span class="normal">126</span>
+<span class="normal">127</span>
+<span class="normal">128</span>
+<span class="normal">129</span>
+<span class="normal">130</span>
+<span class="normal">131</span>
+<span class="normal">132</span>
+<span class="normal">133</span>
+<span class="normal">134</span>
+<span class="normal">135</span>
+<span class="normal">136</span>
+<span class="normal">137</span>
+<span class="normal">138</span>
+<span class="normal">139</span>
+<span class="normal">140</span>
+<span class="normal">141</span>
+<span class="normal">142</span>
+<span class="normal">143</span>
+<span class="normal">144</span>
+<span class="normal">145</span>
+<span class="normal">146</span>
+<span class="normal">147</span>
+<span class="normal">148</span>
+<span class="normal">149</span>
+<span class="normal">150</span>
+<span class="normal">151</span>
+<span class="normal">152</span>
+<span class="normal">153</span>
+<span class="normal">154</span>
+<span class="normal">155</span>
+<span class="normal">156</span>
+<span class="normal">157</span>
+<span class="normal">158</span>
+<span class="normal">159</span>
+<span class="normal">160</span>
+<span class="normal">161</span>
+<span class="normal">162</span>
+<span class="normal">163</span>
+<span class="normal">164</span>
+<span class="normal">165</span>
+<span class="normal">166</span>
+<span class="normal">167</span>
+<span class="normal">168</span>
+<span class="normal">169</span>
+<span class="normal">170</span>
+<span class="normal">171</span>
+<span class="normal">172</span>
+<span class="normal">173</span>
+<span class="normal">174</span>
+<span class="normal">175</span>
+<span class="normal">176</span>
+<span class="normal">177</span>
+<span class="normal">178</span>
+<span class="normal">179</span>
+<span class="normal">180</span>
+<span class="normal">181</span>
+<span class="normal">182</span>
+<span class="normal">183</span>
+<span class="normal">184</span>
+<span class="normal">185</span>
+<span class="normal">186</span>
+<span class="normal">187</span>
+<span class="normal">188</span>
+<span class="normal">189</span>
+<span class="normal">190</span>
+<span class="normal">191</span>
+<span class="normal">192</span>
+<span class="normal">193</span>
+<span class="normal">194</span>
+<span class="normal">195</span>
+<span class="normal">196</span>
+<span class="normal">197</span>
+<span class="normal">198</span>
+<span class="normal">199</span>
+<span class="normal">200</span>
+<span class="normal">201</span>
+<span class="normal">202</span>
+<span class="normal">203</span>
+<span class="normal">204</span>
+<span class="normal">205</span>
+<span class="normal">206</span>
+<span class="normal">207</span>
+<span class="normal">208</span>
+<span class="normal">209</span>
+<span class="normal">210</span>
+<span class="normal">211</span>
+<span class="normal">212</span>
+<span class="normal">213</span>
+<span class="normal">214</span>
+<span class="normal">215</span>
+<span class="normal">216</span>
+<span class="normal">217</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">simulate_noise</span><span class="p">(</span>
+    <span class="n">source_points</span><span class="p">:</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">,</span>
+    <span class="n">obstacles</span><span class="p">:</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">,</span>
+    <span class="n">source_noise_db</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">geometric_mean_freq_hz</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Simulates noise propagation from a set of source points considering obstacles, trees, and environmental factors.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">        source_points (gpd.GeoDataFrame):</span>
+<span class="sd">            A GeoDataFrame with one or more point geometries representing noise sources.</span>
+<span class="sd">            Optionally, it can include &#39;source_noise_db&#39; and &#39;geometric_mean_freq_hz&#39; columns for per-point simulation.</span>
+<span class="sd">        obstacles (gpd.GeoDataFrame):</span>
+<span class="sd">            A GeoDataFrame representing obstacles in the environment. If a column with sound absorption coefficients</span>
+<span class="sd">            is present, its name should be provided in the `absorb_ratio_column` argument.</span>
+<span class="sd">            Missing values will be filled with the `standart_absorb_ratio`.</span>
+<span class="sd">        source_noise_db  (float, optional):</span>
+<span class="sd">            Default noise level (dB) to use if not specified per-point. Decibels are logarithmic units used to measure</span>
+<span class="sd">            sound intensity. A value of 20 dB represents a barely audible whisper, while 140 dB is comparable to the</span>
+<span class="sd">            noise of jet engines.</span>
+<span class="sd">        geometric_mean_freq_hz (float, optional):</span>
+<span class="sd">            Default frequency (Hz) to use if not specified per-point. This parameter influences the sound wave&#39;s</span>
+<span class="sd">            propagation and scattering in the presence of trees. Lower frequencies travel longer distances than higher</span>
+<span class="sd">            frequencies. It&#39;s recommended to use values between 63 Hz and 8000 Hz; values outside this range will be</span>
+<span class="sd">            clamped to the nearest boundary for the sound absorption coefficient calculation.</span>
+
+<span class="sd">    Optional kwargs:</span>
+<span class="sd">        - absorb_ratio_column (str, optional): The name of the column in the `obstacles` GeoDataFrame that contains the</span>
+<span class="sd">            sound absorption coefficients for each obstacle. Default is None. If not specified, all obstacles will have</span>
+<span class="sd">            the `standart_absorb_ratio`.</span>
+<span class="sd">        - standart_absorb_ratio (float, optional): The default sound absorption coefficient to use for obstacles without</span>
+<span class="sd">            specified values in the `absorb_ratio_column`. Default is 0.05, which is a typical value for concrete walls.</span>
+<span class="sd">        - trees (gpd.GeoDataFrame, optional): A GeoDataFrame containing trees or dense vegetation along the sound wave&#39;s</span>
+<span class="sd">            path. Trees will scatter and absorb sound waves.</span>
+<span class="sd">        - tree_resolution (int, optional): A resolution parameter for simulating tree interactions with sound waves.</span>
+<span class="sd">            Recommended values are between 2 and 16, with higher values providing more accurate simulation results.</span>
+<span class="sd">        - air_temperature (float, optional): The air temperature in degrees Celsius. The recommended range is from 0 to</span>
+<span class="sd">            30 degrees Celsius, as temperatures outside this range will be clipped. Temperature affects the sound</span>
+<span class="sd">            propagation in the air.</span>
+<span class="sd">        - target_noise_db (float, optional): The target noise level (in dB) for the simulation. Default is 40 dB.</span>
+<span class="sd">            Lower values may not be relevant for further analysis, as they are near the threshold of human hearing.</span>
+<span class="sd">        - db_sim_step (float, optional): The step size in decibels for the noise simulation. Default is 1. For more</span>
+<span class="sd">            precise analysis, this can be adjusted. If the difference between `source_noise_db` and `target_noise_db`</span>
+<span class="sd">            is not divisible by the step size, the function will raise an error.</span>
+<span class="sd">        - reflection_n (int, optional): The maximum number of reflections (bounces) to simulate for each sound wave.</span>
+<span class="sd">            Recommended values are between 1 and 3. Larger values will result in longer simulation times.</span>
+<span class="sd">        - dead_area_r (float, optional): A debugging parameter that defines the radius of the &quot;dead zone&quot; for reflections.</span>
+<span class="sd">            Points within this area will not generate reflections. This is useful to prevent the algorithm from getting</span>
+<span class="sd">            stuck in corners or along building walls.</span>
+<span class="sd">        - use_parallel (bool, optional): Whether to use ProcessPool for task distribution or not. Default is True.</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        (gpd.GeoDataFrame): A GeoDataFrame containing the noise simulation results, including noise levels and geometries</span>
+<span class="sd">            of the affected areas. Each point&#39;s simulation results will be merged into a single GeoDataFrame.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Obstacles args</span>
+    <span class="n">absorb_ratio_column</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;absorb_ratio_column&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">standart_absorb_ratio</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;standart_absorb_ratio&quot;</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">)</span>
+
+    <span class="c1"># Trees args</span>
+    <span class="n">trees</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;trees&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">tree_res</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;tree_resolution&quot;</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+
+    <span class="c1"># Simulation conditions</span>
+    <span class="n">air_temperature</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;air_temperature&quot;</span><span class="p">,</span> <span class="mi">20</span><span class="p">)</span>
+    <span class="n">target_noise_db</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;target_noise_db&quot;</span><span class="p">,</span> <span class="mi">40</span><span class="p">)</span>
+
+    <span class="c1"># Simulation params</span>
+    <span class="n">db_sim_step</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;db_sim_step&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">reflection_n</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;reflection_n&quot;</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="n">dead_area_r</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;dead_area_r&quot;</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
+
+    <span class="c1"># Use paralleling</span>
+    <span class="n">use_parallel</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;use_parallel&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># Validate optional columns or default values</span>
+    <span class="n">use_column_db</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="s2">&quot;source_noise_db&quot;</span> <span class="ow">in</span> <span class="n">source_points</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">source_points</span><span class="p">[</span><span class="s2">&quot;source_noise_db&quot;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">MAX_DB_VALUE</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;One or more values in &#39;source_noise_db&#39; column exceed the physical limit of </span><span class="si">{</span><span class="n">MAX_DB_VALUE</span><span class="si">}</span><span class="s2"> dB.&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">source_points</span><span class="p">[</span><span class="s2">&quot;source_noise_db&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">isnull</span><span class="p">()</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Column &#39;source_noise_db&#39; contains missing (NaN) values&quot;</span><span class="p">)</span>
+        <span class="n">use_column_db</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="n">use_column_freq</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="s2">&quot;geometric_mean_freq_hz&quot;</span> <span class="ow">in</span> <span class="n">source_points</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">source_points</span><span class="p">[</span><span class="s2">&quot;geometric_mean_freq_hz&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">isnull</span><span class="p">()</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Column &#39;geometric_mean_freq_hz&#39; contains missing (NaN) values&quot;</span><span class="p">)</span>
+        <span class="n">use_column_freq</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">use_column_db</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">source_noise_db</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Either `source_noise_db` must be provided or the `source_points` must contain a &#39;source_noise_db&#39; column.&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">source_noise_db</span> <span class="o">&gt;</span> <span class="n">MAX_DB_VALUE</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;source_noise_db (</span><span class="si">{</span><span class="n">source_noise_db</span><span class="si">}</span><span class="s2"> dB) exceeds the physical limit of </span><span class="si">{</span><span class="n">MAX_DB_VALUE</span><span class="si">}</span><span class="s2"> dB in air.&quot;</span>
+            <span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">use_column_freq</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">geometric_mean_freq_hz</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Either `geometric_mean_freq_hz` must be provided or the `source_points` must contain a &#39;geometric_mean_freq_hz&#39; column.&quot;</span>
+            <span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">use_column_db</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">use_column_freq</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">source_points</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+            <span class="s2">&quot;`source_noise_db` and `geometric_mean_freq_hz` will be used for all points. Per-point simulation parameters not found.&quot;</span>
+        <span class="p">)</span>
+
+    <span class="n">original_crs</span> <span class="o">=</span> <span class="n">source_points</span><span class="o">.</span><span class="n">crs</span>
+    <span class="n">source_points</span> <span class="o">=</span> <span class="n">source_points</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+    <span class="n">source_points</span> <span class="o">=</span> <span class="n">source_points</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">obstacles</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">obstacles</span> <span class="o">=</span> <span class="n">obstacles</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">obstacles</span><span class="o">.</span><span class="n">geometry</span> <span class="o">=</span> <span class="n">obstacles</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">simplify</span><span class="p">(</span><span class="n">tolerance</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">local_crs</span> <span class="o">=</span> <span class="n">obstacles</span><span class="o">.</span><span class="n">estimate_utm_crs</span><span class="p">()</span>
+        <span class="n">obstacles</span><span class="o">.</span><span class="n">to_crs</span><span class="p">(</span><span class="n">local_crs</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">source_points</span><span class="o">.</span><span class="n">to_crs</span><span class="p">(</span><span class="n">local_crs</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">local_crs</span> <span class="o">=</span> <span class="n">source_points</span><span class="o">.</span><span class="n">estimate_utm_crs</span><span class="p">()</span>
+        <span class="n">source_points</span><span class="o">.</span><span class="n">to_crs</span><span class="p">(</span><span class="n">local_crs</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">source_points</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">source_points</span><span class="o">.</span><span class="n">geometry</span> <span class="o">=</span> <span class="n">source_points</span><span class="o">.</span><span class="n">centroid</span>
+
+    <span class="c1"># Simplifying trees</span>
+    <span class="k">if</span> <span class="n">trees</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">trees</span> <span class="o">=</span> <span class="n">trees</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">trees</span><span class="o">.</span><span class="n">to_crs</span><span class="p">(</span><span class="n">local_crs</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">trees</span><span class="o">.</span><span class="n">geometry</span> <span class="o">=</span> <span class="n">trees</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">simplify</span><span class="p">(</span><span class="n">tolerance</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">trees</span> <span class="o">=</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">absorb_ratio_column</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">obstacles</span><span class="p">[</span><span class="s2">&quot;absorb_ratio&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">standart_absorb_ratio</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">obstacles</span><span class="p">[</span><span class="s2">&quot;absorb_ratio&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">obstacles</span><span class="p">[</span><span class="n">absorb_ratio_column</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="n">standart_absorb_ratio</span><span class="p">)</span>
+    <span class="n">obstacles</span> <span class="o">=</span> <span class="n">obstacles</span><span class="p">[[</span><span class="s2">&quot;absorb_ratio&quot;</span><span class="p">,</span> <span class="s2">&quot;geometry&quot;</span><span class="p">]]</span>
+
+    <span class="c1"># creating initial task and simulating for each point</span>
+    <span class="n">task_queue</span> <span class="o">=</span> <span class="n">multiprocessing</span><span class="o">.</span><span class="n">Queue</span><span class="p">()</span>
+    <span class="n">dead_area_dict</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">ind</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">source_points</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+        <span class="n">source_point</span> <span class="o">=</span> <span class="n">row</span><span class="o">.</span><span class="n">geometry</span>
+        <span class="n">local_db</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;source_noise_db&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="n">use_column_db</span> <span class="k">else</span> <span class="n">source_noise_db</span>
+        <span class="n">local_freq</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;geometric_mean_freq_hz&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="n">use_column_freq</span> <span class="k">else</span> <span class="n">geometric_mean_freq_hz</span>
+
+        <span class="c1"># calculating layer dist and db values</span>
+        <span class="n">dist_db</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="n">local_db</span><span class="p">)]</span>
+        <span class="n">cur_db</span> <span class="o">=</span> <span class="n">local_db</span> <span class="o">-</span> <span class="n">db_sim_step</span>
+        <span class="k">while</span> <span class="n">cur_db</span> <span class="o">&gt;</span> <span class="n">target_noise_db</span> <span class="o">-</span> <span class="n">db_sim_step</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">cur_db</span> <span class="o">-</span> <span class="n">db_sim_step</span> <span class="o">&lt;</span> <span class="n">target_noise_db</span><span class="p">:</span>
+                <span class="n">cur_db</span> <span class="o">=</span> <span class="n">target_noise_db</span>
+            <span class="n">max_dist</span> <span class="o">=</span> <span class="n">dist_to_target_db</span><span class="p">(</span><span class="n">local_db</span><span class="p">,</span> <span class="n">cur_db</span><span class="p">,</span> <span class="n">local_freq</span><span class="p">,</span> <span class="n">air_temperature</span><span class="p">)</span>
+            <span class="n">dist_db</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">max_dist</span><span class="p">,</span> <span class="n">cur_db</span><span class="p">))</span>
+            <span class="n">cur_db</span> <span class="o">-=</span> <span class="n">db_sim_step</span>
+
+        <span class="n">args</span> <span class="o">=</span> <span class="p">(</span><span class="n">source_point</span><span class="p">,</span> <span class="n">obstacles</span><span class="p">,</span> <span class="n">trees</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">dist_db</span><span class="p">)</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;reflection_n&quot;</span><span class="p">:</span> <span class="n">reflection_n</span><span class="p">,</span>
+            <span class="s2">&quot;geometric_mean_freq_hz&quot;</span><span class="p">:</span> <span class="n">local_freq</span><span class="p">,</span>
+            <span class="s2">&quot;tree_res&quot;</span><span class="p">:</span> <span class="n">tree_res</span><span class="p">,</span>
+            <span class="s2">&quot;min_db&quot;</span><span class="p">:</span> <span class="n">target_noise_db</span><span class="p">,</span>
+            <span class="s2">&quot;simulation_ind&quot;</span><span class="p">:</span> <span class="n">ind</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="n">task_queue</span><span class="o">.</span><span class="n">put</span><span class="p">((</span><span class="n">_noise_from_point_task</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">))</span>
+        <span class="n">dead_area_dict</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span> <span class="o">=</span> <span class="n">source_point</span><span class="o">.</span><span class="n">buffer</span><span class="p">(</span><span class="n">dead_area_r</span><span class="p">,</span> <span class="n">resolution</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="n">noise_gdf</span> <span class="o">=</span> <span class="n">_recursive_simulation_queue</span><span class="p">(</span>
+        <span class="n">task_queue</span><span class="p">,</span> <span class="n">dead_area_dict</span><span class="o">=</span><span class="n">dead_area_dict</span><span class="p">,</span> <span class="n">dead_area_r</span><span class="o">=</span><span class="n">dead_area_r</span><span class="p">,</span> <span class="n">use_parallel</span><span class="o">=</span><span class="n">use_parallel</span>
+    <span class="p">)</span>
+
+    <span class="n">noise_gdf</span> <span class="o">=</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">noise_gdf</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span> <span class="n">crs</span><span class="o">=</span><span class="n">local_crs</span><span class="p">)</span>
+    <span class="n">polygons</span> <span class="o">=</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">(</span>
+        <span class="n">geometry</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">polygonize</span><span class="p">(</span><span class="n">noise_gdf</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">polygons_to_multilinestring</span><span class="p">)</span><span class="o">.</span><span class="n">union_all</span><span class="p">())),</span> <span class="n">crs</span><span class="o">=</span><span class="n">local_crs</span>
+    <span class="p">)</span>
+    <span class="n">polygons_points</span> <span class="o">=</span> <span class="n">polygons</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">polygons_points</span><span class="o">.</span><span class="n">geometry</span> <span class="o">=</span> <span class="n">polygons</span><span class="o">.</span><span class="n">representative_point</span><span class="p">()</span>
+    <span class="n">sim_result</span> <span class="o">=</span> <span class="n">polygons_points</span><span class="o">.</span><span class="n">sjoin</span><span class="p">(</span><span class="n">noise_gdf</span><span class="p">,</span> <span class="n">predicate</span><span class="o">=</span><span class="s2">&quot;within&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+    <span class="n">sim_result</span> <span class="o">=</span> <span class="n">sim_result</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">&quot;index&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">agg</span><span class="p">({</span><span class="s2">&quot;noise_level&quot;</span><span class="p">:</span> <span class="s2">&quot;max&quot;</span><span class="p">})</span>
+    <span class="n">sim_result</span><span class="p">[</span><span class="s2">&quot;geometry&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">polygons</span>
+    <span class="n">sim_result</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">(</span><span class="n">sim_result</span><span class="p">,</span> <span class="n">geometry</span><span class="o">=</span><span class="s2">&quot;geometry&quot;</span><span class="p">,</span> <span class="n">crs</span><span class="o">=</span><span class="n">local_crs</span><span class="p">)</span><span class="o">.</span><span class="n">dissolve</span><span class="p">(</span><span class="n">by</span><span class="o">=</span><span class="s2">&quot;noise_level&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">sim_result</span><span class="o">.</span><span class="n">to_crs</span><span class="p">(</span><span class="n">original_crs</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div><p><img src="https://raw.githubusercontent.com/DDonnyy/ObjectNat/assets/noise_simulation_1point.png" alt="noise_simulation_1point"></p>
+<hr />
+<h2 id="simplified-noise-frame"><strong>Simplified Noise Frame</strong><a class="headerlink" href="#simplified-noise-frame" title="Permanent link">&para;</a></h2>
+<p>Creates a simplified noise exposure map using only geometric visibility and sound decay, without full wave simulation. Ideal for quick results.</p>
+
+
+<div class="doc doc-object doc-function">
+
+
+<hNone id="objectnat.calculate_simplified_noise_frame" class="doc doc-heading">
+            <code class=" language-python"><span class="n">objectnat</span><span class="o">.</span><span class="n">calculate_simplified_noise_frame</span><span class="p">(</span><span class="n">noise_sources</span><span class="p">,</span> <span class="n">obstacles</span><span class="p">,</span> <span class="n">air_temperature</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
+
+<a href="#objectnat.calculate_simplified_noise_frame" class="headerlink" title="Permanent link">&para;</a></hNone>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Calculates a simplified environmental noise frame using static noise source geometries without simulating
+full sound wave propagation or reflections.</p>
+<p>This function provides a fast approximation of noise dispersion from a variety of source geometries, including
+points (e.g., traffic noise measurement points), lines (e.g., roads or railways), and polygons (e.g., industrial
+zones or buildings). Instead of simulating detailed wave interactions and reflections, it constructs an
+envelope of potential noise exposure by buffering the source geometry and applying simplified decay formulas
+based on sound power, frequency and temperature.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>noise_sources</code>
+            </td>
+            <td>
+                  <code><span title="geopandas.GeoDataFrame">GeoDataFrame</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A GeoDataFrame containing geometries of noise sources (Point, LineString,
+or Polygon). Each feature must have the following two columns:
+    - 'source_noise_db': Initial sound level at the source, in decibels (dB).
+    - 'geometric_mean_freq_hz': Characteristic sound frequency (Hz) used to model distance-based
+      attenuation.
+Values in 'source_noise_db' must not exceed the physical maximum of 194 dB. Missing or NaN values in
+required fields will raise an error.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>obstacles</code>
+            </td>
+            <td>
+                  <code><span title="geopandas.GeoDataFrame">GeoDataFrame</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A GeoDataFrame representing physical obstructions in the environment
+(e.g., buildings, walls, terrain). These are used to build visibility masks that affect where sound can
+propagate. Geometry will be simplified for performance using a default tolerance of 1 unit.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>air_temperature</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The ambient air temperature in degrees Celsius. This value influences the
+attenuation model of sound in the atmosphere. Temperatures significantly outside the typical 0–30°C
+range may lead to inaccurate results.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="optional-kwargs" open>
+  <summary>Optional kwargs</summary>
+  <ul>
+<li>target_noise_db (float, optional): The minimum sound level threshold (in dB) to be modeled. Any value below
+    this threshold is considered insignificant and will be excluded from the resulting noise frame.
+    Default is 40 dB.</li>
+<li>db_sim_step (float, optional): The simulation step size (in dB) used to discretize sound levels into
+    spatial layers. Default is 5. Smaller values produce more detailed output but increase computation time.</li>
+<li>linestring_point_radius (float, optional): The spacing radius (in meters) used when converting LineString
+    geometries into distributed point sources for simulation. Default is 30. Reducing this value improves
+    detail along long lines.</li>
+<li>polygon_point_radius (float, optional): The point spacing (in meters) for distributing sources within
+    Polygon geometries. Default is 15. Points are sampled across the polygon’s surface and perimeter to
+    represent the full sound-emitting area.</li>
+</ul>
+</details>
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="geopandas.GeoDataFrame">GeoDataFrame</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A GeoDataFrame representing simplified noise distribution areas. The output geometries
+are polygons where each polygon is associated with the maximum sound level (in dB) present in that area,
+as derived from overlapping source zones. The resulting data is dissolved by noise level and returned in
+the original coordinate reference system (CRS) of the input sources.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="notes" open>
+  <summary>Notes</summary>
+  <ul>
+<li>The function does not model reflections or complex diffraction effects. It uses straight-line
+  visibility (line-of-sight) and a layered distance-decay approach for rapid estimation.</li>
+<li>Obstacles are used for visibility masking only, not as reflectors or absorbers.</li>
+<li>Output resolution and accuracy depend heavily on the geometry type and point distribution settings.</li>
+<li>Results are useful for quick noise mapping or for generating initial noise envelopes prior to more
+  detailed simulations.</li>
+</ul>
+</details>
+
+            <details class="quote">
+              <summary>Source code in <code>src\objectnat\methods\noise\noise_simulation_simplified.py</code></summary>
+              <div class="codehilite"><table class="codehilitetable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 18</span>
+<span class="normal"> 19</span>
+<span class="normal"> 20</span>
+<span class="normal"> 21</span>
+<span class="normal"> 22</span>
+<span class="normal"> 23</span>
+<span class="normal"> 24</span>
+<span class="normal"> 25</span>
+<span class="normal"> 26</span>
+<span class="normal"> 27</span>
+<span class="normal"> 28</span>
+<span class="normal"> 29</span>
+<span class="normal"> 30</span>
+<span class="normal"> 31</span>
+<span class="normal"> 32</span>
+<span class="normal"> 33</span>
+<span class="normal"> 34</span>
+<span class="normal"> 35</span>
+<span class="normal"> 36</span>
+<span class="normal"> 37</span>
+<span class="normal"> 38</span>
+<span class="normal"> 39</span>
+<span class="normal"> 40</span>
+<span class="normal"> 41</span>
+<span class="normal"> 42</span>
+<span class="normal"> 43</span>
+<span class="normal"> 44</span>
+<span class="normal"> 45</span>
+<span class="normal"> 46</span>
+<span class="normal"> 47</span>
+<span class="normal"> 48</span>
+<span class="normal"> 49</span>
+<span class="normal"> 50</span>
+<span class="normal"> 51</span>
+<span class="normal"> 52</span>
+<span class="normal"> 53</span>
+<span class="normal"> 54</span>
+<span class="normal"> 55</span>
+<span class="normal"> 56</span>
+<span class="normal"> 57</span>
+<span class="normal"> 58</span>
+<span class="normal"> 59</span>
+<span class="normal"> 60</span>
+<span class="normal"> 61</span>
+<span class="normal"> 62</span>
+<span class="normal"> 63</span>
+<span class="normal"> 64</span>
+<span class="normal"> 65</span>
+<span class="normal"> 66</span>
+<span class="normal"> 67</span>
+<span class="normal"> 68</span>
+<span class="normal"> 69</span>
+<span class="normal"> 70</span>
+<span class="normal"> 71</span>
+<span class="normal"> 72</span>
+<span class="normal"> 73</span>
+<span class="normal"> 74</span>
+<span class="normal"> 75</span>
+<span class="normal"> 76</span>
+<span class="normal"> 77</span>
+<span class="normal"> 78</span>
+<span class="normal"> 79</span>
+<span class="normal"> 80</span>
+<span class="normal"> 81</span>
+<span class="normal"> 82</span>
+<span class="normal"> 83</span>
+<span class="normal"> 84</span>
+<span class="normal"> 85</span>
+<span class="normal"> 86</span>
+<span class="normal"> 87</span>
+<span class="normal"> 88</span>
+<span class="normal"> 89</span>
+<span class="normal"> 90</span>
+<span class="normal"> 91</span>
+<span class="normal"> 92</span>
+<span class="normal"> 93</span>
+<span class="normal"> 94</span>
+<span class="normal"> 95</span>
+<span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
+<span class="normal"> 99</span>
+<span class="normal">100</span>
+<span class="normal">101</span>
+<span class="normal">102</span>
+<span class="normal">103</span>
+<span class="normal">104</span>
+<span class="normal">105</span>
+<span class="normal">106</span>
+<span class="normal">107</span>
+<span class="normal">108</span>
+<span class="normal">109</span>
+<span class="normal">110</span>
+<span class="normal">111</span>
+<span class="normal">112</span>
+<span class="normal">113</span>
+<span class="normal">114</span>
+<span class="normal">115</span>
+<span class="normal">116</span>
+<span class="normal">117</span>
+<span class="normal">118</span>
+<span class="normal">119</span>
+<span class="normal">120</span>
+<span class="normal">121</span>
+<span class="normal">122</span>
+<span class="normal">123</span>
+<span class="normal">124</span>
+<span class="normal">125</span>
+<span class="normal">126</span>
+<span class="normal">127</span>
+<span class="normal">128</span>
+<span class="normal">129</span>
+<span class="normal">130</span>
+<span class="normal">131</span>
+<span class="normal">132</span>
+<span class="normal">133</span>
+<span class="normal">134</span>
+<span class="normal">135</span>
+<span class="normal">136</span>
+<span class="normal">137</span>
+<span class="normal">138</span>
+<span class="normal">139</span>
+<span class="normal">140</span>
+<span class="normal">141</span>
+<span class="normal">142</span>
+<span class="normal">143</span>
+<span class="normal">144</span>
+<span class="normal">145</span>
+<span class="normal">146</span>
+<span class="normal">147</span>
+<span class="normal">148</span>
+<span class="normal">149</span>
+<span class="normal">150</span>
+<span class="normal">151</span>
+<span class="normal">152</span>
+<span class="normal">153</span>
+<span class="normal">154</span>
+<span class="normal">155</span>
+<span class="normal">156</span>
+<span class="normal">157</span>
+<span class="normal">158</span>
+<span class="normal">159</span>
+<span class="normal">160</span>
+<span class="normal">161</span>
+<span class="normal">162</span>
+<span class="normal">163</span>
+<span class="normal">164</span>
+<span class="normal">165</span>
+<span class="normal">166</span>
+<span class="normal">167</span>
+<span class="normal">168</span>
+<span class="normal">169</span>
+<span class="normal">170</span>
+<span class="normal">171</span>
+<span class="normal">172</span>
+<span class="normal">173</span>
+<span class="normal">174</span>
+<span class="normal">175</span>
+<span class="normal">176</span>
+<span class="normal">177</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">calculate_simplified_noise_frame</span><span class="p">(</span>
+    <span class="n">noise_sources</span><span class="p">:</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">,</span> <span class="n">obstacles</span><span class="p">:</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">,</span> <span class="n">air_temperature</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculates a simplified environmental noise frame using static noise source geometries without simulating</span>
+<span class="sd">    full sound wave propagation or reflections.</span>
+
+<span class="sd">    This function provides a fast approximation of noise dispersion from a variety of source geometries, including</span>
+<span class="sd">    points (e.g., traffic noise measurement points), lines (e.g., roads or railways), and polygons (e.g., industrial</span>
+<span class="sd">    zones or buildings). Instead of simulating detailed wave interactions and reflections, it constructs an</span>
+<span class="sd">    envelope of potential noise exposure by buffering the source geometry and applying simplified decay formulas</span>
+<span class="sd">    based on sound power, frequency and temperature.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        noise_sources (gpd.GeoDataFrame): A GeoDataFrame containing geometries of noise sources (Point, LineString,</span>
+<span class="sd">            or Polygon). Each feature must have the following two columns:</span>
+<span class="sd">                - &#39;source_noise_db&#39;: Initial sound level at the source, in decibels (dB).</span>
+<span class="sd">                - &#39;geometric_mean_freq_hz&#39;: Characteristic sound frequency (Hz) used to model distance-based</span>
+<span class="sd">                  attenuation.</span>
+<span class="sd">            Values in &#39;source_noise_db&#39; must not exceed the physical maximum of 194 dB. Missing or NaN values in</span>
+<span class="sd">            required fields will raise an error.</span>
+
+<span class="sd">        obstacles (gpd.GeoDataFrame): A GeoDataFrame representing physical obstructions in the environment</span>
+<span class="sd">            (e.g., buildings, walls, terrain). These are used to build visibility masks that affect where sound can</span>
+<span class="sd">            propagate. Geometry will be simplified for performance using a default tolerance of 1 unit.</span>
+
+<span class="sd">        air_temperature (float): The ambient air temperature in degrees Celsius. This value influences the</span>
+<span class="sd">            attenuation model of sound in the atmosphere. Temperatures significantly outside the typical 0–30°C</span>
+<span class="sd">            range may lead to inaccurate results.</span>
+
+<span class="sd">    Optional kwargs:</span>
+<span class="sd">        - target_noise_db (float, optional): The minimum sound level threshold (in dB) to be modeled. Any value below</span>
+<span class="sd">            this threshold is considered insignificant and will be excluded from the resulting noise frame.</span>
+<span class="sd">            Default is 40 dB.</span>
+<span class="sd">        - db_sim_step (float, optional): The simulation step size (in dB) used to discretize sound levels into</span>
+<span class="sd">            spatial layers. Default is 5. Smaller values produce more detailed output but increase computation time.</span>
+<span class="sd">        - linestring_point_radius (float, optional): The spacing radius (in meters) used when converting LineString</span>
+<span class="sd">            geometries into distributed point sources for simulation. Default is 30. Reducing this value improves</span>
+<span class="sd">            detail along long lines.</span>
+<span class="sd">        - polygon_point_radius (float, optional): The point spacing (in meters) for distributing sources within</span>
+<span class="sd">            Polygon geometries. Default is 15. Points are sampled across the polygon’s surface and perimeter to</span>
+<span class="sd">            represent the full sound-emitting area.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        (gpd.GeoDataFrame): A GeoDataFrame representing simplified noise distribution areas. The output geometries</span>
+<span class="sd">            are polygons where each polygon is associated with the maximum sound level (in dB) present in that area,</span>
+<span class="sd">            as derived from overlapping source zones. The resulting data is dissolved by noise level and returned in</span>
+<span class="sd">            the original coordinate reference system (CRS) of the input sources.</span>
+
+<span class="sd">    Notes:</span>
+<span class="sd">        - The function does not model reflections or complex diffraction effects. It uses straight-line</span>
+<span class="sd">          visibility (line-of-sight) and a layered distance-decay approach for rapid estimation.</span>
+<span class="sd">        - Obstacles are used for visibility masking only, not as reflectors or absorbers.</span>
+<span class="sd">        - Output resolution and accuracy depend heavily on the geometry type and point distribution settings.</span>
+<span class="sd">        - Results are useful for quick noise mapping or for generating initial noise envelopes prior to more</span>
+<span class="sd">          detailed simulations.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">target_noise_db</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;target_noise_db&quot;</span><span class="p">,</span> <span class="mi">40</span><span class="p">)</span>
+    <span class="n">db_sim_step</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;db_sim_step&quot;</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
+    <span class="n">linestring_point_radius</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;linestring_point_radius&quot;</span><span class="p">,</span> <span class="mi">30</span><span class="p">)</span>
+    <span class="n">polygon_point_radius</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;polygon_point_radius&quot;</span><span class="p">,</span> <span class="mi">15</span><span class="p">)</span>
+
+    <span class="n">required_columns</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;source_noise_db&quot;</span><span class="p">,</span> <span class="s2">&quot;geometric_mean_freq_hz&quot;</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">required_columns</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">col</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">noise_sources</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s2">&#39; column is missing in provided GeoDataFrame&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">noise_sources</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">isnull</span><span class="p">()</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Column &#39;</span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s2">&#39; contains missing (NaN) values&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">noise_sources</span><span class="p">[</span><span class="s2">&quot;source_noise_db&quot;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">MAX_DB_VALUE</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;One or more values in &#39;source_noise_db&#39; column exceed the physical limit of </span><span class="si">{</span><span class="n">MAX_DB_VALUE</span><span class="si">}</span><span class="s2"> dB.&quot;</span>
+        <span class="p">)</span>
+    <span class="n">original_crs</span> <span class="o">=</span> <span class="n">noise_sources</span><span class="o">.</span><span class="n">crs</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">obstacles</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">obstacles</span> <span class="o">=</span> <span class="n">obstacles</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">obstacles</span><span class="o">.</span><span class="n">geometry</span> <span class="o">=</span> <span class="n">obstacles</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">simplify</span><span class="p">(</span><span class="n">tolerance</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">local_crs</span> <span class="o">=</span> <span class="n">obstacles</span><span class="o">.</span><span class="n">estimate_utm_crs</span><span class="p">()</span>
+        <span class="n">obstacles</span><span class="o">.</span><span class="n">to_crs</span><span class="p">(</span><span class="n">local_crs</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">noise_sources</span><span class="o">.</span><span class="n">to_crs</span><span class="p">(</span><span class="n">local_crs</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">local_crs</span> <span class="o">=</span> <span class="n">noise_sources</span><span class="o">.</span><span class="n">estimate_utm_crs</span><span class="p">()</span>
+        <span class="n">noise_sources</span><span class="o">.</span><span class="n">to_crs</span><span class="p">(</span><span class="n">local_crs</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">noise_sources</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">noise_sources</span> <span class="o">=</span> <span class="n">noise_sources</span><span class="o">.</span><span class="n">explode</span><span class="p">(</span><span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">noise_sources</span><span class="p">[</span><span class="s2">&quot;geom_type&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">noise_sources</span><span class="o">.</span><span class="n">geom_type</span>
+
+    <span class="n">grouped_sources</span> <span class="o">=</span> <span class="n">noise_sources</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">by</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;source_noise_db&quot;</span><span class="p">,</span> <span class="s2">&quot;geometric_mean_freq_hz&quot;</span><span class="p">,</span> <span class="s2">&quot;geom_type&quot;</span><span class="p">])</span>
+
+    <span class="n">frame_result</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">total_tasks</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">with</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">total</span><span class="o">=</span><span class="n">total_tasks</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="s2">&quot;Simulating noise&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">pbar</span><span class="p">:</span>
+        <span class="k">for</span> <span class="p">(</span><span class="n">source_db</span><span class="p">,</span> <span class="n">freq_hz</span><span class="p">,</span> <span class="n">geom_type</span><span class="p">),</span> <span class="n">group_gdf</span> <span class="ow">in</span> <span class="n">grouped_sources</span><span class="p">:</span>
+            <span class="c1"># calculating layer dist and db values</span>
+            <span class="n">dist_db</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="n">source_db</span><span class="p">)]</span>
+            <span class="n">cur_db</span> <span class="o">=</span> <span class="n">source_db</span> <span class="o">-</span> <span class="n">db_sim_step</span>
+            <span class="n">max_dist</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">while</span> <span class="n">cur_db</span> <span class="o">&gt;</span> <span class="n">target_noise_db</span> <span class="o">-</span> <span class="n">db_sim_step</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">cur_db</span> <span class="o">-</span> <span class="n">db_sim_step</span> <span class="o">&lt;</span> <span class="n">target_noise_db</span><span class="p">:</span>
+                    <span class="n">cur_db</span> <span class="o">=</span> <span class="n">target_noise_db</span>
+                <span class="n">max_dist</span> <span class="o">=</span> <span class="n">dist_to_target_db</span><span class="p">(</span><span class="n">source_db</span><span class="p">,</span> <span class="n">cur_db</span><span class="p">,</span> <span class="n">freq_hz</span><span class="p">,</span> <span class="n">air_temperature</span><span class="p">)</span>
+                <span class="n">dist_db</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">max_dist</span><span class="p">,</span> <span class="n">cur_db</span><span class="p">))</span>
+                <span class="n">cur_db</span> <span class="o">-=</span> <span class="n">db_sim_step</span>
+
+            <span class="c1"># increasing max_dist for extra view</span>
+            <span class="n">max_dist</span> <span class="o">=</span> <span class="n">max_dist</span> <span class="o">*</span> <span class="mf">1.2</span>
+
+            <span class="k">if</span> <span class="n">geom_type</span> <span class="o">==</span> <span class="s2">&quot;Point&quot;</span><span class="p">:</span>
+                <span class="n">total_tasks</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">group_gdf</span><span class="p">)</span>
+                <span class="n">pbar</span><span class="o">.</span><span class="n">total</span> <span class="o">=</span> <span class="n">total_tasks</span>
+                <span class="n">pbar</span><span class="o">.</span><span class="n">refresh</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">group_gdf</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+                    <span class="n">point_from</span> <span class="o">=</span> <span class="n">row</span><span class="o">.</span><span class="n">geometry</span>
+                    <span class="n">point_buffer</span> <span class="o">=</span> <span class="n">point_from</span><span class="o">.</span><span class="n">buffer</span><span class="p">(</span><span class="n">max_dist</span><span class="p">,</span> <span class="n">resolution</span><span class="o">=</span><span class="mi">16</span><span class="p">)</span>
+                    <span class="n">local_obstacles</span> <span class="o">=</span> <span class="n">obstacles</span><span class="p">[</span><span class="n">obstacles</span><span class="o">.</span><span class="n">intersects</span><span class="p">(</span><span class="n">point_buffer</span><span class="p">)]</span>
+                    <span class="n">vis_poly</span> <span class="o">=</span> <span class="n">get_visibility_accurate</span><span class="p">(</span><span class="n">point_from</span><span class="p">,</span> <span class="n">obstacles</span><span class="o">=</span><span class="n">local_obstacles</span><span class="p">,</span> <span class="n">view_distance</span><span class="o">=</span><span class="n">max_dist</span><span class="p">)</span>
+                    <span class="n">noise_from_feature</span> <span class="o">=</span> <span class="n">_eval_donuts_gdf</span><span class="p">(</span><span class="n">point_from</span><span class="p">,</span> <span class="n">dist_db</span><span class="p">,</span> <span class="n">local_crs</span><span class="p">,</span> <span class="n">vis_poly</span><span class="p">)</span>
+                    <span class="n">frame_result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">noise_from_feature</span><span class="p">)</span>
+                    <span class="n">pbar</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+            <span class="k">elif</span> <span class="n">geom_type</span> <span class="o">==</span> <span class="s2">&quot;LineString&quot;</span><span class="p">:</span>
+                <span class="n">layer_points</span> <span class="o">=</span> <span class="n">distribute_points_on_linestrings</span><span class="p">(</span>
+                    <span class="n">group_gdf</span><span class="p">,</span> <span class="n">radius</span><span class="o">=</span><span class="n">linestring_point_radius</span><span class="p">,</span> <span class="n">lloyd_relax_n</span><span class="o">=</span><span class="mi">1</span>
+                <span class="p">)</span>
+                <span class="n">total_tasks</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">layer_points</span><span class="p">)</span>
+                <span class="n">pbar</span><span class="o">.</span><span class="n">total</span> <span class="o">=</span> <span class="n">total_tasks</span>
+                <span class="n">pbar</span><span class="o">.</span><span class="n">refresh</span><span class="p">()</span>
+                <span class="n">noise_from_feature</span> <span class="o">=</span> <span class="n">_process_lines_or_polygons</span><span class="p">(</span>
+                    <span class="n">group_gdf</span><span class="p">,</span> <span class="n">max_dist</span><span class="p">,</span> <span class="n">obstacles</span><span class="p">,</span> <span class="n">layer_points</span><span class="p">,</span> <span class="n">dist_db</span><span class="p">,</span> <span class="n">local_crs</span><span class="p">,</span> <span class="n">pbar</span>
+                <span class="p">)</span>
+                <span class="n">frame_result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">noise_from_feature</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">geom_type</span> <span class="o">==</span> <span class="s2">&quot;Polygon&quot;</span><span class="p">:</span>
+                <span class="n">group_gdf</span><span class="o">.</span><span class="n">geometry</span> <span class="o">=</span> <span class="n">group_gdf</span><span class="o">.</span><span class="n">buffer</span><span class="p">(</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">resolution</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">layer_points</span> <span class="o">=</span> <span class="n">distribute_points_on_polygons</span><span class="p">(</span>
+                    <span class="n">group_gdf</span><span class="p">,</span> <span class="n">only_exterior</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">radius</span><span class="o">=</span><span class="n">polygon_point_radius</span><span class="p">,</span> <span class="n">lloyd_relax_n</span><span class="o">=</span><span class="mi">1</span>
+                <span class="p">)</span>
+                <span class="n">total_tasks</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">layer_points</span><span class="p">)</span>
+                <span class="n">pbar</span><span class="o">.</span><span class="n">total</span> <span class="o">=</span> <span class="n">total_tasks</span>
+                <span class="n">pbar</span><span class="o">.</span><span class="n">refresh</span><span class="p">()</span>
+                <span class="n">noise_from_feature</span> <span class="o">=</span> <span class="n">_process_lines_or_polygons</span><span class="p">(</span>
+                    <span class="n">group_gdf</span><span class="p">,</span> <span class="n">max_dist</span><span class="p">,</span> <span class="n">obstacles</span><span class="p">,</span> <span class="n">layer_points</span><span class="p">,</span> <span class="n">dist_db</span><span class="p">,</span> <span class="n">local_crs</span><span class="p">,</span> <span class="n">pbar</span>
+                <span class="p">)</span>
+                <span class="n">frame_result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">noise_from_feature</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">pass</span>
+
+    <span class="n">noise_gdf</span> <span class="o">=</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">frame_result</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span> <span class="n">crs</span><span class="o">=</span><span class="n">local_crs</span><span class="p">)</span>
+    <span class="n">polygons</span> <span class="o">=</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">(</span>
+        <span class="n">geometry</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">polygonize</span><span class="p">(</span><span class="n">noise_gdf</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">polygons_to_multilinestring</span><span class="p">)</span><span class="o">.</span><span class="n">union_all</span><span class="p">())),</span> <span class="n">crs</span><span class="o">=</span><span class="n">local_crs</span>
+    <span class="p">)</span>
+    <span class="n">polygons_points</span> <span class="o">=</span> <span class="n">polygons</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">polygons_points</span><span class="o">.</span><span class="n">geometry</span> <span class="o">=</span> <span class="n">polygons</span><span class="o">.</span><span class="n">representative_point</span><span class="p">()</span>
+    <span class="n">sim_result</span> <span class="o">=</span> <span class="n">polygons_points</span><span class="o">.</span><span class="n">sjoin</span><span class="p">(</span><span class="n">noise_gdf</span><span class="p">,</span> <span class="n">predicate</span><span class="o">=</span><span class="s2">&quot;within&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+    <span class="n">sim_result</span> <span class="o">=</span> <span class="n">sim_result</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">&quot;index&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">agg</span><span class="p">({</span><span class="s2">&quot;noise_level&quot;</span><span class="p">:</span> <span class="s2">&quot;max&quot;</span><span class="p">})</span>
+    <span class="n">sim_result</span><span class="p">[</span><span class="s2">&quot;geometry&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">polygons</span>
+    <span class="n">sim_result</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">(</span><span class="n">sim_result</span><span class="p">,</span> <span class="n">geometry</span><span class="o">=</span><span class="s2">&quot;geometry&quot;</span><span class="p">,</span> <span class="n">crs</span><span class="o">=</span><span class="n">local_crs</span><span class="p">)</span><span class="o">.</span><span class="n">dissolve</span><span class="p">(</span><span class="n">by</span><span class="o">=</span><span class="s2">&quot;noise_level&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">sim_result</span><span class="o">.</span><span class="n">to_crs</span><span class="p">(</span><span class="n">original_crs</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div><p><img src="https://raw.githubusercontent.com/DDonnyy/ObjectNat/assets/noise_frame.png" alt="noise_frame"></p>
+<hr />
+<h2 id="more-details">More Details<a class="headerlink" href="#more-details" title="Permanent link">&para;</a></h2>
+<p>For comprehensive documentation and advanced configuration options, see the project Wiki:<br />
+<a href="https://github.com/DDonnyy/ObjectNat/wiki/Noise-simulation">Noise Simulation on GitHub</a></p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.expand", "versioning"], "search": "../../assets/javascripts/workers/search.d50fe291.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.13a4f30d.min.js"></script>
+      
+    
+  </body>
+</html>
