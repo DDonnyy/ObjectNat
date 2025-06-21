@@ -6,6 +6,7 @@ import pandas as pd
 import pytest
 from iduedu import config, get_boundary, get_intermodal_graph
 from shapely import Point
+
 from objectnat import graph_to_gdf
 
 logger = config.logger
