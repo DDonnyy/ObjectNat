@@ -25,58 +25,42 @@ def get_stepped_graph_coverage(
     and Voronoi-based or buffer-based isochrone steps.
 
     This function combines graph-based accessibility with stepped isochrone logic. It:
-    1. Finds nearest graph nodes for each input point
-    2. Computes reachability for increasing weights (e.g. time or distance) in defined steps
-    3. Generates Voronoi-based or separate buffer zones around network nodes
-    4. Aggregates zones into stepped coverage layers
-    5. Optionally clips results to a boundary zone
+        1. Finds nearest graph nodes for each input point
+        2. Computes reachability for increasing weights (e.g. time or distance) in defined steps
+        3. Generates Voronoi-based or separate buffer zones around network nodes
+        4. Aggregates zones into stepped coverage layers
+        5. Optionally clips results to a boundary zone
 
-    Parameters
-    ----------
-    gdf_to : gpd.GeoDataFrame
-        Source points from which stepped coverage is calculated.
-    nx_graph : nx.Graph
-        NetworkX graph representing the transportation network.
-    weight_type : Literal["time_min", "length_meter"]
-        Type of edge weight to use for path calculation:
-        - "time_min": Edge travel time in minutes
-        - "length_meter": Edge length in meters
-    step_type : Literal["voronoi", "separate"]
-        Method for generating stepped zones:
-        - "voronoi": Stepped zones based on Voronoi polygons around graph nodes
-        - "separate": Independent buffer zones per step
-    weight_value_cutoff : float, optional
-        Maximum weight value (e.g., max travel time or distance) to limit the coverage extent.
-    zone : gpd.GeoDataFrame, optional
-        Optional boundary polygon to clip resulting stepped zones. If None, concave hull of reachable area is used.
-    step : float, optional
-        Step interval for coverage zone construction. Defaults to:
-        - 100 meters for distance-based weight
-        - 1 minute for time-based weight
+    Parameters:
+        gdf_to (gpd.GeoDataFrame):
+            Source points from which stepped coverage is calculated.
+        nx_graph (nx.Graph):
+            NetworkX graph representing the transportation network.
+        weight_type (Literal["time_min", "length_meter"]):
+            Type of edge weight to use for path calculation:
+            - "time_min": Edge travel time in minutes
+            - "length_meter": Edge length in meters
+        step_type (Literal["voronoi", "separate"]):
+            Method for generating stepped zones:
+            - "voronoi": Stepped zones based on Voronoi polygons around graph nodes
+            - "separate": Independent buffer zones per step
+        weight_value_cutoff (float, optional):
+            Maximum weight value (e.g., max travel time or distance) to limit the coverage extent.
+        zone (gpd.GeoDataFrame, optional):
+            Optional boundary polygon to clip resulting stepped zones. If None, concave hull of reachable area is used.
+        step (float, optional):
+            Step interval for coverage zone construction. Defaults to:
+                - 100 meters for distance-based weight
+                - 1 minute for time-based weight
 
-    Returns
-    -------
-    gpd.GeoDataFrame
-        GeoDataFrame with polygons representing stepped coverage zones for each input point, annotated by step range.
+    Returns:
+        (gpd.GeoDataFrame): GeoDataFrame with polygons representing stepped coverage zones for each input point,
+            annotated by step range.
 
-    Notes
-    -----
-    - Input graph must have a valid CRS defined.
-    - MultiGraph or MultiDiGraph inputs will be simplified.
-    - Designed for accessibility and spatial equity analyses over multimodal networks.
-
-    Examples
-    --------
-    >>> from iduedu import get_intermodal_graph
-    >>> points = gpd.read_file('destinations.geojson')
-    >>> graph = get_intermodal_graph(osm_id=1114252)
-    >>> stepped_coverage = get_stepped_graph_coverage(
-    ...     points, graph, "time_min", step_type="voronoi", weight_value_cutoff=30, step=5
-    ... )
-    >>> # Using buffer-style zones
-    >>> stepped_separate = get_stepped_graph_coverage(
-    ...     points, graph, "length_meter", step_type="separate", weight_value_cutoff=1000, step=200
-    ... )
+    Notes:
+        - Input graph must have a valid CRS defined.
+        - MultiGraph or MultiDiGraph inputs will be simplified to Graph/DiGraph.
+        - Designed for accessibility and spatial equity analyses over multimodal networks.
     """
     if step is None:
         if weight_type == "length_meter":

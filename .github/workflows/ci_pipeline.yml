@@ -128,6 +128,7 @@ jobs:
           slug: DDonnyy/ObjectNat
 
       - name: Commit and push test images to assets branch
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
@@ -143,7 +144,7 @@ jobs:
           git rm -f ./*.png || echo "No old PNGs to remove from Git"
           cp -r src/tests/test_output/*.png . || echo "No images to copy"
           git add ./*.png
-          git commit -m "Update stepped coverage zone test images" || echo "No changes to commit"
+          git commit -m "Update test images" || echo "No changes to commit"
           git push --force origin assets
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

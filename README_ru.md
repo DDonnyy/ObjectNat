@@ -23,30 +23,13 @@
    - **Базовые изохроны**: отображают одну зону, достижимую за заданное время.
    - **Шаговые изохроны**: делят зону доступности на интервалы времени (например, 3, 5, 10 минут).
 
-   <p align="center">
-      <img src="https://raw.githubusercontent.com/DDonnyy/ObjectNat/assets/isochrone_ways_15_min.png" alt="isochrone_ways_15_min" width="300">
-      <img src="https://raw.githubusercontent.com/DDonnyy/ObjectNat/assets/isochrone_radius_15_min.png" alt="isochrone_radius_15_min" width="300">
-      <img src="https://raw.githubusercontent.com/DDonnyy/ObjectNat/assets/isochrone_3points_radius_8_min.png" alt="isochrone_3points_radius_8_min" width="300">
-   </p>
-   <p align="center">
-     <img src="https://raw.githubusercontent.com/DDonnyy/ObjectNat/assets/stepped_isochrone_ways_15_min.png" alt="stepped_isochrone_ways_15_min" width="300">
-     <img src="https://raw.githubusercontent.com/DDonnyy/ObjectNat/assets/stepped_isochrone_radius_15_min.png" alt="stepped_isochrone_radius_15_min" width="300">
-     <img src="https://raw.githubusercontent.com/DDonnyy/ObjectNat/assets/stepped_isochrone_separate_15_min.png" alt="stepped_isochrone_separate_15_min" width="300">
-   </p>
+   📄 [See documentation](https://ddonnyy.github.io/ObjectNat/usage/isochrones/)
 
 2. **[Зоны покрытия](./examples/graph_coverage.ipynb)** — Функция генерации **зон покрытия** от набора исходных точек
 с использованием транспортной сети. Вычисляет область, достижимую из каждой точки по **времени в пути** или **дистанции**,
 затем строит полигоны с помощью **диаграмм Вороного** и обрезает их по заданной границе, если она указана.
 
-   <p align="center">
-      <img src="https://raw.githubusercontent.com/DDonnyy/ObjectNat/assets/coverage_zones_time_10min.png" alt="coverage_zones_time_10min" width="350">
-      <img src="https://raw.githubusercontent.com/DDonnyy/ObjectNat/assets/coverage_zones_distance_600m.png" alt="coverage_zones_distance_600m" width="350">
-      <img src="https://raw.githubusercontent.com/DDonnyy/ObjectNat/assets/coverage_zones_radius_distance_800m.png" alt="coverage_zones_distance_radius_voronoi" width="350">
-   </p>
-   <p align="center">
-      <img src="https://raw.githubusercontent.com/DDonnyy/ObjectNat/assets/stepped_coverage_zones_separate.png" alt="stepped_coverage_zones_separate" width="350">
-      <img src="https://raw.githubusercontent.com/DDonnyy/ObjectNat/assets/stepped_coverage_zones_voronoi.png" alt="stepped_coverage_zones_voronoi" width="350">
-   </p>
+   📄 [See documentation](https://ddonnyy.github.io/ObjectNat/usage/coverage_zones/)
 
 3. **[Анализ обеспеченности сервисами](./examples/calculate_provision.ipynb)** — Функция оценки обеспеченности жилых зданий
 и их населения услугами (например, школы, поликлиники), которые имеют ограниченную **вместимость**
@@ -57,11 +40,7 @@
    - **Перерасчёт** текущих результатов при изменении порога времени.
    - **Обрезку** результатов анализа по заданной зоне (например, границе района).
 
-   <p align="center">
-      <img src="https://raw.githubusercontent.com/DDonnyy/ObjectNat/assets/service_provision_initial.png" alt="service_provision_initial" width="300">
-      <img src="https://raw.githubusercontent.com/DDonnyy/ObjectNat/assets/service_provision_recalculated.png" alt="service_provision_recalculated" width="300">
-      <img src="https://raw.githubusercontent.com/DDonnyy/ObjectNat/assets/service_provision_clipped.png" alt="service_provision_clipped" width="300">
-   </p>
+   📄 [See documentation](https://ddonnyy.github.io/ObjectNat/usage/provision/)
 
 4. **[Анализ видимости](./examples/visibility_analysis.ipynb)** — Функция оценки видимости от заданной точки или множества
 точек до близлежащих зданий в пределах заданного радиуса. Применяется для оценки визуальной доступности в городской среде.
@@ -71,20 +50,14 @@
    Модуль включает:
    - **Быстрый приближённый метод** для больших объёмов данных.
    - **Точный метод** для локального детального анализа.
-
-   <p align="center">
-     <img src="https://raw.githubusercontent.com/DDonnyy/ObjectNat/assets/visibility_comparison_methods.png" alt="visibility_comparison_methods" height="250">
-     <img src="https://github.com/user-attachments/assets/b5b0d4b3-a02f-4ade-8772-475703cd6435" alt="visibility-catchment-area" height="250">
-   </p>
+   
+   📄 [See documentation](https://ddonnyy.github.io/ObjectNat/usage/visibility/)
 
 5. **[Моделирование шума](./examples/noise_simulation.ipynb)** — Симуляция распространения шума от источников с учётом **препятствий**,
 **растительности** и **факторов окружающей среды**.
 
    🔗 **[Подробное описание в Wiki](https://github.com/DDonnyy/ObjectNat/wiki/Симуляция-шумового-распространения)**
-
-   <p align="center">
-      <img src="https://raw.githubusercontent.com/DDonnyy/ObjectNat/assets/noise_simulation_1point.png" alt="noise_simulation_1point" width="400">
-   </p>
+   📄 [See documentation](https://ddonnyy.github.io/ObjectNat/usage/noise/)
 
 6. **[Кластеризация точек](./examples/point_clusterization.ipynb)** — Функция построения **кластерных полигонов** по множеству точек на основе:
    - Минимального **расстояния** между точками.
@@ -92,9 +65,9 @@
 
    Также функция может рассчитывать **соотношение типов услуг** в каждом кластере для пространственного анализа состава услуг.
 
-   <p align="center">
-     <img src="https://raw.githubusercontent.com/DDonnyy/ObjectNat/assets/building_clusters.png" alt="building_clusters" width="400">
-   </p>
+   📄 [See documentation](https://ddonnyy.github.io/ObjectNat/usage/clustering/)
+
+
 
 ## Городские графы
 

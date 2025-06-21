@@ -6,7 +6,7 @@ import pytest
 from matplotlib import pyplot as plt
 from shapely import Point, box
 
-from objectnat import config, simulate_noise, calculate_simplified_noise_frame
+from objectnat import calculate_simplified_noise_frame, config, simulate_noise
 from objectnat.methods.noise.noise_reduce import get_air_resist_ratio
 from tests.conftest import output_dir
 
@@ -133,27 +133,29 @@ def test_out_of_range_values(gdf_1point, buildings_data):
 def test_noise_frame_calculator(gdf_1point, buildings_data, intermodal_osm_1114252_edges_gdf):
     local_crs = buildings_data.estimate_utm_crs()
     buildings_data = buildings_data.to_crs(local_crs)
-    intermodal_osm_1114252_edges_gdf = intermodal_osm_1114252_edges_gdf[~intermodal_osm_1114252_edges_gdf['type'].isin(['walk','boarding'])]
+    intermodal_osm_1114252_edges_gdf = intermodal_osm_1114252_edges_gdf[
+        ~intermodal_osm_1114252_edges_gdf["type"].isin(["walk", "boarding"])
+    ]
     intermodal_osm_1114252_edges_gdf = intermodal_osm_1114252_edges_gdf.to_crs(local_crs)
     gdf_1point = gdf_1point.to_crs(local_crs)
 
     minx, miny, maxx, maxy = gdf_1point.buffer(250).total_bounds
     buffer_territory = box(minx, miny, maxx, maxy)
 
-    builds_in_buffer = buildings_data.clip(buffer_territory,keep_geom_type=True)
+    builds_in_buffer = buildings_data.clip(buffer_territory, keep_geom_type=True)
 
     sample_size = max(1, int(0.02 * len(builds_in_buffer)))
     # Случайная выборка
     sampled_buildings = builds_in_buffer.sample(n=sample_size, random_state=42)
-    sampled_buildings["source_noise_db"] = 80
+    sampled_buildings["source_noise_db"] = 90
 
-    graph_in_buffer = intermodal_osm_1114252_edges_gdf.clip(buffer_territory,keep_geom_type=True)
-    graph_in_buffer["source_noise_db"] = 70
+    graph_in_buffer = intermodal_osm_1114252_edges_gdf.clip(buffer_territory, keep_geom_type=True)
+    graph_in_buffer["source_noise_db"] = 75
 
     gdf_1point["source_noise_db"] = 95
     noise_sources = pd.concat([gdf_1point, graph_in_buffer, sampled_buildings], ignore_index=True)
     noise_sources["geometric_mean_freq_hz"] = 2000
-    noise_frame = calculate_simplified_noise_frame(noise_sources,buildings_data,20)
+    noise_frame = calculate_simplified_noise_frame(noise_sources, buildings_data, 20)
     assert isinstance(noise_frame, gpd.GeoDataFrame)
     assert not noise_frame.empty
     assert "geometry" in noise_frame.columns
@@ -168,11 +170,13 @@ def test_noise_frame_calculator(gdf_1point, buildings_data, intermodal_osm_11142
         buildings=buildings_data,
         trees=gpd.GeoDataFrame(),
         source_db_range=(95, 40),
-        reflection_n='No reflections',
+        reflection_n="No reflections",
         frequency_desc=2000,
         output_filename="noise_frame",
-        image_title = "Noise frame (from roads,points,buildings)",
+        image_title="Noise frame (from roads,points,buildings)",
     )
+
+
 def plot_simulation_result(
     result_gdf,
     source_points,
@@ -182,7 +186,7 @@ def plot_simulation_result(
     reflection_n,
     frequency_desc,
     output_filename,
-    image_title = 'Noise propagation'
+    image_title="Noise propagation",
 ):
 
     source_db, target_db = source_db_range

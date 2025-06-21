@@ -6,29 +6,21 @@ def get_radius_coverage(gdf_from: gpd.GeoDataFrame, radius: float, resolution: i
     """
     Calculate radius-based coverage zones using Voronoi polygons.
 
-    Parameters
-    ----------
-    gdf_from : gpd.GeoDataFrame
-        Source points for which coverage zones are calculated.
-    radius : float
-        Maximum coverage radius in meters.
-    resolution : int, optional
-        Number of segments used to approximate quarter-circle in buffer (default=32).
+    Parameters:
+        gdf_from (gpd.GeoDataFrame):
+            Source points for which coverage zones are calculated.
+        radius (float):
+            Maximum coverage radius in meters.
+        resolution (int):
+            Number of segments used to approximate quarter-circle in buffer (default=32).
 
-    Returns
-    -------
-    gpd.GeoDataFrame
-        GeoDataFrame with smoothed coverage zone polygons in the same CRS as original gdf_from.
+    Returns:
+        (gpd.GeoDataFrame):
+            GeoDataFrame with smoothed coverage zone polygons in the same CRS as original gdf_from.
 
-    Notes
-    -----
-    - Automatically converts to local UTM CRS for accurate distance measurements
-    - Final zones are slightly contracted then expanded for smoothing effect
-
-    Examples
-    --------
-    >>> facilities = gpd.read_file('healthcare.shp')
-    >>> coverage = get_radius_coverage(facilities, radius=500)
+    Notes:
+        - Automatically converts to local UTM CRS for accurate distance measurements
+        - Final zones are slightly contracted then expanded for smoothing effect
     """
     original_crs = gdf_from.crs
     local_crs = gdf_from.estimate_utm_crs()
