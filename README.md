@@ -21,28 +21,28 @@ Each feature is accompanied by a Jupyter notebook example and full documentation
 
 1. **[Isochrones and Transport Accessibility](./examples/isochrone_generator.ipynb)**  
    Analyze areas reachable within a given time along a transport network.  
-   📄 [See documentation](https://ddonnyy.github.io/ObjectNat/latest/usage/isochrones.html)
+   📄 [See documentation](https://iduclub.github.io/ObjectNat/latest/usage/isochrones.html)
 
 2. **[Coverage Zones](./examples/coverage_zones.ipynb)**  
    Build zones of reachability for each point using routing or simple radius.  
-   📄 [See documentation](https://ddonnyy.github.io/ObjectNat/latest/usage/coverage.html)
+   📄 [See documentation](https://iduclub.github.io/ObjectNat/latest/usage/coverage.html)
 
 3. **[Service Provision Analysis](./examples/calculate_provision.ipynb)**  
    Evaluate service availability and model demand-supply balance.  
-   📄 [See documentation](https://ddonnyy.github.io/ObjectNat/latest/usage/provision.html)
+   📄 [See documentation](https://iduclub.github.io/ObjectNat/latest/usage/provision.html)
 
 4. **[Visibility Analysis](./examples/visibility_analysis.ipynb)**  
    Estimate visibility to nearby buildings from selected points.  
-   📄 [See documentation](https://ddonnyy.github.io/ObjectNat/latest/usage/visibility.html)
+   📄 [See documentation](https://iduclub.github.io/ObjectNat/latest/usage/visibility.html)
 
 5. **[Noise Simulation](./examples/noise_simulation.ipynb)**  
    Simulate noise propagation considering obstacles and environment.  
-   📄 [See documentation](https://ddonnyy.github.io/ObjectNat/latest/usage/noise.html)  
+   📄 [See documentation](https://iduclub.github.io/ObjectNat/latest/usage/noise.html)  
    🔗 [Detailed theory in the Wiki](https://github.com/DDonnyy/ObjectNat/wiki/Noise-simulation)
 
 6. **[Point Clusterization](./examples/point_clusterization.ipynb)**  
    Group nearby points into clusters and analyze service composition.  
-   📄 [See documentation](https://ddonnyy.github.io/ObjectNat/latest/usage/clustering.html)
+   📄 [See documentation](https://iduclub.github.io/ObjectNat/latest/usage/clustering.html)
 
 ---
 
