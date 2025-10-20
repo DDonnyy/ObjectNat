@@ -40,6 +40,7 @@ class Provision:
         demanded_buildings: gpd.GeoDataFrame,
         adjacency_matrix: pd.DataFrame,
         threshold: int,
+        pandarallel_init_kwargs: dict = None,
     ):
         self.services = self.ensure_services(services.copy())
         self.demanded_buildings = self.ensure_buildings(demanded_buildings.copy())
@@ -48,7 +49,16 @@ class Provision:
         ).copy()
         self.threshold = threshold
         self.services.to_crs(self.demanded_buildings.crs, inplace=True)
-        pandarallel.initialize(progress_bar=False, verbose=0, use_memory_fs=config.pandarallel_use_file_system)
+
+        if pandarallel_init_kwargs is None:
+            pandarallel_init_kwargs = {}
+
+        pandarallel_init_kwargs["use_memory_fs"] = pandarallel_init_kwargs.get(
+            "use_memory_fs", config.pandarallel_use_file_system
+        )
+        pandarallel_init_kwargs["progress_bar"] = pandarallel_init_kwargs.get("progress_bar", False)
+        pandarallel_init_kwargs["verbose"] = pandarallel_init_kwargs.get("verbose", 0)
+        pandarallel.initialize(**pandarallel_init_kwargs)
 
     @staticmethod
     def ensure_buildings(v: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
@@ -91,6 +101,7 @@ class Provision:
             import pandas as pd  # pylint: disable=redefined-outer-name,reimported,import-outside-toplevel
 
             c = services_table.loc[loc.name]["capacity_left"]
+            logger.debug(f"Capacity left: {c}")
             p = 1 / loc / loc
             p = p / p.sum()
             threshold = p.quantile(best_houses)

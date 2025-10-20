@@ -18,6 +18,7 @@ def get_service_provision(
     threshold: int,
     buildings_demand_column: str = "demand",
     services_capacity_column: str = "capacity",
+    pandarallel_init_kwargs: dict = None,
 ) -> Tuple[gpd.GeoDataFrame, gpd.GeoDataFrame, gpd.GeoDataFrame]:
     """Calculate load from buildings with demands on the given services using the distances matrix between them.
 
@@ -34,6 +35,8 @@ def get_service_provision(
             column name of buildings demands
         services_capacity_column (str):
             column name of services capacity
+        pandarallel_init_kwargs (dict):
+            Dictionary of keyword arguments to pass to pandarallel
 
     Returns:
         (Tuple[gpd.GeoDataFrame, gpd.GeoDataFrame, gpd.GeoDataFrame]): Tuple of GeoDataFrames representing provision
@@ -50,6 +53,7 @@ def get_service_provision(
         demanded_buildings=buildings,
         adjacency_matrix=adjacency_matrix,
         threshold=threshold,
+        pandarallel_init_kwargs=pandarallel_init_kwargs,
     ).run()
     return provision_buildings, provision_services, provision_links
 
