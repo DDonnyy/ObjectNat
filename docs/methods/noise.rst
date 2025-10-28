@@ -1,5 +1,5 @@
-Noise Simulation
-================
+Noise Simulation & Noise Frame
+==============================
 
 **Noise Simulation** models how sound propagates from one or more **source points**,
 taking into account **obstacles**, **vegetation**, and **environmental conditions**.
@@ -63,7 +63,4 @@ see the project Wiki:
 Example notebook
 ----------------
 
-.. toctree::
-   :maxdepth: 1
-
-   ../examples/noise
+:doc:`examples/noise`

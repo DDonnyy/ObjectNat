@@ -1,5 +1,5 @@
-Coverage Zones
-==============
+Graph Coverage Zones from Points
+================================
 
 Coverage zones represent areas that can be reached from multiple source points
 within a certain **time** or **distance** limit using a transport network.
@@ -96,7 +96,5 @@ using the full transport graph for each source point.
 Example notebook
 ----------------
 
-.. toctree::
-   :maxdepth: 1
+:doc:`examples/coverage`
 
-   ../examples/coverage_zones

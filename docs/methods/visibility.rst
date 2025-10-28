@@ -64,7 +64,4 @@ objects (e.g., landmarks, buildings) can be seen from.
 Example notebook
 ----------------
 
-.. toctree::
-   :maxdepth: 1
-
-   ../examples/visibility_analysis
+:doc:`examples/visibility`

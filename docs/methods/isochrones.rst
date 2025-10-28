@@ -84,7 +84,4 @@ Show accessibility ranges divided into time intervals (e.g., 5, 10, 15 minutes).
 Example notebook
 ----------------
 
-.. toctree::
-   :maxdepth: 1
-
-   ../examples/isochrone_generator
+:doc:`examples/isochrones`

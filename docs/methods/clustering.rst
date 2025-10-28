@@ -27,7 +27,4 @@ Clusters are generated using spatial rules:
 Example notebook
 ----------------
 
-.. toctree::
-   :maxdepth: 1
-
-   ../examples/point_clusterization
+:doc:`examples/clustering`

@@ -71,8 +71,5 @@ Restricts provision outputs to a given **geographic boundary**
 Example notebook
 ----------------
 
-.. toctree::
-    :maxdepth: 1
-
-    ../examples/calculate_adjacency_matrix
-    ../examples/calculate_provision
+:doc:`examples/calculate_adjacency_matrix`
+:doc:`examples/provision`

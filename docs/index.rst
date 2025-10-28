@@ -1,16 +1,20 @@
 .. toctree::
-   :hidden:
-   :maxdepth: 2
+    :hidden:
+    :maxdepth: 1
 
-   usage/isochrones
-   usage/coverage
-   usage/provision
-   usage/visibility
-   usage/noise
-   usage/clustering
+    methods/isochrones
+    methods/coverage
+    methods/provision
+    methods/visibility
+    methods/noise
+    methods/clustering
+    methods/examples/index
 
 ObjectNat
 =========
+
+Object-oriented Network Analysis Tools
+--------------------------------------
 
 **ObjectNat** — an open-source Python library for **object-oriented network analysis** and **spatial accessibility modeling**,  
 developed by the **IDU team** at ITMO University.

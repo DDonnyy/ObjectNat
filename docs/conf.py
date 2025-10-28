@@ -38,8 +38,8 @@ html_static_path = ["_static"]
 
 html_show_sourcelink = True
 
-html_logo = "https://github.com/user-attachments/assets/ed0f226e-1728-4659-9e21-b4d499e703cd"
-# html_favicon = "_static/objectnatfavicon.svg"
+html_logo = "_static/ONlogo.svg"
+html_favicon = "_static/ONFavicon.svg"
 
 myst_enable_extensions = ["colon_fence", "deflist", "substitution", "linkify", "attrs_block", "attrs_inline"]
 nb_execution_mode = "off"
