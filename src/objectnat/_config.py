@@ -30,7 +30,6 @@ class Config:
     ):
         self.enable_tqdm_bar = enable_tqdm_bar
         self.logger = logger
-        self.pandarallel_use_file_system = False
 
     def change_logger_lvl(self, lvl: Literal["TRACE", "DEBUG", "INFO", "WARN", "ERROR"]):
         self.logger.remove()
@@ -38,9 +37,6 @@ class Config:
 
     def set_enable_tqdm(self, enable: bool):
         self.enable_tqdm_bar = enable
-
-    def set_pandarallel_use_file_system(self, enable: bool):
-        self.pandarallel_use_file_system = enable
 
 
 config = Config()

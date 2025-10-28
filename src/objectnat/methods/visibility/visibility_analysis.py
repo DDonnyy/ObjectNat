@@ -4,7 +4,7 @@ from multiprocessing import cpu_count
 import geopandas as gpd
 import numpy as np
 import pandas as pd
-from pandarallel import pandarallel
+
 from shapely import LineString, MultiPolygon, Point, Polygon
 from shapely.ops import unary_union
 from tqdm.contrib.concurrent import process_map
@@ -28,7 +28,7 @@ def get_visibility_accurate(
     """
     Function to get accurate visibility from a given point to buildings within a given distance.
 
-    Parameters:
+    Args:
         point_from (Point | gpd.GeoDataFrame):
             The point or GeoDataFrame with 1 point from which the line of sight is drawn.
             If Point is provided it should be in the same crs as obstacles.
@@ -165,7 +165,7 @@ def get_visibility(
     """
     Function to get a quick estimate of visibility from a given point to buildings within a given distance.
 
-    Parameters:
+    Args:
         point_from (Point | gpd.GeoDataFrame):
             The point or GeoDataFrame with 1 point from which the line of sight is drawn.
             If Point is provided it should be in the same crs as obstacles.
@@ -239,7 +239,7 @@ def get_visibilities_from_points(
     """
     Calculate visibility polygons from a set of points considering obstacles within a specified view distance.
 
-    Parameters:
+    Args:
         points (gpd.GeoDataFrame):
             GeoDataFrame containing the points from which visibility is calculated.
         obstacles (gpd.GeoDataFrame):
@@ -297,7 +297,7 @@ def calculate_visibility_catchment_area(
     This function is designed to work with at least 1000 points spaced 10-20 meters apart for optimal results.
     Points can be generated using a road graph.
 
-    Parameters:
+    Args:
         points (gpd.GeoDataFrame): GeoDataFrame containing the points from which visibility is calculated.
         obstacles (gpd.GeoDataFrame): GeoDataFrame containing the obstacles that block visibility.
         view_distance (int | float): The maximum distance from each point within which visibility is calculated.
@@ -313,21 +313,12 @@ def calculate_visibility_catchment_area(
         return x
 
     def calc_group_factor(x):
-        # pylint: disable-next=redefined-outer-name,reimported,import-outside-toplevel
-        import numpy as np
-
         return np.mean(x.new_ratio) * x.count_n
 
     def unary_union_groups(x):
-        # pylint: disable-next=redefined-outer-name,reimported,import-outside-toplevel
-        from shapely import MultiPolygon
-
-        # pylint: disable-next=redefined-outer-name,reimported,import-outside-toplevel
-        from shapely.ops import unary_union
-
         return unary_union(MultiPolygon(list(x["geometry"])).buffer(0))
 
-    pandarallel.initialize(progress_bar=True, verbose=0)
+    raise NotImplementedError("This method is temporarily unsupported.")
 
     local_crs = obstacles.estimate_utm_crs()
     obstacles = obstacles.to_crs(local_crs)
@@ -370,7 +361,7 @@ def calculate_visibility_catchment_area(
     all_in["count_n"] = all_in["index_right"].apply(len)
 
     logger.info("Calculating intersection's parameters")
-    all_in["factor"] = all_in.parallel_apply(calc_group_factor, axis=1)
+    # all_in["factor"] = all_in.parallel_apply(calc_group_factor, axis=1) # TODO replace pandarallel methods
     threshold = all_in["factor"].quantile(0.3)
     all_in = all_in[all_in["factor"] > threshold]
 
@@ -378,7 +369,9 @@ def calculate_visibility_catchment_area(
         min_max_normalization(np.sqrt(all_in["factor"].values), new_min=1, new_max=5)
     ).astype(int)
     logger.info("Calculating normalized groups geometry...")
-    all_in = all_in.groupby("factor_normalized").parallel_apply(unary_union_groups).reset_index()
+    all_in = (
+        all_in.groupby("factor_normalized").parallel_apply(unary_union_groups).reset_index()
+    )  # TODO replace pandarallel methods
     all_in = gpd.GeoDataFrame(data=all_in.rename(columns={0: "geometry"}), geometry="geometry", crs=32636)
 
     all_in = all_in.explode(index_parts=True).reset_index(drop=True)

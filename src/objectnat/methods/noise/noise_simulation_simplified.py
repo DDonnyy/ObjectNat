@@ -31,9 +31,10 @@ def calculate_simplified_noise_frame(
     Args:
         noise_sources (gpd.GeoDataFrame): A GeoDataFrame containing geometries of noise sources (Point, LineString,
             or Polygon). Each feature must have the following two columns:
-                - 'source_noise_db': Initial sound level at the source, in decibels (dB).
-                - 'geometric_mean_freq_hz': Characteristic sound frequency (Hz) used to model distance-based
-                  attenuation.
+
+            - 'source_noise_db': Initial sound level at the source, in decibels (dB).
+            - 'geometric_mean_freq_hz': Characteristic sound frequency (Hz) used to model distance-based attenuation.
+
             Values in 'source_noise_db' must not exceed the physical maximum of 194 dB. Missing or NaN values in
             required fields will raise an error.
 
@@ -45,21 +46,21 @@ def calculate_simplified_noise_frame(
             attenuation model of sound in the atmosphere. Temperatures significantly outside the typical 0–30°C
             range may lead to inaccurate results.
 
-    Optional kwargs:
-        - target_noise_db (float, optional): The minimum sound level threshold (in dB) to be modeled. Any value below
+    Keyword Args:
+        target_noise_db (float, optional): The minimum sound level threshold (in dB) to be modeled. Any value below
             this threshold is considered insignificant and will be excluded from the resulting noise frame.
             Default is 40 dB.
-        - db_sim_step (float, optional): The simulation step size (in dB) used to discretize sound levels into
+        db_sim_step (float, optional): The simulation step size (in dB) used to discretize sound levels into
             spatial layers. Default is 5. Smaller values produce more detailed output but increase computation time.
-        - linestring_point_radius (float, optional): The spacing radius (in meters) used when converting LineString
+        linestring_point_radius (float, optional): The spacing radius (in meters) used when converting LineString
             geometries into distributed point sources for simulation. Default is 30. Reducing this value improves
             detail along long lines.
-        - polygon_point_radius (float, optional): The point spacing (in meters) for distributing sources within
+        polygon_point_radius (float, optional): The point spacing (in meters) for distributing sources within
             Polygon geometries. Default is 15. Points are sampled across the polygon’s surface and perimeter to
             represent the full sound-emitting area.
 
     Returns:
-        (gpd.GeoDataFrame): A GeoDataFrame representing simplified noise distribution areas. The output geometries
+        gpd.GeoDataFrame: A GeoDataFrame representing simplified noise distribution areas. The output geometries
             are polygons where each polygon is associated with the maximum sound level (in dB) present in that area,
             as derived from overlapping source zones. The resulting data is dissolved by noise level and returned in
             the original coordinate reference system (CRS) of the input sources.

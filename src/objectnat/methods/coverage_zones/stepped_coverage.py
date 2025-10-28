@@ -31,30 +31,40 @@ def get_stepped_graph_coverage(
         4. Aggregates zones into stepped coverage layers
         5. Optionally clips results to a boundary zone
 
-    Parameters:
+    Args:
         gdf_to (gpd.GeoDataFrame):
             Source points from which stepped coverage is calculated.
+
         nx_graph (nx.Graph):
             NetworkX graph representing the transportation network.
-        weight_type (Literal["time_min", "length_meter"]):
+
+        weight_type:
             Type of edge weight to use for path calculation:
-            - "time_min": Edge travel time in minutes
-            - "length_meter": Edge length in meters
-        step_type (Literal["voronoi", "separate"]):
+
+            - ``"time_min"``: Edge travel time in minutes
+            - ``"length_meter"``: Edge length in meters
+
+        step_type:
             Method for generating stepped zones:
-            - "voronoi": Stepped zones based on Voronoi polygons around graph nodes
-            - "separate": Independent buffer zones per step
+
+            - ``"voronoi"``: Stepped zones based on Voronoi polygons around graph nodes
+            - ``"separate"``: Independent buffer zones per step
+
         weight_value_cutoff (float, optional):
             Maximum weight value (e.g., max travel time or distance) to limit the coverage extent.
+
         zone (gpd.GeoDataFrame, optional):
             Optional boundary polygon to clip resulting stepped zones. If None, concave hull of reachable area is used.
+
         step (float, optional):
             Step interval for coverage zone construction. Defaults to:
-                - 100 meters for distance-based weight
-                - 1 minute for time-based weight
+
+            - 100 meters for distance-based weight
+            - 1 minute for time-based weight
 
     Returns:
-        (gpd.GeoDataFrame): GeoDataFrame with polygons representing stepped coverage zones for each input point,
+        gpd.GeoDataFrame:
+            GeoDataFrame with polygons representing stepped coverage zones for each input point,
             annotated by step range.
 
     Notes:

@@ -39,7 +39,7 @@ def get_clusters_polygon(
     Generate cluster polygons for given points based on a specified minimum distance and minimum points per cluster.
     Optionally, calculate the relative ratio between types of points within the clusters.
 
-    Parameters:
+    Args:
         points (gpd.GeoDataFrame):
             GeoDataFrame containing the points to be clustered.
             Must include a 'service_code' column for service ratio calculations.
@@ -47,13 +47,13 @@ def get_clusters_polygon(
             Minimum distance between points to be considered part of the same cluster. Defaults to 100.
         min_point (int, optional):
             Minimum number of points required to form a cluster. Defaults to 5.
-        method (Literal["DBSCAN", "HDBSCAN"], optional):
+        method:
             The clustering method to use. Must be either "DBSCAN" or "HDBSCAN". Defaults to "HDBSCAN".
         service_code_column (str, optional):
             Column, containing service type for relative ratio in clasterized polygons. Defaults to "service_code".
 
     Returns:
-        (tuple[gpd.GeoDataFrame, gpd.GeoDataFrame]):
+        tuple[gpd.GeoDataFrame, gpd.GeoDataFrame]:
             A tuple containing the clustered polygons GeoDataFrame and the original points GeoDataFrame with cluster labels.
     """
     if method not in ["DBSCAN", "HDBSCAN"]:

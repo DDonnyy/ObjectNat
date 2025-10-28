@@ -35,7 +35,7 @@ def simulate_noise(
     """
     Simulates noise propagation from a set of source points considering obstacles, trees, and environmental factors.
 
-    Parameters:
+    Args:
         source_points (gpd.GeoDataFrame):
             A GeoDataFrame with one or more point geometries representing noise sources.
             Optionally, it can include 'source_noise_db' and 'geometric_mean_freq_hz' columns for per-point simulation.
@@ -53,32 +53,33 @@ def simulate_noise(
             frequencies. It's recommended to use values between 63 Hz and 8000 Hz; values outside this range will be
             clamped to the nearest boundary for the sound absorption coefficient calculation.
 
-    Optional kwargs:
-        - absorb_ratio_column (str, optional): The name of the column in the `obstacles` GeoDataFrame that contains the
+    Keyword Args:
+        absorb_ratio_column (str, optional): The name of the column in the `obstacles` GeoDataFrame that contains the
             sound absorption coefficients for each obstacle. Default is None. If not specified, all obstacles will have
             the `standart_absorb_ratio`.
-        - standart_absorb_ratio (float, optional): The default sound absorption coefficient to use for obstacles without
+        standart_absorb_ratio (float, optional): The default sound absorption coefficient to use for obstacles without
             specified values in the `absorb_ratio_column`. Default is 0.05, which is a typical value for concrete walls.
-        - trees (gpd.GeoDataFrame, optional): A GeoDataFrame containing trees or dense vegetation along the sound wave's
+        trees (gpd.GeoDataFrame, optional): A GeoDataFrame containing trees or dense vegetation along the sound wave's
             path. Trees will scatter and absorb sound waves.
-        - tree_resolution (int, optional): A resolution parameter for simulating tree interactions with sound waves.
+        tree_resolution (int, optional): A resolution parameter for simulating tree interactions with sound waves.
             Recommended values are between 2 and 16, with higher values providing more accurate simulation results.
-        - air_temperature (float, optional): The air temperature in degrees Celsius. The recommended range is from 0 to
+        air_temperature (float, optional): The air temperature in degrees Celsius. The recommended range is from 0 to
             30 degrees Celsius, as temperatures outside this range will be clipped. Temperature affects the sound
             propagation in the air.
-        - target_noise_db (float, optional): The target noise level (in dB) for the simulation. Default is 40 dB.
+        target_noise_db (float, optional): The target noise level (in dB) for the simulation. Default is 40 dB.
             Lower values may not be relevant for further analysis, as they are near the threshold of human hearing.
-        - db_sim_step (float, optional): The step size in decibels for the noise simulation. Default is 1. For more
+        db_sim_step (float, optional): The step size in decibels for the noise simulation. Default is 1. For more
             precise analysis, this can be adjusted. If the difference between `source_noise_db` and `target_noise_db`
             is not divisible by the step size, the function will raise an error.
-        - reflection_n (int, optional): The maximum number of reflections (bounces) to simulate for each sound wave.
+        reflection_n (int, optional): The maximum number of reflections (bounces) to simulate for each sound wave.
             Recommended values are between 1 and 3. Larger values will result in longer simulation times.
-        - dead_area_r (float, optional): A debugging parameter that defines the radius of the "dead zone" for reflections.
+        dead_area_r (float, optional): A debugging parameter that defines the radius of the "dead zone" for reflections.
             Points within this area will not generate reflections. This is useful to prevent the algorithm from getting
             stuck in corners or along building walls.
-        - use_parallel (bool, optional): Whether to use ProcessPool for task distribution or not. Default is True.
+        use_parallel (bool, optional): Whether to use ProcessPool for task distribution or not. Default is True.
+
     Returns:
-        (gpd.GeoDataFrame): A GeoDataFrame containing the noise simulation results, including noise levels and geometries
+        gpd.GeoDataFrame: A GeoDataFrame containing the noise simulation results, including noise levels and geometries
             of the affected areas. Each point's simulation results will be merged into a single GeoDataFrame.
     """
     # Obstacles args
