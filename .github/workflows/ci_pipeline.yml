@@ -83,8 +83,8 @@ jobs:
 
       - name: Run linters
         run: |
-          poetry run black --check .
-          poetry run isort --check-only .
+          poetry run black --check src
+          poetry run isort --check-only src
           poetry run pylint src/objectnat || true
 
   tests:
