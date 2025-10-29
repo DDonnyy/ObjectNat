@@ -27,20 +27,27 @@ def get_graph_coverage(
         4. Combining reachability information with Voronoi cells
         5. Clipping results to specified zone boundary
 
-    Parameters:
+    Args:
         gdf_to (gpd.GeoDataFrame):
             Source points to which coverage is calculated.
+
         nx_graph (nx.Graph):
             NetworkX graph representing the transportation network.
-        weight_type (Literal["time_min", "length_meter"]):
-            Edge attribute to use as weight for path calculations.
+
+        weight_type:
+            Type of edge weight to use for path calculation:
+
+            - ``"time_min"``: Edge travel time in minutes
+            - ``"length_meter"``: Edge length in meters
+
         weight_value_cutoff (float):
             Maximum weight value for path calculations (e.g., max travel time/distance).
+
         zone (gpd.GeoDataFrame):
             Boundary polygon to clip the resulting coverage zones. If None, concave hull of reachable nodes will be used.
 
     Returns:
-        (gpd.GeoDataFrame):
+        gpd.GeoDataFrame:
             GeoDataFrame with coverage zones polygons, each associated with its source point, returns in the same CRS
             as original gdf_from.
 

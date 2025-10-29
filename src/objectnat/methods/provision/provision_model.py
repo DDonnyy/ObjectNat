@@ -4,7 +4,6 @@ from typing import Tuple
 import geopandas as gpd
 import numpy as np
 import pandas as pd
-from pandarallel import pandarallel
 from shapely import LineString
 
 from objectnat import config
@@ -40,7 +39,6 @@ class Provision:
         demanded_buildings: gpd.GeoDataFrame,
         adjacency_matrix: pd.DataFrame,
         threshold: int,
-        pandarallel_init_kwargs: dict = None,
     ):
         self.services = self.ensure_services(services.copy())
         self.demanded_buildings = self.ensure_buildings(demanded_buildings.copy())
@@ -49,16 +47,6 @@ class Provision:
         ).copy()
         self.threshold = threshold
         self.services.to_crs(self.demanded_buildings.crs, inplace=True)
-
-        if pandarallel_init_kwargs is None:
-            pandarallel_init_kwargs = {}
-
-        pandarallel_init_kwargs["use_memory_fs"] = pandarallel_init_kwargs.get(
-            "use_memory_fs", config.pandarallel_use_file_system
-        )
-        pandarallel_init_kwargs["progress_bar"] = pandarallel_init_kwargs.get("progress_bar", False)
-        pandarallel_init_kwargs["verbose"] = pandarallel_init_kwargs.get("verbose", 0)
-        pandarallel.initialize(**pandarallel_init_kwargs)
 
     @staticmethod
     def ensure_buildings(v: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
@@ -91,17 +79,8 @@ class Provision:
 
     def run(self) -> Tuple[gpd.GeoDataFrame, gpd.GeoDataFrame, gpd.GeoDataFrame]:
 
-        def apply_function_based_on_size(df, func, axis, threshold=100):
-            if len(df) > threshold:
-                return df.parallel_apply(func, axis=axis)
-            return df.apply(func, axis=axis)
-
         def calculate_flows_y(loc):
-            import numpy as np  # pylint: disable=redefined-outer-name,reimported,import-outside-toplevel
-            import pandas as pd  # pylint: disable=redefined-outer-name,reimported,import-outside-toplevel
-
             c = services_table.loc[loc.name]["capacity_left"]
-            logger.debug(f"Capacity left: {c}")
             p = 1 / loc / loc
             p = p / p.sum()
             threshold = p.quantile(best_houses)
@@ -117,9 +96,6 @@ class Provision:
             return choice
 
         def balance_flows_to_demands(loc):
-            import numpy as np  # pylint: disable=redefined-outer-name,reimported,import-outside-toplevel
-            import pandas as pd  # pylint: disable=redefined-outer-name,reimported,import-outside-toplevel
-
             d = houses_table.loc[loc.name]["demand_left"]
             loc = loc[loc > 0]
             if loc.sum() > 0:
@@ -170,12 +146,11 @@ class Provision:
                 f" Best houses: {best_houses}"
             )
 
-            temp_destination_matrix = apply_function_based_on_size(
-                distance_matrix, lambda x: calculate_flows_y(x[x <= selection_range]), 1
+            temp_destination_matrix = distance_matrix.apply(
+                lambda x: calculate_flows_y(x[x <= selection_range]), axis=1
             )
-
             temp_destination_matrix = temp_destination_matrix.fillna(0)
-            temp_destination_matrix = apply_function_based_on_size(temp_destination_matrix, balance_flows_to_demands, 0)
+            temp_destination_matrix = temp_destination_matrix.apply(balance_flows_to_demands, axis=0)
             temp_destination_matrix = temp_destination_matrix.fillna(0)
             temp_destination_matrix_aligned = temp_destination_matrix.reindex(
                 index=destination_matrix.index, columns=destination_matrix.columns, fill_value=0

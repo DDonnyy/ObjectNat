@@ -5,7 +5,7 @@ def min_max_normalization(data, new_min=0, new_max=1):
     """
     Min-max normalization for a given array of data.
 
-    Parameters
+    Args
     ----------
     data: numpy.ndarray
         Input data to be normalized.

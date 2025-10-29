@@ -31,33 +31,44 @@ def get_accessibility_isochrone_stepped(
     """
     Calculate stepped accessibility isochrones for a single point with specified intervals.
 
-    Parameters:
-        isochrone_type (Literal["radius", "ways", "separate"]):
+    Args:
+        isochrone_type:
             Visualization method for stepped isochrones:
-            - "radius": Voronoi-based in circular buffers
-            - "ways": Voronoi-based in road network polygons
-            - "separate": Circular buffers for each step
+
+            - ``"radius"``: Voronoi-based in circular buffers
+            - ``"ways"``: Voronoi-based in road network polygons
+            - ``"separate"``: Circular buffers for each step
+
         point (gpd.GeoDataFrame):
             Single source point for isochrone calculation (uses first geometry if multiple provided).
+
         weight_value (float):
             Maximum travel time (minutes) or distance (meters) threshold.
-        weight_type (Literal["time_min", "length_meter"]):
+
+        weight_type:
             Type of weight calculation:
+
             - "time_min": Time-based in minutes
             - "length_meter": Distance-based in meters
+
         nx_graph (nx.Graph):
             NetworkX graph representing the transportation network.
+
         step (float, optional):
             Interval between isochrone steps. Defaults to:
+
             - 100 meters for distance-based
             - 1 minute for time-based
+
         **kwargs: Additional parameters:
+
             - buffer_factor: Size multiplier for buffers (default: 0.7)
             - road_buffer_size: Buffer size for road edges in meters (default: 5)
 
     Returns:
-        (tuple[gpd.GeoDataFrame, gpd.GeoDataFrame | None, gpd.GeoDataFrame | None]):
+        tuple[gpd.GeoDataFrame, gpd.GeoDataFrame | None, gpd.GeoDataFrame | None]:
             Tuple containing:
+
             - stepped_isochrones: GeoDataFrame with stepped polygons and distance/time attributes
             - pt_stops: Public transport stops within isochrones (if available)
             - pt_routes: Public transport routes within isochrones (if available)
@@ -150,29 +161,38 @@ def get_accessibility_isochrones(
         - 'radius': Circular buffer-based isochrones
         - 'ways': Road network-based isochrones
 
-    Parameters:
-        isochrone_type (Literal["radius", "ways"]):
+    Args:
+        isochrone_type:
             Type of isochrone to calculate:
+
             - "radius": Creates circular buffers around reachable nodes
             - "ways": Creates polygons based on reachable road network
+
         points (gpd.GeoDataFrame):
             GeoDataFrame containing source points for isochrone calculation.
+
         weight_value (float):
             Maximum travel time (minutes) or distance (meters) threshold.
-        weight_type (Literal["time_min", "length_meter"]):
+
+        weight_type:
             Type of weight calculation:
+
             - "time_min": Time-based accessibility in minutes
             - "length_meter": Distance-based accessibility in meters
+
         nx_graph (nx.Graph):
             NetworkX graph representing the transportation network.
             Must contain CRS and speed attributes for time calculations.
+
         **kwargs: Additional parameters:
+
             - buffer_factor: Size multiplier for buffers (default: 0.7)
             - road_buffer_size: Buffer size for road edges in meters (default: 5)
 
     Returns:
-        (tuple[gpd.GeoDataFrame, gpd.GeoDataFrame | None, gpd.GeoDataFrame | None]):
+        tuple[gpd.GeoDataFrame, gpd.GeoDataFrame | None, gpd.GeoDataFrame | None]:
             Tuple containing:
+
             - isochrones: GeoDataFrame with calculated isochrone polygons
             - pt_stops: Public transport stops within isochrones (if available)
             - pt_routes: Public transport routes within isochrones (if available)

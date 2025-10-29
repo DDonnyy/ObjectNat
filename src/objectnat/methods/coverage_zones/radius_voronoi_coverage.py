@@ -6,16 +6,18 @@ def get_radius_coverage(gdf_from: gpd.GeoDataFrame, radius: float, resolution: i
     """
     Calculate radius-based coverage zones using Voronoi polygons.
 
-    Parameters:
+    Args:
         gdf_from (gpd.GeoDataFrame):
             Source points for which coverage zones are calculated.
+
         radius (float):
             Maximum coverage radius in meters.
+
         resolution (int):
             Number of segments used to approximate quarter-circle in buffer (default=32).
 
     Returns:
-        (gpd.GeoDataFrame):
+        gpd.GeoDataFrame:
             GeoDataFrame with smoothed coverage zone polygons in the same CRS as original gdf_from.
 
     Notes:

@@ -4,14 +4,14 @@ import pickle
 import geopandas as gpd
 import pandas as pd
 import pytest
-from iduedu import config, get_boundary, get_intermodal_graph
+from iduedu import config, get_4326_boundary, get_intermodal_graph
 from shapely import Point
 
 from objectnat import graph_to_gdf
 
 logger = config.logger
 
-path_to_data = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../examples/examples_data/")
+path_to_data = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../docs/examples/examples_data/")
 output_dir = os.path.join(os.path.dirname(__file__), "test_output")
 cache_dir = os.path.join(os.path.dirname(__file__), "test_cache")
 os.makedirs(cache_dir, exist_ok=True)
@@ -59,7 +59,7 @@ def trees_data():
 
 @pytest.fixture(scope="session")
 def boundary_osm_1114252():
-    return get_boundary(osm_id=1114252)
+    return get_4326_boundary(osm_id=1114252)
 
 
 @pytest.fixture(scope="session")
@@ -74,7 +74,7 @@ def intermodal_osm_1114252(boundary_osm_1114252):
             logger.warning(f"Failed to load cached graph: {e}. Regenerating...")
             os.remove(cache_file)
     logger.info("Generating new intermodal graph")
-    graph = get_intermodal_graph(polygon=boundary_osm_1114252, clip_by_bounds=True)
+    graph = get_intermodal_graph(territory=boundary_osm_1114252, clip_by_territory=True)
     try:
         with open(cache_file, "wb") as f:
             logger.info(f"Saving graph to cache: {cache_file}")

@@ -1,189 +1,134 @@
-name: CI Pipeline
+name: CI
 
 on:
   push:
-    branches:
-      - master
-      - dev
+    branches: [ main, master, dev ]
   pull_request:
-    branches:
-      - master
-      - dev
+    branches: [ main, master, dev ]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: write
 
 jobs:
-  check-version:
+  build:
+    name: Lint → Tests → Docs (single venv)
     runs-on: ubuntu-latest
+    env:
+      POETRY_VIRTUALENVS_IN_PROJECT: "true"
+      POETRY_NO_INTERACTION: "1"
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
-
-      - name: Install dependencies
-        run: |
-          pip install toml
-
-      - name: Extract version from pyproject.toml
-        id: pyproject-version
-        run: |
-          PYPROJECT_VERSION=$(python -c "import toml; print(toml.load('pyproject.toml')['tool']['poetry']['version'])")
-          echo "Version in pyproject.toml: $PYPROJECT_VERSION"
-          echo "pyproject_version=$PYPROJECT_VERSION" >> $GITHUB_OUTPUT
-
-      - name: Extract version from _version.py
-        id: version-py
-        run: |
-          VERSION_PY=$(grep -oP 'VERSION = "\K[^"]+' src/objectnat/_version.py)
-          echo "Version in _version.py: $VERSION_PY"
-          echo "version_py=$VERSION_PY" >> $GITHUB_OUTPUT
-
-      - name: Compare versions
-        run: |
-          if [ "${{ steps.pyproject-version.outputs.pyproject_version }}" != "${{ steps.version-py.outputs.version_py }}" ]; then
-            echo "Versions do not match!"
-            echo "pyproject.toml: ${{ steps.pyproject-version.outputs.pyproject_version }}"
-            echo "_version.py: ${{ steps.version-py.outputs.version_py }}"
-            exit 1
-          else
-            echo "Versions match!"
-          fi
-
-  check-formatting:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.10"
+          python-version: "3.11"
 
       - name: Install Poetry
-        run: pip install poetry
-
-      - name: Install dependencies
-        run: poetry install
-
-      - name: Run pylint
-        run: |
-          poetry run pylint src --exit-zero > pylint-report.txt
-
-      - name: Upload pylint report
-        uses: actions/upload-artifact@v4
+        uses: abatilo/actions-poetry@v3
         with:
-          name: pylint-report
-          path: pylint-report.txt
+          poetry-version: "1.8.3"
 
-      - name: Run isort
+      - name: Cache venv
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-py3.11-${{ hashFiles('**/poetry.lock') }}
+
+      # --- Check version (pyproject.toml vs _version.py)
+      - name: Check version consistency
+        shell: bash
         run: |
-          poetry run isort --check-only src
+          set -euo pipefail
+          PYPROJECT_VERSION=$(python - <<'PY'
+          import tomllib
+          print(tomllib.load(open("pyproject.toml","rb"))["tool"]["poetry"]["version"])
+          PY
+          )
+          VERSION_PY=$(grep -oP 'VERSION\s*=\s*"\K[^"]+' src/objectnat/_version.py)
+          echo "pyproject: ${PYPROJECT_VERSION}"
+          echo "_version.py: ${VERSION_PY}"
+          [ "$PYPROJECT_VERSION" = "$VERSION_PY" ]
 
-      - name: Run black
+
+      - name: Restore venv cache
+        uses: actions/cache/restore@v4
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-py${{ matrix.python-version }}-${{ hashFiles('**/poetry.lock') }}
+
+      - name: Ensure in-project venv and install
+        run: |
+          poetry config virtualenvs.in-project true
+          poetry install --with test  # или нужные группы
+
+      - name: Save venv cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-py${{ matrix.python-version }}-${{ hashFiles('**/poetry.lock') }}
+
+
+      - name: Run linters
         run: |
           poetry run black --check src
+          poetry run isort --check-only src
+          poetry run pylint src/objectnat || true
 
-  test:
-    runs-on: ubuntu-latest
-    needs: [check-version, check-formatting]
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.10"
-
-      - name: Install Poetry
-        run: pip install poetry
-
-      - name: Install dependencies
-        run: poetry install
-
-      - name: Run tests with coverage
-        run: |
-          poetry run pytest src/tests --cov=objectnat --cov-report=xml
-
-      - name: Upload coverage report
-        uses: actions/upload-artifact@v4.6.1
-        with:
-          name: coverage-report
-          path: coverage.xml
+      - name: Run tests
+        run: poetry run pytest src/tests --cov=objectnat --cov-report=xml
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          file: coverage.xml
+          file: ./coverage.xml
           slug: DDonnyy/ObjectNat
+          fail_ci_if_error: false
 
-      - name: Commit and push test images to assets branch
+      - name: Push test images to assets branch
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
         run: |
+          set -e
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
-          
           if git ls-remote --exit-code --heads origin assets; then
             git fetch origin assets
             git checkout assets
+            git merge --no-edit origin/assets || true
           else
             git checkout --orphan assets
             git reset --hard
           fi
-          rm -f ./*.png || echo "No old PNGs to remove"
-          git rm -f ./*.png || echo "No old PNGs to remove from Git"
-          cp -r src/tests/test_output/*.png . || echo "No images to copy"
-          git add ./*.png
-          git commit -m "Update test images" || echo "No changes to commit"
-          git push --force origin assets
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  deploy-docs:
-    runs-on: ubuntu-latest
-    needs: test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+          rm -f ./*.png || true
+          git rm -f ./*.png || true
+          mkdir -p tmp_images
+          cp -r src/tests/test_output/*.png tmp_images/ 2>/dev/null || true
+          if ls tmp_images/*.png 1> /dev/null 2>&1; then
+            mv tmp_images/*.png .
+            rm -rf tmp_images
+            git add ./*.png
+            git commit -m "Update test images" || echo "No changes to commit"
+            git push --force origin assets
+          else
+            echo "No images to copy"
+          fi
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - name: Build docs (Sphinx)
+        run: poetry run sphinx-build -b html docs docs/_build/html
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Upload docs artifact
+        uses: actions/upload-artifact@v4
         with:
-          python-version: "3.10"
-
-      - name: Install Poetry
-        run: pip install poetry
-
-      - name: Install dependencies
-        run: poetry install
-
-      - name: Get version from pyproject.toml
-        id: get_version
-        run: |
-          VERSION=$(poetry version -s)
-          echo "Detected version: $VERSION"
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-
-      - name: Configure git for mike
-        run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-
-      - name: Deploy documentation with mike
-        run: |
-          poetry run mike deploy ${{ steps.get_version.outputs.version }}
-          poetry run mike alias ${{ steps.get_version.outputs.version }} latest --update
-          poetry run mike set-default latest
-          poetry run mike deploy ${{ steps.get_version.outputs.version }} --push
-
+          name: docs-html
+          path: docs/_build/html

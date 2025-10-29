@@ -51,7 +51,7 @@ def graph_to_gdf(
     """
     Converts nx graph to gpd.GeoDataFrame as edges.
 
-    Parameters:
+    Args:
         graph (nx.MultiDiGraph):
             The graph to convert.
         edges (bool):
@@ -98,7 +98,7 @@ def gdf_to_graph(
     Intersections are optionally checked and merged. Attributes from the original GeoDataFrame
     can be projected onto the graph edges using spatial matching.
 
-    Parameters:
+    Args:
         gdf (gpd.GeoDataFrame): A GeoDataFrame containing at least one LineString geometry.
         project_gdf_attr (bool): If True, attributes from the input GeoDataFrame will be spatially
             projected onto the resulting graph edges. This can be an expensive operation for large datasets.
@@ -193,7 +193,7 @@ def get_closest_nodes_from_gdf(gdf: gpd.GeoDataFrame, nx_graph: nx.Graph) -> tup
     """
     Finds the closest graph nodes to the geometries in a GeoDataFrame.
 
-    Parameters
+    Args
     ----------
     gdf : gpd.GeoDataFrame
         GeoDataFrame with geometries for which the nearest graph nodes will be found.
@@ -228,7 +228,7 @@ def remove_weakly_connected_nodes(graph: nx.DiGraph) -> nx.DiGraph:
     """
     Removes all nodes that are not part of the largest strongly connected component in the graph.
 
-    Parameters
+    Args
     ----------
     graph : nx.DiGraph
         A directed NetworkX graph.
@@ -275,7 +275,7 @@ def reverse_graph(nx_graph: nx.Graph, weight: str) -> tuple[nx.Graph, nx.DiGraph
     For directed graphs, the function returns a new graph with all edge directions reversed,
     preserving the specified edge weight.
 
-    Parameters
+    Args
     ----------
     nx_graph : nx.Graph
         Input NetworkX graph (can be directed or undirected).
