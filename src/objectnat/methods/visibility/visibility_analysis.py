@@ -4,7 +4,6 @@ from multiprocessing import cpu_count
 import geopandas as gpd
 import numpy as np
 import pandas as pd
-
 from shapely import LineString, MultiPolygon, Point, Polygon
 from shapely.ops import unary_union
 from tqdm.contrib.concurrent import process_map
