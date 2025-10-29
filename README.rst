@@ -28,12 +28,12 @@ Object-oriented Network Analysis Tools
 
 `РИДМИ (Russian) <README_RU.rst>`_
 
-.. figure:: docs/_static/ONlogo.svg
-   :align: center
-   :width: 400px
-   :alt: ObjectNat logo
+.. raw:: html
 
-----
+   <p align="center">
+     <img src="docs/_static/ONlogo.svg" width="400" alt="ObjectNat logo">
+   </p>
+
 
 **ObjectNat** is an open-source library developed by the **IDU** team
 for spatial and network analysis in urban studies.

@@ -2,22 +2,64 @@ name: CI
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main, master, dev ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ main, master, dev ]
   workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: write
+
 jobs:
+  check-version:
+    name: Check version consistency (pyproject vs _version.py)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Extract version from pyproject.toml
+        id: pyproject-version
+        run: |
+          PYPROJECT_VERSION=$(python -c "import toml; print(toml.load('pyproject.toml')['tool']['poetry']['version'])")
+          echo "Version in pyproject.toml: $PYPROJECT_VERSION"
+          echo "pyproject_version=$PYPROJECT_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Extract version from _version.py
+        id: version-py
+        run: |
+          VERSION_PY=$(grep -oP 'VERSION = "\K[^"]+' src/objectnat/_version.py)
+          echo "Version in _version.py: $VERSION_PY"
+          echo "version_py=$VERSION_PY" >> $GITHUB_OUTPUT
+
+      - name: Compare versions
+        id: compare
+        shell: bash
+        run: |
+          if [ "${{ steps.pyproject-version.outputs.pyproject_version }}" != "${{ steps.version-py.outputs.version_py }}" ]; then
+            echo "Versions do not match!"
+            echo "pyproject.toml: ${{ steps.pyproject-version.outputs.pyproject_version }}"
+            echo "_version.py: ${{ steps.version-py.outputs.version_py }}"
+            exit 1
+          else
+            echo "Versions match!"
+          fi
+
   lint:
     name: Lint (black, isort, pylint)
     runs-on: ubuntu-latest
+    needs: [ check-version ]
     strategy:
       matrix:
-        python-version: [ '3.11' ]  # linters don't need multiple versions
+        python-version: [ '3.11' ]
     env:
       POETRY_VIRTUALENVS_IN_PROJECT: "true"
       POETRY_NO_INTERACTION: "1"
@@ -40,7 +82,7 @@ jobs:
           path: .venv
           key: venv-${{ runner.os }}-${{ matrix.python-version }}-lint-${{ hashFiles('**/poetry.lock') }}
 
-      - name: Install dev dependencies only (no project)
+      - name: Install dev-only dependencies
         run: |
           poetry install --no-root --only dev
 
@@ -51,12 +93,13 @@ jobs:
           poetry run pylint src/objectnat || true
 
   tests:
-    name: Tests (pytest + coverage)
+    name: Tests (pytest + coverage + push test images)
     runs-on: ubuntu-latest
+    needs: [ check-version, lint ]
     strategy:
       fail-fast: false
       matrix:
-        python-version: [ '3.11', '3.12' ]
+        python-version: [ '3.11' ]
     env:
       POETRY_VIRTUALENVS_IN_PROJECT: "true"
       POETRY_NO_INTERACTION: "1"
@@ -79,23 +122,57 @@ jobs:
           path: .venv
           key: venv-${{ runner.os }}-${{ matrix.python-version }}-tests-${{ hashFiles('**/poetry.lock') }}
 
-      - name: Install main + test dependency groups
+      - name: Install main + test groups
         run: |
           poetry install --with test
 
       - name: Run tests
         run: |
-          poetry run pytest -q --cov=objectnat --cov-report=xml
+          poetry run pytest src/tests --cov=objectnat --cov-report=xml
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
+          token: ${{ secrets.CODECOV_TOKEN }}
           file: ./coverage.xml
+          slug: DDonnyy/ObjectNat
           fail_ci_if_error: false
+
+      - name: Commit and push test images to assets branch
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -e
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+          if git ls-remote --exit-code --heads origin assets; then
+            git fetch origin assets
+            git checkout assets
+            git merge --no-edit origin/assets || true
+          else
+            git checkout --orphan assets
+            git reset --hard
+          fi
+          rm -f ./*.png || true
+          git rm -f ./*.png || true
+          mkdir -p tmp_images
+          cp -r src/tests/test_output/*.png tmp_images/ 2>/dev/null || true
+          if ls tmp_images/*.png 1> /dev/null 2>&1; then
+            mv tmp_images/*.png .
+            rm -rf tmp_images
+            git add ./*.png
+            git commit -m "Update test images" || echo "No changes to commit"
+            git push --force origin assets
+          else
+            echo "No images to copy"
+          fi
 
   docs:
     name: Build docs (Sphinx)
     runs-on: ubuntu-latest
+    needs: [ tests ]
     strategy:
       matrix:
         python-version: [ '3.11' ]

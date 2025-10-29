@@ -28,10 +28,11 @@ Object-oriented Network Analysis Tools
 
 `README (English) <README.rst>`_
 
-.. image:: docs/_static/ONlogo.svg
-   :align: center
-   :width: 400px
-   :alt: Логотип ObjectNat
+.. raw:: html
+
+   <p align="center">
+     <img src="docs/_static/ONlogo.svg" width="400" alt="ObjectNat logo">
+   </p>
 
 ----
 
