@@ -16,7 +16,6 @@ permissions:
 
 env:
   PY_VER: "3.11"
-  VENV_CACHE_KEY: venv-${{ runner.os }}-py3.11-all-${{ hashFiles('**/poetry.lock') }}
   VENV_PATH: .venv
   POETRY_VIRTUALENVS_IN_PROJECT: "true"
   POETRY_NO_INTERACTION: "1"
@@ -43,9 +42,9 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: ${{ env.VENV_PATH }}
-          key: ${{ env.VENV_CACHE_KEY }}
+          key: venv-${{ runner.os }}-py${{ env.PY_VER }}-all-${{ hashFiles('**/poetry.lock') }}
           restore-keys: |
-            venv-${{ runner.os }}-py3.11-
+            venv-${{ runner.os }}-py${{ env.PY_VER }}-
 
       - name: Check version consistency (pyproject vs _version.py)
         shell: bash
@@ -71,8 +70,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: ${{ env.VENV_PATH }}
-          key: ${{ env.VENV_CACHE_KEY }}
-
+          key: venv-${{ runner.os }}-py${{ env.PY_VER }}-all-${{ hashFiles('**/poetry.lock') }}
   lint:
     name: Lint (black, isort, pylint)
     runs-on: ubuntu-latest
@@ -95,9 +93,9 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: ${{ env.VENV_PATH }}
-          key: ${{ env.VENV_CACHE_KEY }}
+          key: venv-${{ runner.os }}-py${{ env.PY_VER }}-all-${{ hashFiles('**/poetry.lock') }}
           restore-keys: |
-            venv-${{ runner.os }}-py3.11-
+            venv-${{ runner.os }}-py${{ env.PY_VER }}-
 
 
       - name: Run linters
@@ -128,9 +126,9 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: ${{ env.VENV_PATH }}
-          key: ${{ env.VENV_CACHE_KEY }}
+          key: venv-${{ runner.os }}-py${{ env.PY_VER }}-all-${{ hashFiles('**/poetry.lock') }}
           restore-keys: |
-            venv-${{ runner.os }}-py3.11-
+            venv-${{ runner.os }}-py${{ env.PY_VER }}-
 
       - name: Run tests
         run: poetry run pytest src/tests --cov=objectnat --cov-report=xml
@@ -165,9 +163,9 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: ${{ env.VENV_PATH }}
-          key: ${{ env.VENV_CACHE_KEY }}
+          key: venv-${{ runner.os }}-py${{ env.PY_VER }}-all-${{ hashFiles('**/poetry.lock') }}
           restore-keys: |
-            venv-${{ runner.os }}-py3.11-
+            venv-${{ runner.os }}-py${{ env.PY_VER }}-
 
       - name: Build Sphinx HTML
         run: poetry run sphinx-build -b html docs docs/_build/html
