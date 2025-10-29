@@ -141,6 +141,30 @@ jobs:
           slug: DDonnyy/ObjectNat
           fail_ci_if_error: false
 
+      - name: Commit and push test images to assets branch
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        run: |
+
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+
+          if git ls-remote --exit-code --heads origin assets; then
+            git fetch origin assets
+            git checkout assets
+
+          else
+            git checkout --orphan assets
+            git reset --hard
+          fi
+          rm -f ./*.png || echo "No old PNGs to remove"
+          git rm -f ./*.png || echo "No old PNGs to remove from Git"
+          cp -r src/tests/test_output/*.png . || echo "No images to copy"
+          git add ./*.png
+          git commit -m "Update test images" || echo "No changes to commit"
+          git push --force origin assets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   docs:
     name: Docs (Sphinx build + artifact / GH Pages)
     runs-on: ubuntu-latest
@@ -177,43 +201,10 @@ jobs:
           path: docs/_build/html
           if-no-files-found: error
 
-  push-assets:
-    name: Push test images to assets branch
-    runs-on: ubuntu-latest
-    needs: [ tests ]
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Collect PNGs
-        run: |
-          mkdir -p png_out
-          cp -r src/tests/test_output/*.png png_out/ 2>/dev/null || true
-
-      - name: Checkout assets branch to subdir
-        uses: actions/checkout@v4
-        with:
-          ref: assets
-          path: assets_branch
-
-      - name: Push PNGs
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -e
-          cd assets_branch
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-          rm -f ./*.png || true
-          cp -r ../png_out/*.png . 2>/dev/null || true
-          git add . || true
-          git commit -m "Update test images" || echo "No changes to commit"
-          git push origin assets
-
   deploy-docs:
     name: Deploy docs to gh-pages
     runs-on: ubuntu-latest
-    needs: [ docs, push-assets, tests ]
+    needs: [ docs, lint, tests ]
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
     steps:
       - uses: actions/checkout@v4
