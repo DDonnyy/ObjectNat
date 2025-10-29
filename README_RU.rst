@@ -24,15 +24,18 @@ Object-oriented Network Analysis Tools
    :target: https://opensource.org/licenses/BSD-3-Clause
    :alt: Лицензия
 
-|badge-black| |badge-pypi| |badge-ci| |badge-codecov| |badge-license|
+.. |badge-docs| image:: https://img.shields.io/badge/docs-latest-4aa0d5?logo=readthedocs
+   :target: https://iduclub.github.io/ObjectNat/
+   :alt: Документация
+
+|badge-black| |badge-pypi| |badge-ci| |badge-codecov| |badge-license| |badge-docs|
 
 `README (English) <README.rst>`_
 
-.. raw:: html
-
-   <p align="center">
-     <img src="docs/_static/ONlogo.svg" width="400" alt="ObjectNat logo">
-   </p>
+.. image:: https://raw.githubusercontent.com/IDUclub/ObjectNat/main/docs/_static/ONlogo.svg
+   :align: center
+   :width: 400
+   :alt: ObjectNat logo
 
 ----
 
@@ -59,8 +62,8 @@ Object-oriented Network Analysis Tools
    - **Базовые изохроны**: отображают одну зону, достижимую за заданное время.
    - **Шаговые изохроны**: делят зону доступности на интервалы времени (например, 3, 5, 10 минут).
 
-   📘 `Пример <https://iduclub.github.io/ObjectNat/methods/examples/isochrones.html>`_
-   🔗 `Документация <https://iduclub.github.io/ObjectNat/methods/isochrones.html>`_
+   📘 `Пример <https://iduclub.github.io/ObjectNat/methods/examples/isochrones.html>`__
+   🔗 `Документация <https://iduclub.github.io/ObjectNat/methods/isochrones.html>`__
 
 2. **Зоны покрытия**
 
@@ -68,8 +71,8 @@ Object-oriented Network Analysis Tools
    достижимую из каждой точки по **времени в пути** или **дистанции**, затем строит полигоны с помощью
    **диаграмм Вороного** и обрезает их по заданной границе, если она указана.
 
-   📘 `Пример <https://iduclub.github.io/ObjectNat/methods/examples/coverage.html>`_
-   🔗 `Документация <https://iduclub.github.io/ObjectNat/methods/coverage.html>`_
+   📘 `Пример <https://iduclub.github.io/ObjectNat/methods/examples/coverage.html>`__
+   🔗 `Документация <https://iduclub.github.io/ObjectNat/methods/coverage.html>`__
 
 3. **Анализ обеспеченности сервисами**
 
@@ -78,8 +81,8 @@ Object-oriented Network Analysis Tools
    Функция моделирует **баланс спроса и предложения**, оценивая, насколько хорошо услуги удовлетворяют потребности
    близлежащих зданий в пределах допустимого времени.
 
-   📘 `Пример <https://iduclub.github.io/ObjectNat/methods/examples/provision.html>`_
-   🔗 `Документация <https://iduclub.github.io/ObjectNat/methods/provision.html>`_
+   📘 `Пример <https://iduclub.github.io/ObjectNat/methods/examples/provision.html>`__
+   🔗 `Документация <https://iduclub.github.io/ObjectNat/methods/provision.html>`__
 
 4. **Анализ видимости**
 
@@ -88,16 +91,16 @@ Object-oriented Network Analysis Tools
    по видимости с использованием плотной сетки наблюдателей (рекомендуется ~1000 точек с шагом 10–20 метров).
    Точки можно сгенерировать по транспортной сети и распределить по её рёбрам.
 
-   📘 `Пример <https://iduclub.github.io/ObjectNat/methods/examples/visibility.html>`_
-   🔗 `Документация <https://iduclub.github.io/ObjectNat/methods/visibility.html>`_
+   📘 `Пример <https://iduclub.github.io/ObjectNat/methods/examples/visibility.html>`__
+   🔗 `Документация <https://iduclub.github.io/ObjectNat/methods/visibility.html>`__
 
 5. **Моделирование шума**
 
    Симуляция распространения шума от источников с учётом **препятствий**, **растительности** и **факторов окружающей среды**.
 
-   📘 `Пример <https://iduclub.github.io/ObjectNat/methods/examples/noise.html>`_
-   🔗 `Документация <https://iduclub.github.io/ObjectNat/methods/noise.html>`_
-   🧠 `Подробное описание <https://github.com/DDonnyy/ObjectNat/wiki/Noise-simulation>`_
+   📘 `Пример <https://iduclub.github.io/ObjectNat/methods/examples/noise.html>`__
+   🔗 `Документация <https://iduclub.github.io/ObjectNat/methods/noise.html>`__
+   🧠 `Подробное описание <https://github.com/DDonnyy/ObjectNat/wiki/Noise-simulation>`__
 
 6. **Кластеризация точек**
 
@@ -108,8 +111,8 @@ Object-oriented Network Analysis Tools
 
    Также функция может рассчитывать **соотношение типов услуг** в каждом кластере для пространственного анализа состава услуг.
 
-   📘 `Пример <https://iduclub.github.io/ObjectNat/methods/examples/clustering.html>`_
-   🔗 `Документация <https://iduclub.github.io/ObjectNat/methods/clustering.html>`_
+   📘 `Пример <https://iduclub.github.io/ObjectNat/methods/examples/clustering.html>`__
+   🔗 `Документация <https://iduclub.github.io/ObjectNat/methods/clustering.html>`__
 
 ----
 
@@ -117,7 +120,7 @@ Object-oriented Network Analysis Tools
 ----------------------------------
 
 Для оптимальной работы **ObjectNat** рекомендуется использовать графы,
-созданные библиотекой `IduEdu <https://github.com/IDUclub/IduEdu>`_.
+созданные библиотекой `IduEdu <https://github.com/IDUclub/IduEdu>`__.
 
 **IduEdu** — это библиотека на Python с открытым исходным кодом, предназначенная для построения и обработки
 сложных городских сетей на основе данных OpenStreetMap.

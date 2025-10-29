@@ -24,15 +24,18 @@ Object-oriented Network Analysis Tools
    :target: https://opensource.org/licenses/BSD-3-Clause
    :alt: License
 
-|badge-black| |badge-pypi| |badge-ci| |badge-codecov| |badge-license|
+.. |badge-docs| image:: https://img.shields.io/badge/docs-latest-4aa0d5?logo=readthedocs
+   :target: https://iduclub.github.io/ObjectNat/
+   :alt: Docs
 
-`РИДМИ (Russian) <README_RU.rst>`_
+|badge-black| |badge-pypi| |badge-ci| |badge-codecov| |badge-license| |badge-docs|
 
-.. raw:: html
+`РИДМИ (Russian) <https://github.com/IDUclub/ObjectNat/blob/main/README_RU.rst>`__
 
-   <p align="center">
-     <img src="docs/_static/ONlogo.svg" width="400" alt="ObjectNat logo">
-   </p>
+.. image:: https://raw.githubusercontent.com/IDUclub/ObjectNat/main/docs/_static/ONlogo.svg
+   :align: center
+   :width: 400
+   :alt: ObjectNat logo
 
 
 **ObjectNat** is an open-source library developed by the **IDU** team
@@ -58,8 +61,8 @@ Each feature includes a **Jupyter Notebook example** and **full documentation**.
    - **Step isochrones**: divide the accessibility area into time intervals (e.g., 3, 5, 10 minutes).
 
 
-   📘 `Example <https://iduclub.github.io/ObjectNat/methods/examples/isochrones.html>`_
-   🔗 `Documentation <https://iduclub.github.io/ObjectNat/methods/isochrones.html>`_
+   📘 `Example <https://iduclub.github.io/ObjectNat/methods/examples/isochrones.html>`__
+   🔗 `Documentation <https://iduclub.github.io/ObjectNat/methods/isochrones.html>`__
 
 2. **Graph Coverage Zones from Points**
 
@@ -67,8 +70,8 @@ Each feature includes a **Jupyter Notebook example** and **full documentation**.
    It computes the area reachable from each point by **travel time** or **distance**,
    then builds polygons using **Voronoi diagrams** and clips them by a given boundary if specified.
 
-   📘 `Example <https://iduclub.github.io/ObjectNat/methods/examples/coverage.html>`_
-   🔗 `Documentation <https://iduclub.github.io/ObjectNat/methods/coverage.html>`_
+   📘 `Example <https://iduclub.github.io/ObjectNat/methods/examples/coverage.html>`__
+   🔗 `Documentation <https://iduclub.github.io/ObjectNat/methods/coverage.html>`__
 
 3. **Service Provision Analysis**  
 
@@ -78,8 +81,8 @@ Each feature includes a **Jupyter Notebook example** and **full documentation**.
    The function models the **balance between supply and demand**,
    assessing how well services meet the needs of nearby buildings within an acceptable time.
 
-   📘 `Example <https://iduclub.github.io/ObjectNat/methods/examples/provision.html>`_
-   🔗 `Documentation <https://iduclub.github.io/ObjectNat/methods/provision.html>`_
+   📘 `Example <https://iduclub.github.io/ObjectNat/methods/examples/provision.html>`__
+   🔗 `Documentation <https://iduclub.github.io/ObjectNat/methods/provision.html>`__
 
 4. **Visibility Analysis**  
 
@@ -89,17 +92,17 @@ Each feature includes a **Jupyter Notebook example** and **full documentation**.
    using a dense observer grid (recommended ~1000 points with a 10–20 m spacing).
    Points can be generated along the transport network and distributed across its edges.
 
-   📘 `Example <https://iduclub.github.io/ObjectNat/methods/examples/visibility.html>`_
-   🔗 `Documentation <https://iduclub.github.io/ObjectNat/methods/visibility.html>`_
+   📘 `Example <https://iduclub.github.io/ObjectNat/methods/examples/visibility.html>`__
+   🔗 `Documentation <https://iduclub.github.io/ObjectNat/methods/visibility.html>`__
 
 5. **Noise Simulation & Noise Frame**
 
    Simulation of noise propagation from sources, taking into account **obstacles**, **vegetation**,
    and **environmental factors**.
 
-   📘 `Example <https://iduclub.github.io/ObjectNat/methods/examples/noise.html>`_
-   🔗 `Documentation <https://iduclub.github.io/ObjectNat/methods/noise.html>`_
-   🧠 `Detailed theory <https://github.com/DDonnyy/ObjectNat/wiki/Noise-simulation>`_
+   📘 `Example <https://iduclub.github.io/ObjectNat/methods/examples/noise.html>`__
+   🔗 `Documentation <https://iduclub.github.io/ObjectNat/methods/noise.html>`__
+   🧠 `Detailed theory <https://github.com/DDonnyy/ObjectNat/wiki/Noise-simulation>`__
 
 6. **Point Clusterization**  
 
@@ -111,8 +114,8 @@ Each feature includes a **Jupyter Notebook example** and **full documentation**.
    The function can also compute the **ratio of service types** in each cluster
    for spatial analysis of service composition.
 
-   📘 `Example <https://iduclub.github.io/ObjectNat/methods/examples/clustering.html>`_
-   🔗 `Documentation <https://iduclub.github.io/ObjectNat/methods/clustering.html>`_
+   📘 `Example <https://iduclub.github.io/ObjectNat/methods/examples/clustering.html>`__
+   🔗 `Documentation <https://iduclub.github.io/ObjectNat/methods/clustering.html>`__
 
 ----
 
