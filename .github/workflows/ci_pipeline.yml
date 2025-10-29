@@ -56,19 +56,31 @@ jobs:
           echo "_version.py: ${VERSION_PY}"
           [ "$PYPROJECT_VERSION" = "$VERSION_PY" ]
 
-      # --- Lint (dev only)
-      - name: Install dev deps
-        run: poetry install --no-root --only dev
+
+      - name: Restore venv cache
+        uses: actions/cache/restore@v4
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-py${{ matrix.python-version }}-${{ hashFiles('**/poetry.lock') }}
+
+      - name: Ensure in-project venv and install
+        run: |
+          poetry config virtualenvs.in-project true
+          poetry install --with test  # или нужные группы
+
+      - name: Save venv cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-py${{ matrix.python-version }}-${{ hashFiles('**/poetry.lock') }}
+
 
       - name: Run linters
         run: |
           poetry run black --check src
           poetry run isort --check-only src
           poetry run pylint src/objectnat || true
-
-      # --- Tests (+test deps поверх dev)
-      - name: Install test deps incrementally
-        run: poetry install --with test
 
       - name: Run tests
         run: poetry run pytest src/tests --cov=objectnat --cov-report=xml
@@ -111,9 +123,6 @@ jobs:
           else
             echo "No images to copy"
           fi
-
-      - name: Install docs deps incrementally
-        run: poetry install --with docs
 
       - name: Build docs (Sphinx)
         run: poetry run sphinx-build -b html docs docs/_build/html
