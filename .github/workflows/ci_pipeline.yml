@@ -26,32 +26,27 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Extract version from pyproject.toml
-        id: pyproject-version
-        run: |
-          PYPROJECT_VERSION=$(python -c "import toml; print(toml.load('pyproject.toml')['tool']['poetry']['version'])")
-          echo "Version in pyproject.toml: $PYPROJECT_VERSION"
-          echo "pyproject_version=$PYPROJECT_VERSION" >> $GITHUB_OUTPUT
-
-      - name: Extract version from _version.py
-        id: version-py
-        run: |
-          VERSION_PY=$(grep -oP 'VERSION = "\K[^"]+' src/objectnat/_version.py)
-          echo "Version in _version.py: $VERSION_PY"
-          echo "version_py=$VERSION_PY" >> $GITHUB_OUTPUT
-
       - name: Compare versions
         id: compare
         shell: bash
         run: |
-          if [ "${{ steps.pyproject-version.outputs.pyproject_version }}" != "${{ steps.version-py.outputs.version_py }}" ]; then
-            echo "Versions do not match!"
-            echo "pyproject.toml: ${{ steps.pyproject-version.outputs.pyproject_version }}"
-            echo "_version.py: ${{ steps.version-py.outputs.version_py }}"
-            exit 1
+          set -euo pipefail
+          PYPROJECT_VERSION=$(python - <<'PY'
+          import tomllib, sys
+          with open("pyproject.toml","rb") as f:
+              data = tomllib.load(f)
+          print(data["tool"]["poetry"]["version"])
+          PY
+          )
+          echo "pyproject: ${PYPROJECT_VERSION}"
+          VERSION_PY=$(grep -oP 'VERSION\s*=\s*"\K[^"]+' src/objectnat/_version.py)
+          echo "_version.py: ${VERSION_PY}"
+          if [ "${PYPROJECT_VERSION}" != "${VERSION_PY}" ]; then
+            echo "Versions do not match"; exit 1
           else
-            echo "Versions match!"
+            echo "Versions match"
           fi
+
 
   lint:
     name: Lint (black, isort, pylint)
