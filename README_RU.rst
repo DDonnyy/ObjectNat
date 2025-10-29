@@ -30,9 +30,9 @@ Object-oriented Network Analysis Tools
 
 |badge-black| |badge-pypi| |badge-ci| |badge-codecov| |badge-license| |badge-docs|
 
-`README (English) <README.rst>`_
+`README (English) <https://github.com/IDUclub/ObjectNat/blob/master/README.rst>`_
 
-.. image:: https://raw.githubusercontent.com/IDUclub/ObjectNat/main/docs/_static/ONlogo.svg
+.. image:: https://raw.githubusercontent.com/IDUclub/ObjectNat/master/docs/_static/ONlogo.svg
    :align: center
    :width: 400
    :alt: ObjectNat logo
