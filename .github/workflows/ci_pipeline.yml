@@ -93,6 +93,15 @@ jobs:
           slug: DDonnyy/ObjectNat
           fail_ci_if_error: false
 
+      - name: Build docs (Sphinx)
+        run: poetry run sphinx-build -b html docs docs/_build/html
+
+      - name: Upload docs artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs-html
+          path: docs/_build/html
+
       - name: Push test images to assets branch
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         env:
@@ -123,12 +132,3 @@ jobs:
           else
             echo "No images to copy"
           fi
-
-      - name: Build docs (Sphinx)
-        run: poetry run sphinx-build -b html docs docs/_build/html
-
-      - name: Upload docs artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: docs-html
-          path: docs/_build/html
