@@ -14,35 +14,40 @@ concurrency:
 permissions:
   contents: write
 
-jobs:
-  build:
-    name: Lint → Tests → Docs (single venv)
-    runs-on: ubuntu-latest
-    env:
-      POETRY_VIRTUALENVS_IN_PROJECT: "true"
-      POETRY_NO_INTERACTION: "1"
+env:
+  PY_VER: "3.11"
+  VENV_CACHE_KEY: venv-${{ runner.os }}-py3.11-all-${{ hashFiles('**/poetry.lock') }}
+  VENV_PATH: .venv
+  POETRY_VIRTUALENVS_IN_PROJECT: "true"
+  POETRY_NO_INTERACTION: "1"
 
+jobs:
+  prebuild:
+    name: Build & cache venv (+ version check)
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python 3.11
+      - name: Set up Python ${{ env.PY_VER }}
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: ${{ env.PY_VER }}
 
       - name: Install Poetry
         uses: abatilo/actions-poetry@v3
         with:
           poetry-version: "1.8.3"
 
-      - name: Cache venv
-        uses: actions/cache@v4
+      - name: Restore venv cache (if any)
+        id: venv-restore
+        uses: actions/cache/restore@v4
         with:
-          path: .venv
-          key: venv-${{ runner.os }}-py3.11-${{ hashFiles('**/poetry.lock') }}
+          path: ${{ env.VENV_PATH }}
+          key: ${{ env.VENV_CACHE_KEY }}
+          restore-keys: |
+            venv-${{ runner.os }}-py3.11-
 
-      # --- Check version (pyproject.toml vs _version.py)
-      - name: Check version consistency
+      - name: Check version consistency (pyproject vs _version.py)
         shell: bash
         run: |
           set -euo pipefail
@@ -56,24 +61,43 @@ jobs:
           echo "_version.py: ${VERSION_PY}"
           [ "$PYPROJECT_VERSION" = "$VERSION_PY" ]
 
-
-      - name: Restore venv cache
-        uses: actions/cache/restore@v4
-        with:
-          path: .venv
-          key: venv-${{ runner.os }}-py${{ matrix.python-version }}-${{ hashFiles('**/poetry.lock') }}
-
-      - name: Ensure in-project venv and install
+      - name: Install all deps (base + dev + test + docs)
         run: |
           poetry config virtualenvs.in-project true
-          poetry install --with test  # или нужные группы
+          poetry install --with dev,test,docs
 
       - name: Save venv cache
-        if: always()
+        if: steps.venv-restore.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
-          path: .venv
-          key: venv-${{ runner.os }}-py${{ matrix.python-version }}-${{ hashFiles('**/poetry.lock') }}
+          path: ${{ env.VENV_PATH }}
+          key: ${{ env.VENV_CACHE_KEY }}
+
+  lint:
+    name: Lint (black, isort, pylint)
+    runs-on: ubuntu-latest
+    needs: [ prebuild ]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PY_VER }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PY_VER }}
+
+      - name: Install Poetry
+        uses: abatilo/actions-poetry@v3
+        with:
+          poetry-version: "1.8.3"
+
+      - name: Restore venv cache
+        id: venv
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.VENV_PATH }}
+          key: ${{ env.VENV_CACHE_KEY }}
+          restore-keys: |
+            venv-${{ runner.os }}-py3.11-
 
 
       - name: Run linters
@@ -81,6 +105,32 @@ jobs:
           poetry run black --check src
           poetry run isort --check-only src
           poetry run pylint src/objectnat || true
+
+  tests:
+    name: Tests (pytest + coverage)
+    runs-on: ubuntu-latest
+    needs: [ prebuild ]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PY_VER }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PY_VER }}
+
+      - name: Install Poetry
+        uses: abatilo/actions-poetry@v3
+        with:
+          poetry-version: "1.8.3"
+
+      - name: Restore venv cache
+        id: venv
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.VENV_PATH }}
+          key: ${{ env.VENV_CACHE_KEY }}
+          restore-keys: |
+            venv-${{ runner.os }}-py3.11-
 
       - name: Run tests
         run: poetry run pytest src/tests --cov=objectnat --cov-report=xml
@@ -93,6 +143,32 @@ jobs:
           slug: DDonnyy/ObjectNat
           fail_ci_if_error: false
 
+  docs:
+    name: Docs (Sphinx build + artifact / GH Pages)
+    runs-on: ubuntu-latest
+    needs: [ prebuild ]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PY_VER }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PY_VER }}
+
+      - name: Install Poetry
+        uses: abatilo/actions-poetry@v3
+        with:
+          poetry-version: "1.8.3"
+
+      - name: Restore venv cache
+        id: venv
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.VENV_PATH }}
+          key: ${{ env.VENV_CACHE_KEY }}
+          restore-keys: |
+            venv-${{ runner.os }}-py3.11-
+
       - name: Build Sphinx HTML
         run: poetry run sphinx-build -b html docs docs/_build/html
 
@@ -103,42 +179,57 @@ jobs:
           name: docs-html
           path: docs/_build/html
 
-      - name: Deploy docs to gh-pages
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+  push-assets:
+    name: Push test images to assets branch
+    runs-on: ubuntu-latest
+    needs: [ tests ]
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Collect PNGs
+        run: |
+          mkdir -p png_out
+          cp -r src/tests/test_output/*.png png_out/ 2>/dev/null || true
+
+      - name: Checkout assets branch to subdir
+        uses: actions/checkout@v4
+        with:
+          ref: assets
+          path: assets_branch
+
+      - name: Push PNGs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          cd assets_branch
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          rm -f ./*.png || true
+          cp -r ../png_out/*.png . 2>/dev/null || true
+          git add . || true
+          git commit -m "Update test images" || echo "No changes to commit"
+          git push origin assets
+
+  deploy-docs:
+    name: Deploy docs to gh-pages
+    runs-on: ubuntu-latest
+    needs: [ docs ]
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download docs artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: docs-html
+          path: site
+
+      - name: Publish to gh-pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: docs/_build/html
+          publish_dir: site
           publish_branch: gh-pages
           force_orphan: true
-
-      - name: Push test images to assets branch
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        shell: bash
-        run: |
-          set -e
-          git config --global user.name "github-actions"
-          git config --global user.email "github-actions@github.com"
-          if git ls-remote --exit-code --heads origin assets; then
-            git fetch origin assets
-            git checkout assets
-            git merge --no-edit origin/assets || true
-          else
-            git checkout --orphan assets
-            git reset --hard
-          fi
-          rm -f ./*.png || true
-          git rm -f ./*.png || true
-          mkdir -p tmp_images
-          cp -r src/tests/test_output/*.png tmp_images/ 2>/dev/null || true
-          if ls tmp_images/*.png 1> /dev/null 2>&1; then
-            mv tmp_images/*.png .
-            rm -rf tmp_images
-            git add ./*.png
-            git commit -m "Update test images" || echo "No changes to commit"
-            git push --force origin assets
-          else
-            echo "No images to copy"
-          fi
