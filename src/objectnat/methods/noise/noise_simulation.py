@@ -145,9 +145,9 @@ def simulate_noise(
     source_points = source_points.copy()
     if len(obstacles) > 0:
         obstacles = obstacles.copy()
-        obstacles.geometry = obstacles.geometry.simplify(tolerance=1)
         local_crs = obstacles.estimate_utm_crs()
         obstacles.to_crs(local_crs, inplace=True)
+        obstacles.geometry = obstacles.geometry.simplify(tolerance=1)
         source_points.to_crs(local_crs, inplace=True)
     else:
         local_crs = source_points.estimate_utm_crs()
