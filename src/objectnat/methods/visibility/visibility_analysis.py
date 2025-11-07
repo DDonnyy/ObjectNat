@@ -21,6 +21,44 @@ from objectnat.methods.utils.math_utils import min_max_normalization
 logger = config.logger
 
 
+def _ensure_crs(point_from, obstacles):
+    if isinstance(point_from, gpd.GeoDataFrame):
+        if point_from.empty:
+            raise ValueError("GeoDataFrame 'point_from' is empty.")
+        return_gdf = True
+        original_crs = point_from.crs
+        local_crs = point_from.estimate_utm_crs()
+        point_from = point_from.to_crs(local_crs)
+        if len(point_from) > 1:
+            logger.warning(
+                "This method processes only a single point. "
+                f"The GeoDataFrame contains {len(point_from)} points – "
+                "only the first geometry will be used for visibility calculation."
+            )
+        point_geom = point_from.iloc[0].geometry
+        if len(obstacles) > 0:
+            obstacles = obstacles.to_crs(local_crs)
+
+    else:
+        return_gdf = False
+
+        if len(obstacles) > 0:
+            original_crs = obstacles.crs
+            local_crs = obstacles.estimate_utm_crs()
+            obstacles = obstacles.to_crs(local_crs)
+            point_geom = gpd.GeoDataFrame(geometry=[point_from], crs=original_crs).to_crs(local_crs).iloc[0].geometry
+        else:
+            original_crs = 4326
+            logger.warning("No information about CRS was found, accepting everything in 4326")
+            point_gdf = gpd.GeoDataFrame(geometry=[point_from], crs=original_crs)
+            local_crs = point_gdf.estimate_utm_crs()
+
+            point_gdf = point_gdf.to_crs(local_crs)
+            point_geom = point_gdf.geometry.iloc[0]
+
+    return point_geom, obstacles, original_crs, local_crs, return_gdf
+
+
 def get_visibility_accurate(
     point_from: Point | gpd.GeoDataFrame, obstacles: gpd.GeoDataFrame, view_distance, return_max_view_dist=False
 ) -> Polygon | gpd.GeoDataFrame | tuple[Polygon | gpd.GeoDataFrame, float]:
@@ -56,31 +94,21 @@ def get_visibility_accurate(
             raise e
         return res
 
-    local_crs = None
-    original_crs = None
-    return_gdf = False
-    if isinstance(point_from, gpd.GeoDataFrame):
-        original_crs = point_from.crs
-        return_gdf = True
-        if len(obstacles) > 0:
-            local_crs = obstacles.estimate_utm_crs()
-        else:
-            local_crs = point_from.estimate_utm_crs()
-        obstacles = obstacles.to_crs(local_crs)
-        point_from = point_from.to_crs(local_crs)
-        if len(point_from) > 1:
-            logger.warning(
-                f"This method processes only single point. The GeoDataFrame contains {len(point_from)} points - "
-                "only the first geometry will be used for isochrone calculation. "
-            )
-        point_from = point_from.iloc[0].geometry
-    else:
-        obstacles = obstacles.copy()
-    if obstacles.contains(point_from).any():
+    point_geom, obstacles, original_crs, local_crs, return_gdf = _ensure_crs(point_from, obstacles)
+
+    if len(obstacles) > 0 and obstacles.contains(point_geom).any():
         return Polygon()
+
+    point_buffer = point_geom.buffer(view_distance, resolution=32)
+
+    if len(obstacles) == 0:
+        full_vision_gdf = gpd.GeoDataFrame(geometry=[point_buffer], crs=local_crs).to_crs(original_crs)
+        return full_vision_gdf if return_gdf else full_vision_gdf.iloc[0].geometry
+
     obstacles.reset_index(inplace=True, drop=True)
-    point_buffer = point_from.buffer(view_distance, resolution=32)
+
     allowed_geom_types = ["MultiPolygon", "Polygon", "LineString", "MultiLineString"]
+
     obstacles = obstacles[obstacles.geom_type.isin(allowed_geom_types)]
     s = obstacles.intersects(point_buffer)
     obstacles_in_buffer = obstacles.loc[s[s].index].geometry
@@ -98,26 +126,26 @@ def get_visibility_accurate(
         + [Point(line.coords[-1]) for line in buildings_lines_in_buffer.geometry]
     )
 
-    max_dist = max(view_distance, buildings_in_buffer_points.distance(point_from).max())
+    max_dist = max(view_distance, buildings_in_buffer_points.distance(point_geom).max())
     polygons = []
     buildings_lines_in_buffer = gpd.GeoDataFrame(geometry=buildings_lines_in_buffer, crs=obstacles.crs).reset_index()
     logger.debug("Calculation vis polygon")
     while not buildings_lines_in_buffer.empty:
         gdf_sindex = buildings_lines_in_buffer.sindex
         # TODO check if 2 walls are nearest and use the widest angle between points
-        nearest_wall_sind = gdf_sindex.nearest(point_from, return_all=False, max_distance=max_dist)
+        nearest_wall_sind = gdf_sindex.nearest(point_geom, return_all=False, max_distance=max_dist)
         nearest_wall = buildings_lines_in_buffer.loc[nearest_wall_sind[1]].iloc[0]
         wall_points = [Point(coords) for coords in nearest_wall.geometry.coords]
 
         # Calculate angles and sort by angle
         points_with_angle = sorted(
-            [(pt, math.atan2(pt.y - point_from.y, pt.x - point_from.x)) for pt in wall_points], key=lambda x: x[1]
+            [(pt, math.atan2(pt.y - point_geom.y, pt.x - point_geom.x)) for pt in wall_points], key=lambda x: x[1]
         )
         delta_angle = 2 * math.pi + points_with_angle[0][1] - points_with_angle[-1][1]
         if round(delta_angle, 10) == round(math.pi, 10):
             wall_b_centroid = obstacles_in_buffer.loc[nearest_wall["index"]].centroid
-            p1 = get_point_from_a_thorough_b(point_from, points_with_angle[0][0], max_dist)
-            p2 = get_point_from_a_thorough_b(point_from, points_with_angle[1][0], max_dist)
+            p1 = get_point_from_a_thorough_b(point_geom, points_with_angle[0][0], max_dist)
+            p2 = get_point_from_a_thorough_b(point_geom, points_with_angle[1][0], max_dist)
             polygon = LineString([p1, p2])
             polygon = polygon.buffer(
                 distance=max_dist * point_side_of_line(polygon, wall_b_centroid), single_sided=True
@@ -126,8 +154,8 @@ def get_visibility_accurate(
             if delta_angle > math.pi:
                 delta_angle = 2 * math.pi - delta_angle
             a = math.sqrt((max_dist**2) * (1 + (math.tan(delta_angle / 2) ** 2)))
-            p1 = get_point_from_a_thorough_b(point_from, points_with_angle[0][0], a)
-            p2 = get_point_from_a_thorough_b(point_from, points_with_angle[-1][0], a)
+            p1 = get_point_from_a_thorough_b(point_geom, points_with_angle[0][0], a)
+            p2 = get_point_from_a_thorough_b(point_geom, points_with_angle[-1][0], a)
             polygon = Polygon([points_with_angle[0][0], p1, p2, points_with_angle[1][0]])
 
         polygons.append(polygon)
@@ -146,15 +174,16 @@ def get_visibility_accurate(
     if isinstance(res, MultiPolygon):
         res = list(res.geoms)
         for polygon in res:
-            if polygon.intersects(point_from):
+            if polygon.intersects(point_geom):
                 res = polygon
                 break
 
+    result_gdf = gpd.GeoDataFrame(geometry=[res], crs=local_crs).to_crs(original_crs)
     if return_gdf:
-        res = gpd.GeoDataFrame(geometry=[res], crs=local_crs).to_crs(original_crs)
-
+        return result_gdf
+    res = result_gdf.to_crs(original_crs).iloc[0].geometry
     if return_max_view_dist:
-        return res, find_furthest_point(point_from, res)
+        return res, find_furthest_point(point_geom, res)
     return res
 
 
@@ -184,29 +213,24 @@ def get_visibility(
         This function provides a quicker but less accurate result compared to `get_visibility_accurate()`.
         If accuracy is important, consider using `get_visibility_accurate()` instead.
     """
-    return_gdf = False
-    if isinstance(point_from, gpd.GeoDataFrame):
-        original_crs = point_from.crs
-        return_gdf = True
-        if len(obstacles) > 0:
-            local_crs = obstacles.estimate_utm_crs()
-        else:
-            local_crs = point_from.estimate_utm_crs()
-        obstacles = obstacles.to_crs(local_crs)
-        point_from = point_from.to_crs(local_crs)
-        if len(point_from) > 1:
-            logger.warning(
-                f"This method processes only single point. The GeoDataFrame contains {len(point_from)} points - "
-                "only the first geometry will be used for isochrone calculation. "
-            )
-        point_from = point_from.iloc[0].geometry
-    else:
-        obstacles = obstacles.copy()
-    point_buffer = point_from.buffer(view_distance, resolution=resolution)
+
+    obstacles = obstacles.copy()
+
+    point_geom, obstacles, original_crs, local_crs, return_gdf = _ensure_crs(point_from, obstacles)
+    print(return_gdf)
+    if len(obstacles) > 0 and obstacles.contains(point_geom).any():
+        return Polygon()
+
+    point_buffer = point_geom.buffer(view_distance, resolution=resolution)
+
+    if len(obstacles) == 0:
+        full_vision_gdf = gpd.GeoDataFrame(geometry=[point_buffer], crs=local_crs).to_crs(original_crs)
+        return full_vision_gdf if return_gdf else full_vision_gdf.iloc[0].geometry
+
     s = obstacles.intersects(point_buffer)
     buildings_in_buffer = obstacles.loc[s[s].index].reset_index(drop=True)
     buffer_exterior_ = list(point_buffer.exterior.coords)
-    line_geometry = [LineString([point_from, ext]) for ext in buffer_exterior_]
+    line_geometry = [LineString([point_geom, ext]) for ext in buffer_exterior_]
     buffer_lines_gdf = gpd.GeoDataFrame(geometry=line_geometry)
     united_buildings = buildings_in_buffer.union_all()
     if united_buildings:
@@ -223,9 +247,8 @@ def get_visibility(
     if united_buildings:
         circuit = circuit.difference(united_buildings)
 
-    if return_gdf:
-        circuit = gpd.GeoDataFrame(geometry=[circuit], crs=local_crs).to_crs(original_crs)
-    return circuit
+    result_gdf = gpd.GeoDataFrame(geometry=[circuit], crs=local_crs).to_crs(original_crs)
+    return result_gdf if return_gdf else result_gdf.iloc[0].geometry
 
 
 def get_visibilities_from_points(
