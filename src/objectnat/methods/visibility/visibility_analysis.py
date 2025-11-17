@@ -97,7 +97,7 @@ def get_visibility_accurate(
     point_geom, obstacles, original_crs, local_crs, return_gdf = _ensure_crs(point_from, obstacles)
 
     if len(obstacles) > 0 and obstacles.contains(point_geom).any():
-        return Polygon()
+        return gpd.GeoDataFrame() if return_gdf else Point()
 
     point_buffer = point_geom.buffer(view_distance, resolution=32)
 

@@ -131,9 +131,16 @@ def calculate_simplified_noise_frame(
                     point_from = row.geometry
                     point_buffer = point_from.buffer(max_dist, resolution=16)
                     local_obstacles = obstacles[obstacles.intersects(point_buffer)]
-                    vis_poly = get_visibility_accurate(point_from, obstacles=local_obstacles, view_distance=max_dist)
-                    noise_from_feature = _eval_donuts_gdf(point_from, dist_db, local_crs, vis_poly)
-                    frame_result.append(noise_from_feature)
+                    vis_poly_gdf = get_visibility_accurate(
+                        gpd.GeoDataFrame(geometry=[point_from], crs=local_crs),
+                        obstacles=local_obstacles,
+                        view_distance=max_dist,
+                    )
+                    if len(vis_poly_gdf) > 0:
+                        noise_from_feature = _eval_donuts_gdf(
+                            point_from, dist_db, local_crs, vis_poly_gdf.iloc[0].geometry
+                        )
+                        frame_result.append(noise_from_feature)
                     pbar.update(1)
 
             elif geom_type == "LineString":
@@ -148,7 +155,7 @@ def calculate_simplified_noise_frame(
                 )
                 frame_result.append(noise_from_feature)
             elif geom_type == "Polygon":
-                group_gdf.geometry = group_gdf.buffer(0.1, resolution=1)
+                group_gdf.geometry = group_gdf.buffer(0.1, resolution=2)
                 layer_points = distribute_points_on_polygons(
                     group_gdf, only_exterior=False, radius=polygon_point_radius, lloyd_relax_n=1
                 )
@@ -186,8 +193,13 @@ def _process_lines_or_polygons(
     local_obstacles = obstacles[obstacles.intersects(layer_buffer)]
     for _, row in layer_points.iterrows():
         point_from = row.geometry
-        vis_poly = get_visibility_accurate(point_from, obstacles=local_obstacles, view_distance=max_dist)
-        features_vision_polys.append(vis_poly)
+        vis_poly_gdf = get_visibility_accurate(
+            gpd.GeoDataFrame(geometry=[point_from], crs=local_crs),
+            obstacles=local_obstacles,
+            view_distance=max_dist,
+        )
+        if len(vis_poly_gdf) > 0:
+            features_vision_polys.append(vis_poly_gdf.iloc[0].geometry)
         pbar.update(1)
     features_vision_polys = unary_union(features_vision_polys)
     return _eval_donuts_gdf(group_gdf.union_all(), dist_db, local_crs, features_vision_polys)
