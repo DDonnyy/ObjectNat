@@ -407,14 +407,15 @@ def get_visibility(
 
     if obstacles is not None and len(obstacles) > 0:
         obstacles_local = obstacles.to_crs(local_crs)
+        allowed_geom_types = ["MultiPolygon", "Polygon", "LineString", "MultiLineString"]
+        obstacles_local = obstacles_local[obstacles_local.geom_type.isin(allowed_geom_types)]
     else:
         obstacles_local = None
 
     tasks = [(geom, obstacles_local, dist, method, resolution) for geom, dist in zip(points_local.geometry, distances)]
-    logger.info("started")
+
     if not parallel:
         results = [_visibility_worker(t) for t in tasks]
-        logger.info("done seq ")
     else:
         if enable_tqdm:
             results = process_map(
