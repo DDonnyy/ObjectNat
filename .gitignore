@@ -43,8 +43,6 @@ _autosummary/
 
 # Local dev stuff
 /dev
-/poetry.lock
-/uv.lock
 .claude
 .codex
 

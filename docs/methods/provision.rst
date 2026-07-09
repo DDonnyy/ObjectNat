@@ -24,6 +24,9 @@ considering:
 - **Demand distribution**
 
 .. autofunction:: objectnat.get_service_provision
+.. autofunction:: objectnat.get_provision_buildings
+.. autofunction:: objectnat.get_provision_services
+.. autofunction:: objectnat.get_provision_links
 
 .. figure:: https://raw.githubusercontent.com/DDonnyy/ObjectNat/assets/service_provision_initial.png
    :alt: service_provision_initial

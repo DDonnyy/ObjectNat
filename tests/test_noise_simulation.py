@@ -1,16 +1,56 @@
+import math
 import os
 
 import geopandas as gpd
 import pandas as pd
 import pytest
 from matplotlib import pyplot as plt
-from shapely import Point, box
+from shapely import Point, Polygon, box
 
 from objectnat import calculate_simplified_noise_frame, config, simulate_noise
 from objectnat.methods.noise import get_air_resist_ratio
+from objectnat.methods.noise.noise_simulation import (
+    _cut_source_buffer_from_containing_geometries,
+    _tree_angular_span,
+)
 from tests.conftest import output_dir
 
 logger = config.logger
+
+
+def test_source_position_buffer_cuts_containing_geometry():
+    source_point = Point(0, 0)
+    geometries = gpd.GeoDataFrame(geometry=[box(-5, -5, 5, 5), box(10, 10, 12, 12)], crs=3857)
+
+    result = _cut_source_buffer_from_containing_geometries(geometries, source_point, 1)
+
+    assert len(result) == len(geometries)
+    assert not result.iloc[0].geometry.covers(source_point)
+    assert result.iloc[1].geometry.equals(geometries.iloc[1].geometry)
+
+
+def test_tree_angular_span_handles_zero_angle_seam():
+    source_point = Point(0, 0)
+    tree_sector = Polygon([source_point, Point(10, -1), Point(20, 0), Point(10, 1), source_point])
+
+    span = _tree_angular_span(tree_sector, source_point)
+
+    assert span is not None
+    start_point, end_point, delta_angle = span
+    assert start_point.distance(source_point) > 0
+    assert end_point.distance(source_point) > 0
+    assert delta_angle == pytest.approx(2 * math.atan(0.1))
+
+
+def test_source_position_buffer_rejects_negative_radius(gdf_1point, buildings_data):
+    with pytest.raises(ValueError, match="source_position_buffer_r must be non-negative"):
+        simulate_noise(
+            source_points=gdf_1point,
+            obstacles=buildings_data,
+            source_noise_db=90,
+            geometric_mean_freq_hz=2000,
+            source_position_buffer_r=-1,
+        )
 
 
 def test_basic_functionality(gdf_1point, buildings_data, trees_data):
@@ -26,7 +66,7 @@ def test_basic_functionality(gdf_1point, buildings_data, trees_data):
         geometric_mean_freq_hz=2000,
         standart_absorb_ratio=0.05,
         trees=trees_data,
-        tree_resolution=4,
+        tree_resolution=8,
         air_temperature=20,
         target_noise_db=target_noise_db,
         db_sim_step=1,
@@ -69,13 +109,13 @@ def test_multiple_sources(buildings_data, trees_data):
     )
 
     target_noise_db = 50
-    reflection_n = 1
+    reflection_n = 2
     result = simulate_noise(
         source_points=gdf,
         obstacles=buildings_data,
         standart_absorb_ratio=0.05,
         trees=trees_data,
-        tree_resolution=1,
+        tree_resolution=4,
         air_temperature=20,
         target_noise_db=target_noise_db,
         db_sim_step=1,

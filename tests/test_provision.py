@@ -4,39 +4,57 @@ import numpy as np
 import pytest
 from matplotlib import pyplot as plt
 
-from objectnat import clip_provision, get_service_provision, recalculate_links
+from objectnat import (
+    ProvisionResult,
+    clip_provision,
+    get_provision_buildings,
+    get_provision_links,
+    get_provision_services,
+    get_service_provision,
+    recalculate_links,
+)
 from tests.conftest import output_dir
 
 
 @pytest.fixture(scope="module")
-def basic_provision(buildings_data, services_data, matrix_time_data):
-    build_prov, services_prov, links_prov = get_service_provision(
-        buildings=buildings_data, services=services_data, adjacency_matrix=matrix_time_data, threshold=10
+def basic_provision_result(buildings_data, services_data, matrix_time_data):
+    return get_service_provision(
+        buildings=buildings_data, services=services_data, distance_matrix=matrix_time_data, threshold=10
     )
 
-    return build_prov, services_prov, links_prov
+
+def materialize_provision(buildings_data, services_data, provision_result):
+    return (
+        get_provision_buildings(buildings_data, provision_result),
+        get_provision_services(services_data, provision_result),
+        get_provision_links(buildings_data, services_data, provision_result),
+    )
 
 
 def test_no_demand(buildings_data, services_data, matrix_time_data):
     buildings_data = buildings_data.copy()
     buildings_data["demand"] = 0
-    build_prov, services_prov, links_prov = get_service_provision(
-        buildings=buildings_data, services=services_data, adjacency_matrix=matrix_time_data, threshold=10
+    provision_result = get_service_provision(
+        buildings=buildings_data, services=services_data, distance_matrix=matrix_time_data, threshold=10
     )
+    links_prov = get_provision_links(buildings_data, services_data, provision_result)
     assert links_prov.empty
 
 
 def test_no_capacity(buildings_data, services_data, matrix_time_data):
     services_data = services_data.copy()
     services_data["capacity"] = 0
-    build_prov, services_prov, links_prov = get_service_provision(
-        buildings=buildings_data, services=services_data, adjacency_matrix=matrix_time_data, threshold=10
+    provision_result = get_service_provision(
+        buildings=buildings_data, services=services_data, distance_matrix=matrix_time_data, threshold=10
     )
+    links_prov = get_provision_links(buildings_data, services_data, provision_result)
     assert links_prov.empty
 
 
-def test_get_service_provision(basic_provision, buildings_data):
-    build_prov, services_prov, links_prov = basic_provision
+def test_get_service_provision(basic_provision_result, buildings_data, services_data):
+    assert isinstance(basic_provision_result, ProvisionResult)
+    assert basic_provision_result.flow.sparse.to_coo().nnz > 0
+    build_prov, services_prov, links_prov = materialize_provision(buildings_data, services_data, basic_provision_result)
 
     assert build_prov is not None
     assert services_prov is not None
@@ -53,14 +71,16 @@ def test_get_service_provision(basic_provision, buildings_data):
     visualize_provision(buildings_data, build_prov, services_prov, links_prov, filename_suffix="initial")
 
 
-def test_recalculate_links(basic_provision, buildings_data):
-    build_prov, services_prov, links_prov = basic_provision
+def test_recalculate_links(basic_provision_result, buildings_data, services_data):
     threshold = 10
-    build_prov2, services_prov2, links_prov2 = recalculate_links(build_prov, services_prov, links_prov, threshold)
+    provision_result2 = recalculate_links(basic_provision_result, threshold)
+    build_prov = get_provision_buildings(buildings_data, basic_provision_result)
+    services_prov = get_provision_services(services_data, basic_provision_result)
+    build_prov2, services_prov2, links_prov2 = materialize_provision(buildings_data, services_data, provision_result2)
 
     assert len(build_prov) == len(build_prov2)
     assert len(services_prov) == len(services_prov2)
-    assert (links_prov2["distance"] <= 15).all()
+    assert (links_prov2["distance"] <= threshold).all()
 
     visualize_provision(
         buildings_data,
@@ -72,8 +92,8 @@ def test_recalculate_links(basic_provision, buildings_data):
     )
 
 
-def test_clip_links(basic_provision, buildings_data):
-    build_prov, services_prov, links_prov = basic_provision
+def test_clip_links(basic_provision_result, buildings_data, services_data):
+    build_prov, services_prov, links_prov = materialize_provision(buildings_data, services_data, basic_provision_result)
 
     to_clip_gdf = build_prov.iloc[:20].copy()
     to_clip_gdf["geometry"] = to_clip_gdf["geometry"].buffer(500)

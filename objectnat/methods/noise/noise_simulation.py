@@ -23,6 +23,8 @@ from objectnat.methods.visibility.visibility_analysis import _visibility_accurat
 logger = config.logger
 
 MAX_DB_VALUE = 194
+ANGLE_EPS = 1e-9
+SOURCE_VERTEX_EPS = 1e-7
 
 
 def simulate_noise(
@@ -76,6 +78,8 @@ def simulate_noise(
         dead_area_r (float, optional): A debugging parameter that defines the radius of the "dead zone" for reflections.
             Points within this area will not generate reflections. This is useful to prevent the algorithm from getting
             stuck in corners or along building walls.
+        source_position_buffer_r (float, optional): Radius in meters to cut from a containing obstacle or tree around
+            the initial source point. Default is 0, which keeps source geometries unchanged.
         use_parallel (bool, optional): Whether to use ProcessPool for task distribution or not. Default is True.
 
     Returns:
@@ -98,9 +102,13 @@ def simulate_noise(
     db_sim_step = kwargs.get("db_sim_step", 1)
     reflection_n = kwargs.get("reflection_n", 3)
     dead_area_r = kwargs.get("dead_area_r", 5)
+    source_position_buffer_r = kwargs.get("source_position_buffer_r", 0)
 
     # Use paralleling
     use_parallel = kwargs.get("use_parallel", True)
+
+    if source_position_buffer_r < 0:
+        raise ValueError("source_position_buffer_r must be non-negative.")
 
     # Validate optional columns or default values
     use_column_db = False
@@ -187,7 +195,12 @@ def simulate_noise(
             dist_db.append((max_dist, cur_db))
             cur_db -= db_sim_step
 
-        args = (source_point, obstacles, trees, 0, 0, dist_db)
+        task_obstacles = _cut_source_buffer_from_containing_geometries(
+            obstacles, source_point, source_position_buffer_r
+        )
+        task_trees = _cut_source_buffer_from_containing_geometries(trees, source_point, source_position_buffer_r)
+
+        args = (source_point, task_obstacles, task_trees, 0, 0, dist_db)
         kwargs = {
             "reflection_n": reflection_n,
             "geometric_mean_freq_hz": local_freq,
@@ -216,6 +229,149 @@ def simulate_noise(
     )
 
     return sim_result.to_crs(original_crs)
+
+
+def _iter_polygonal_geometries(geometry):
+    if isinstance(geometry, (Polygon, MultiPolygon)):
+        return [geometry]
+    if isinstance(geometry, GeometryCollection):
+        return [geom for geom in geometry.geoms if isinstance(geom, (Polygon, MultiPolygon))]
+    return []
+
+
+def _cut_source_buffer_from_containing_geometries(
+    geometries: gpd.GeoDataFrame, point_from: Point, source_position_buffer_r: float
+) -> gpd.GeoDataFrame:
+    if source_position_buffer_r <= 0 or len(geometries) == 0:
+        return geometries
+
+    source_buffer = point_from.buffer(source_position_buffer_r, quad_segs=8)
+    candidate_positions = list(geometries.sindex.query(source_buffer, predicate="intersects"))
+    if not candidate_positions:
+        return geometries
+
+    candidates = geometries.iloc[candidate_positions]
+    containing_index = candidates.index[candidates.geometry.covers(point_from)]
+    if containing_index.empty:
+        return geometries
+
+    result = geometries.copy()
+    geometry_column = result.geometry.name
+    result.loc[containing_index, geometry_column] = result.loc[containing_index, geometry_column].difference(
+        source_buffer
+    )
+    result = result[result.geometry.notna()]
+    result = result[~result.geometry.is_empty]
+    return result
+
+
+def _angle_from_point(point_from: Point, point_to: Point) -> float:
+    angle = math.atan2(point_to.y - point_from.y, point_to.x - point_from.x)
+    return angle if angle >= 0 else angle + 2 * math.pi
+
+
+def _tree_angular_span(tree_geom: Polygon, point_from: Point) -> tuple[Point, Point, float] | None:
+    points_with_angle = []
+    for coords in tree_geom.exterior.coords:
+        point = Point(coords)
+        point_dist = point.distance(point_from)
+        if point_dist <= SOURCE_VERTEX_EPS:
+            continue
+        points_with_angle.append((point, _angle_from_point(point_from, point), point_dist))
+
+    if len(points_with_angle) < 2:
+        return None
+
+    points_with_angle.sort(key=lambda item: (item[1], item[2]))
+    gaps = []
+    for i, (_, angle, _) in enumerate(points_with_angle):
+        next_i = (i + 1) % len(points_with_angle)
+        next_angle = points_with_angle[next_i][1]
+        if next_i == 0:
+            next_angle += 2 * math.pi
+        gaps.append((next_angle - angle, i))
+
+    _, gap_start_i = max(gaps, key=lambda item: item[0])
+    start_i = (gap_start_i + 1) % len(points_with_angle)
+    end_i = gap_start_i
+    start_point, start_angle, _ = points_with_angle[start_i]
+    end_point, end_angle, _ = points_with_angle[end_i]
+    delta_angle = (end_angle - start_angle) % (2 * math.pi)
+    if delta_angle <= ANGLE_EPS:
+        return None
+    return start_point, end_point, delta_angle
+
+
+def _build_tree_reduce_polygon(tree_geom: Polygon, point_from: Point, dist: float, vis_poly: Polygon):
+    angular_span = _tree_angular_span(tree_geom, point_from)
+    if angular_span is None:
+        return None, None
+
+    start_point, end_point, delta_angle = angular_span
+    if delta_angle >= math.pi:
+        projection_dist = dist * 2.1
+    else:
+        projection_dist = math.sqrt((dist**2) * (1 + (math.tan(delta_angle / 2) ** 2))) * 1.05
+
+    p1 = get_point_from_a_thorough_b(point_from, start_point, projection_dist)
+    p2 = get_point_from_a_thorough_b(point_from, end_point, projection_dist)
+    shadow_sector = Polygon([start_point, p1, p2, end_point])
+    if not shadow_sector.is_valid:
+        shadow_sector = shadow_sector.buffer(0)
+    if shadow_sector.is_empty:
+        return None, None
+
+    red_polygon = unary_union([shadow_sector.intersection(vis_poly), tree_geom])
+    polygonal_geometries = _iter_polygonal_geometries(red_polygon)
+    if not polygonal_geometries:
+        return None, None
+
+    if isinstance(red_polygon, GeometryCollection):
+        red_polygon = max(polygonal_geometries, key=lambda geom: geom.area)
+    if isinstance(red_polygon, MultiPolygon):
+        red_polygon = red_polygon.buffer(0.1, resolution=1).buffer(-0.1, resolution=1)
+    if isinstance(red_polygon, MultiPolygon):
+        red_polygon = max(red_polygon.geoms, key=lambda geom: geom.area)
+    if not isinstance(red_polygon, Polygon) or red_polygon.is_empty:
+        return None, None
+
+    return Polygon(red_polygon.exterior), delta_angle
+
+
+def _append_layered_reduce_polygons(
+    reduce_polygons, red_polygon, tree_geom, point_from, dist_values, geometric_mean_freq_hz, r_tree
+):
+    if r_tree <= 0 or red_polygon.is_empty:
+        return
+
+    max_layer_dist = max((dist for dist, _ in dist_values), default=0)
+    tree_entry_dist = point_from.distance(tree_geom)
+    if max_layer_dist <= 0 or tree_entry_dist >= max_layer_dist:
+        return
+
+    tree_exit_dist = tree_entry_dist + r_tree
+    split_distances = {0, max_layer_dist, min(tree_entry_dist, max_layer_dist), min(tree_exit_dist, max_layer_dist)}
+    split_distances.update(dist for dist, _ in dist_values)
+    split_distances = sorted({round(dist, 6) for dist in split_distances if 0 <= dist <= max_layer_dist})
+
+    prev_dist = split_distances[0]
+    prev_buffer = point_from.buffer(prev_dist)
+    for cur_dist in split_distances[1:]:
+        if cur_dist <= prev_dist:
+            continue
+
+        cur_buffer = point_from.buffer(cur_dist)
+        layer_mid_dist = (prev_dist + cur_dist) / 2
+        layer_tree_depth = min(max(layer_mid_dist - tree_entry_dist, 0), r_tree)
+        if layer_tree_depth > 0:
+            noise_reduce = green_noise_reduce_db(geometric_mean_freq_hz, layer_tree_depth)
+            reduce_geometry = red_polygon.intersection(cur_buffer.difference(prev_buffer))
+            for geom in _iter_polygonal_geometries(reduce_geometry):
+                if not geom.is_empty and geom.area >= 0.01:
+                    reduce_polygons.append((geom, noise_reduce))
+
+        prev_dist = cur_dist
+        prev_buffer = cur_buffer
 
 
 def _noise_from_point_task(task, **kwargs) -> tuple[gpd.GeoDataFrame, list[tuple] | None]:
@@ -275,43 +431,21 @@ def _noise_from_point_task(task, **kwargs) -> tuple[gpd.GeoDataFrame, list[tuple
                 if tree_geom.area < 1:
                     continue
                 dist_to_centroid = tree_geom.centroid.distance(point_from)
-
-                points_with_angle = [
-                    (
-                        Point(pt),
-                        round(abs(math.atan2(pt[1] - point_from.y, pt[0] - point_from.x)), 5),
-                        Point(pt).distance(point_from),
+                red_polygon, delta_angle = _build_tree_reduce_polygon(tree_geom, point_from, dist, vis_poly)
+                if red_polygon is not None:
+                    sin_half_angle = math.sin(delta_angle / 2)
+                    if dist_to_centroid <= 0 or sin_half_angle <= 0:
+                        continue
+                    r_tree_new = tree_geom.area / (2 * dist_to_centroid * sin_half_angle)
+                    _append_layered_reduce_polygons(
+                        reduce_polygons,
+                        red_polygon,
+                        tree_geom,
+                        point_from,
+                        donuts_dist_values,
+                        geometric_mean_freq_hz,
+                        r_tree_new,
                     )
-                    for pt in tree_geom.exterior.coords
-                ]
-
-                p0_1 = max(points_with_angle, key=lambda x: (x[1], x[2]))
-                p0_2 = min(points_with_angle, key=lambda x: (x[1], -x[2]))
-                delta_angle = 2 * math.pi + p0_1[1] - p0_2[1]
-                if delta_angle > math.pi:
-                    delta_angle = 2 * math.pi - delta_angle
-
-                a = math.sqrt((dist**2) * (1 + (math.tan(delta_angle / 2) ** 2))) * 1.05
-                p1 = get_point_from_a_thorough_b(point_from, p0_1[0], a)
-                p2 = get_point_from_a_thorough_b(point_from, p0_2[0], a)
-                red_polygon = unary_union([Polygon([p0_1[0], p1, p2, p0_2[0]]).intersection(vis_poly), tree_geom])
-                if isinstance(red_polygon, GeometryCollection):
-                    red_polygon = max(
-                        ((poly, poly.area) for poly in red_polygon.geoms if isinstance(poly, (MultiPolygon, Polygon))),
-                        key=lambda x: x[1],
-                    )[0]
-                if isinstance(red_polygon, MultiPolygon):
-                    red_polygon = red_polygon.buffer(0.1, resolution=1).buffer(-0.1, resolution=1)
-                if isinstance(red_polygon, MultiPolygon):
-                    red_polygon = max(((poly, poly.area) for poly in red_polygon.geoms), key=lambda x: x[1])[0]
-                if isinstance(red_polygon, Polygon) and not red_polygon.is_empty:
-                    red_polygon = Polygon(red_polygon.exterior)
-                    r_tree_new = round(
-                        tree_geom.area / (2 * dist_to_centroid * math.sin(abs(p0_1[1] - p0_2[1]) / 2)), 2
-                    )
-
-                    noise_reduce = int(round(green_noise_reduce_db(geometric_mean_freq_hz, r_tree_new)))
-                    reduce_polygons.append((red_polygon, noise_reduce))
 
     noise_from_point = _eval_donuts_gdf(point_from, donuts_dist_values, local_crs, vis_poly)
     # intersect noise poly with noise reduce

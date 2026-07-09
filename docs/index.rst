@@ -73,7 +73,9 @@ Features
   - :func:`objectnat.get_graph_coverage`, :func:`objectnat.get_radius_coverage`, :func:`objectnat.get_stepped_graph_coverage`
 - **Service Provision**
 
-  - :func:`objectnat.get_service_provision` , :func:`objectnat.recalculate_links`, :func:`objectnat.clip_provision`
+  - :func:`objectnat.get_service_provision`, :func:`objectnat.get_provision_buildings`,
+    :func:`objectnat.get_provision_services`, :func:`objectnat.get_provision_links`,
+    :func:`objectnat.recalculate_links`, :func:`objectnat.clip_provision`
 - **Noise Simulation**
 
   - :func:`objectnat.simulate_noise`, :func:`objectnat.calculate_simplified_noise_frame`
