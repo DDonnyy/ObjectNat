@@ -7,7 +7,7 @@ from importlib.metadata import version as pkg_version
 from pygments.lexers import get_lexer_by_name
 from sphinx.highlighting import lexers
 
-sys.path.insert(0, os.path.abspath("../src"))
+sys.path.insert(0, os.path.abspath(".."))
 
 project = "ObjectNat"
 author = "Donny"

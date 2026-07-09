@@ -4,7 +4,7 @@ import geopandas as gpd
 import pytest
 from matplotlib import pyplot as plt
 from matplotlib.patches import Patch
-from shapely import Point, Polygon
+from shapely import Point
 
 from objectnat import get_visibility
 from tests.conftest import output_dir

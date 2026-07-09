@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 from shapely import Point, box
 
 from objectnat import calculate_simplified_noise_frame, config, simulate_noise
-from objectnat.methods.noise.noise_reduce import get_air_resist_ratio
+from objectnat.methods.noise import get_air_resist_ratio
 from tests.conftest import output_dir
 
 logger = config.logger

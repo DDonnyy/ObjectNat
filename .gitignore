@@ -1,9 +1,61 @@
-cache
-/dist
+# Project caches
+.iduedu_cache/
+cache/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Python bytecode
+*.py[cod]
+*$py.class
+
+# Build / dist artifacts
+/dist/
+/build/
+/*.egg-info/
+
+# Virtual envs
+/.venv/
+/.env
+
+# IDE / tools
+/.idea/
+/.vscode/
+*.swp
+*.swo
+
+# Coverage / test artifacts
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# Sphinx docs
+docs/_build/
+docs/_autoapi/
+docs/api/generated/
+docs/_autosummary/
+docs/_doctrees/
+docs/api/generated
+_build/
+_autosummary/
+
+# Local dev stuff
 /dev
-/.idea
-/.venv
-/.vscode
 /poetry.lock
-__pycache__
-/.ipynb_checkpoints
+/uv.lock
+.claude
+.codex
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# test artifacts (rendered plots + downloaded/cached OSM graph)
+/tests/test_output/
+/tests/test_cache/
+
+# graphify knowledge graph (generated locally, not committed)
+/graphify-out/
+

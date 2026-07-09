@@ -1,83 +1,98 @@
-CODE := src
 PACKAGE := objectnat
+TESTS := tests
+FORMAT_PATHS := $(PACKAGE) $(TESTS)
+PYTHON ?= python
+UV ?= uv
+UV_RUN ?= $(UV) run
+COVERAGE_XML ?= coverage.xml
+COVERAGE_HTML ?= htmlcov
 
-.PHONY: help lint format test docs clean build publish build-and-publish \
-        install install-dev update release version-patch version-minor version-major tag push-tag
+.PHONY: help install install-dev lock update lint format format-check test \
+        coverage coverage-xml coverage-html docs clean build publish \
+        version version-next changelog
 
 help:
 	@echo "Available targets:"
-	@echo "  lint              - run linters (pylint, isort, black --check)"
+	@echo "  install           - install package into current Python environment"
+	@echo "  install-dev       - sync all dependency groups with uv"
+	@echo "  lock              - refresh uv.lock"
+	@echo "  update            - upgrade locked dependencies"
+	@echo "  lint              - run pylint on package code"
 	@echo "  format            - format code with isort + black"
-	@echo "  test              - run test suite (pytest)"
+	@echo "  format-check      - check code formatting with isort + black"
+	@echo "  test              - run test suite"
+	@echo "  coverage          - run tests with terminal coverage report"
+	@echo "  coverage-xml      - run tests and write coverage.xml for CI/Codecov"
+	@echo "  coverage-html     - run tests and write HTML coverage report"
 	@echo "  docs              - build documentation"
-	@echo "  build             - build wheel and sdist via poetry"
-	@echo "  publish           - publish to PyPI via poetry"
-	@echo "  build-and-publish - clean + build + publish"
-	@echo "  release           - tag current version (from pyproject) and push tag"
-	@echo "  version-patch     - bump patch version via poetry"
-	@echo "  version-minor     - bump minor version via poetry"
-	@echo "  version-major     - bump major version via poetry"
-
-lint:
-	poetry run pylint $(CODE)
-	poetry run isort --check-only $(CODE)
-	poetry run black --check $(CODE)
-
-format:
-	poetry run isort $(CODE)
-	poetry run black $(CODE)
-
-test:
-	poetry run pytest
-
-docs:
-	poetry run sphinx-build -b html docs docs/_build/html
+	@echo "  build             - build wheel and sdist with uv"
+	@echo "  publish           - publish package with uv"
+	@echo "  version           - print the current version (from $(PACKAGE)/_version.py)"
+	@echo "  version-next      - print the next version semantic-release would compute (no changes)"
+	@echo "  changelog         - regenerate CHANGELOG.md from commit history (no release)"
 
 install:
-	pip install .
+	$(PYTHON) -m pip install .
 
 install-dev:
-	poetry install --with dev,test,docs
+	$(UV) sync --all-groups
 
-clean:
-	rm -rf ./dist
-
-build:
-	poetry build
-
-publish:
-	poetry publish
-
-build-and-publish: clean build publish
+lock:
+	$(UV) lock
 
 update:
-	poetry update
+	$(UV) lock --upgrade
 
-.PHONY: sync-version-file
-sync-version-file:
-	python scripts/sync_version.py
+lint:
+	$(UV_RUN) python -m pylint $(PACKAGE)
 
-.PHONY: version-patch version-minor version-major
-version-patch: # 0.0.v
-	poetry version patch
-	$(MAKE) sync-version-file
+format:
+	$(UV_RUN) python -m isort $(FORMAT_PATHS)
+	$(UV_RUN) python -m black $(FORMAT_PATHS)
 
-version-minor: # 0.v.0
-	poetry version minor
-	$(MAKE) sync-version-file
+format-check:
+	$(UV_RUN) python -m isort --check-only $(FORMAT_PATHS)
+	$(UV_RUN) python -m black --check $(FORMAT_PATHS)
 
-version-major: # v.0.0
-	poetry version major
-	$(MAKE) sync-version-file
+test:
+	$(UV_RUN) python -m pytest -q
 
-VERSION := $(shell poetry version -s)
+coverage:
+	$(UV_RUN) python -m coverage erase
+	$(UV_RUN) python -m coverage run -m pytest -q
+	$(UV_RUN) python -m coverage report -m
 
-tag:
-	git tag v$(VERSION)
-	@echo "Created tag v$(VERSION)"
+coverage-xml:
+	$(UV_RUN) python -m coverage erase
+	$(UV_RUN) python -m coverage run -m pytest -q
+	$(UV_RUN) python -m coverage xml -o $(COVERAGE_XML)
+	$(UV_RUN) python -m coverage report -m
 
-push-tag:
-	git push origin v$(VERSION)
+coverage-html:
+	$(UV_RUN) python -m coverage erase
+	$(UV_RUN) python -m coverage run -m pytest -q
+	$(UV_RUN) python -m coverage html -d $(COVERAGE_HTML)
+	$(UV_RUN) python -m coverage report -m
 
-release: tag push-tag
-	@echo "Tagged and pushed v$(VERSION)."
+docs:
+	$(UV_RUN) sphinx-build -b html docs docs/_build/html
+
+clean:
+	rm -rf ./dist ./build ./*.egg-info ./$(COVERAGE_HTML) ./.coverage ./.coverage.* ./$(COVERAGE_XML)
+
+build:
+	$(UV) build
+
+publish:
+	$(UV) publish
+
+# Releases are automated on push to master (python-semantic-release); see CONTRIBUTING.md.
+# These targets are read-only helpers for inspecting versioning locally.
+version:
+	$(UV_RUN) python -c "from objectnat._version import VERSION; print(VERSION)"
+
+version-next:
+	$(UV_RUN) semantic-release --noop version --print
+
+changelog:
+	$(UV_RUN) semantic-release changelog

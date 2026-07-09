@@ -6,6 +6,9 @@ def get_radius_coverage(gdf_from: gpd.GeoDataFrame, radius: float, resolution: i
     """
     Calculate radius-based coverage zones using Voronoi polygons.
 
+    This is a graph-free coverage: zones are built purely from the source
+    points, a fixed radius and a Voronoi partition, with no network involved.
+
     Args:
         gdf_from (gpd.GeoDataFrame):
             Source points for which coverage zones are calculated.

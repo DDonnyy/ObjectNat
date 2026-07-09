@@ -1,17 +1,19 @@
 import os
-import pickle
 
 import geopandas as gpd
+import matplotlib
 import pandas as pd
 import pytest
-from iduedu import config, get_4326_boundary, get_intermodal_graph
+from iduedu import UrbanGraph, config, get_4326_boundary, get_intermodal_graph
 from shapely import Point
 
-from objectnat import graph_to_gdf
+# Tests only render plots to PNG files; force the non-interactive backend so the
+# suite never needs a display/Tk (headless CI, Windows without Tk, etc.).
+matplotlib.use("Agg")
 
 logger = config.logger
 
-path_to_data = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../docs/methods/examples/examples_data/")
+path_to_data = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../docs/methods/examples/examples_data/")
 output_dir = os.path.join(os.path.dirname(__file__), "test_output")
 cache_dir = os.path.join(os.path.dirname(__file__), "test_cache")
 os.makedirs(cache_dir, exist_ok=True)
@@ -63,31 +65,28 @@ def boundary_osm_1114252():
 
 
 @pytest.fixture(scope="session")
-def intermodal_osm_1114252(boundary_osm_1114252):
-    cache_file = os.path.join(cache_dir, "intermodal_graph_1114252.pickle")
+def intermodal_osm_1114252(boundary_osm_1114252) -> UrbanGraph:
+    cache_file = os.path.join(cache_dir, "intermodal_graph_1114252.urbangraph")
     if os.path.exists(cache_file):
         try:
-            with open(cache_file, "rb") as f:
-                logger.info(f"Loading cached graph from {cache_file}")
-                return pickle.load(f)
-        except (pickle.PickleError, EOFError) as e:
+            logger.info(f"Loading cached graph from {cache_file}")
+            return UrbanGraph.read(cache_file)
+        except Exception as e:  # pylint: disable=broad-exception-caught
             logger.warning(f"Failed to load cached graph: {e}. Regenerating...")
             os.remove(cache_file)
     logger.info("Generating new intermodal graph")
     graph = get_intermodal_graph(territory=boundary_osm_1114252, clip_by_territory=True)
     try:
-        with open(cache_file, "wb") as f:
-            logger.info(f"Saving graph to cache: {cache_file}")
-            pickle.dump(graph, f, protocol=pickle.HIGHEST_PROTOCOL)
-    except IOError as e:
+        logger.info(f"Saving graph to cache: {cache_file}")
+        graph.write(cache_file)
+    except OSError as e:
         logger.error(f"Failed to cache graph: {e}")
     return graph
 
 
 @pytest.fixture(scope="session")
-def intermodal_osm_1114252_edges_gdf(intermodal_osm_1114252):
-    graph_gdf = graph_to_gdf(intermodal_osm_1114252, nodes=False, restore_edge_geom=True)
-    return graph_gdf
+def intermodal_osm_1114252_edges_gdf(intermodal_osm_1114252) -> gpd.GeoDataFrame:
+    return intermodal_osm_1114252.edges_gdf
 
 
 @pytest.fixture(scope="session")

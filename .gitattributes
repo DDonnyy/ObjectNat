@@ -1,0 +1,21 @@
+* text=auto
+
+*.py text eol=lf
+*.pyi text eol=lf
+*.toml text eol=lf
+*.md text eol=lf
+*.rst text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+*.txt text eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.svg text eol=lf
+*.ico binary
+*.pdf binary
+*.parquet binary
+*.urbangraph binary

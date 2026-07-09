@@ -1,7 +1,7 @@
 import math
 
 import geopandas as gpd
-from shapely import LineString, MultiPolygon, Point, Polygon
+from shapely import LineString, MultiLineString, MultiPolygon, Point, Polygon
 from shapely.ops import polygonize, unary_union
 
 from objectnat import config
@@ -9,24 +9,16 @@ from objectnat import config
 logger = config.logger
 
 
-def polygons_to_multilinestring(geom: Polygon | MultiPolygon):
-    # pylint: disable-next=redefined-outer-name,reimported,import-outside-toplevel
-    from shapely import LineString, MultiLineString, MultiPolygon
+def polygons_to_multilinestring(geom: Polygon | MultiPolygon) -> MultiLineString:
 
-    def convert_polygon(polygon: Polygon):
-        lines = []
-        exterior = LineString(polygon.exterior)
-        lines.append(exterior)
-        interior = [LineString(p) for p in polygon.interiors]
-        lines = lines + interior
-        return lines
-
-    def convert_multipolygon(polygon: MultiPolygon):
-        return MultiLineString(sum([convert_polygon(p) for p in polygon.geoms], []))
+    def polygon_to_lines(polygon: Polygon) -> list[LineString]:
+        return [LineString(polygon.exterior), *(LineString(interior) for interior in polygon.interiors)]
 
     if geom.geom_type == "Polygon":
-        return MultiLineString(convert_polygon(geom))
-    return convert_multipolygon(geom)
+        return MultiLineString(polygon_to_lines(geom))
+    if geom.geom_type == "MultiPolygon":
+        return MultiLineString([line for polygon in geom.geoms for line in polygon_to_lines(polygon)])
+    raise TypeError(f"Expected Polygon or MultiPolygon, got {geom.geom_type}")
 
 
 def explode_linestring(geometry: LineString) -> list[LineString]:

@@ -1,53 +1,89 @@
-[tool.poetry]
+[project]
 name = "ObjectNat"
-version = "1.4.1"
+dynamic = ["version"]
 description = "ObjectNat is an open-source library created for geospatial analysis created by IDU team"
-license = "BSD-3-Clause"
-authors = ["DDonnyy <63115678+DDonnyy@users.noreply.github.com>"]
 readme = "README.rst"
+requires-python = ">=3.11,<3.13"
+license = "BSD-3-Clause"
+license-files = ["LICENSE.txt"]
+authors = [
+    { name = "DDonnyy", email = "63115678+DDonnyy@users.noreply.github.com" },
+]
+dependencies = [
+    "geopandas>=1.1.0,<2.0.0",
+    "iduedu>=2.0.0,<3.0.0",
+    "loguru>=0.7.3,<0.8.0",
+    "networkx>=3.4.2,<4.0.0",
+    "numpy>=2.4.0,<3.0.0",
+    "pandas>=3.0.0,<4.0.0",
+    "scikit-learn>=1.4.0,<2.0.0",
+    "scipy>=1.17.0,<2.0.0",
+    "tqdm>=4.66.2,<5.0.0",
+]
 
-packages = [{ include = "objectnat", from = "src" }]
+[dependency-groups]
+dev = [
+    { include-group = "docs" },
+    { include-group = "lint" },
+    { include-group = "notebooks" },
+    { include-group = "release" },
+    { include-group = "test" },
+    { include-group = "viz" },
+    "pre-commit>=4.2.0,<5.0.0",
+    "pyarrow>=19.0.1,<20.0.0",
+]
+docs = [
+    "furo>=2025.9.25,<2026.0.0",
+    "linkify-it-py>=2.0.3,<3.0.0",
+    "myst-nb>=1.1.0,<2.0.0",
+    "myst-parser>=4.0.1,<5.0.0",
+    "sphinx>=8.0.0,<9.0.0",
+    "sphinx-autodoc-typehints>=3.2.0,<4.0.0",
+    "sphinx-copybutton>=0.5.2,<0.6.0",
+    "sphinx-design>=0.6.0,<0.7.0",
+]
+lint = [
+    "black>=25.9.0,<26.0.0",
+    "isort>=6.1.0,<7.0.0",
+    "pylint>=3.3.5,<4.0.0",
+]
+notebooks = [
+    "jupyter>=1.1.1,<2.0.0",
+]
+release = [
+    "python-semantic-release>=9.15.0,<10.0.0",
+]
+test = [
+    "pytest>=8.3.5,<9.0.0",
+    "pytest-cov>=6.0.0,<7.0.0",
+]
+viz = [
+    "folium>=0.19.5,<0.20.0",
+    "mapclassify>=2.8.1,<3.0.0",
+    "matplotlib>=3.10.1,<4.0.0",
+]
 
-[tool.poetry.dependencies]
-python = ">=3.11,<3.13"
-numpy = "^2.1.3"
-pandas = "^2.2.0"
-geopandas = "^1.0.1"
-tqdm = "^4.66.2"
-networkx = "^3.4.2"
-scikit-learn = "^1.4.0"
-loguru = "^0.7.3"
-
-
-[tool.poetry.group.test.dependencies]
-pytest = "^8.3.5"
-pytest-cov = "^6.0.0"
-folium = "^0.19.5"
-matplotlib = "^3.10.1"
-mapclassify = "^2.8.1"
-iduedu = "^1.0.0"
-
-[tool.poetry.group.dev.dependencies]
-pyarrow = "^19.0.1"
-black = "^24.2.0"
-pylint = "^3.0.3"
-isort = "^5.13.2"
-jupyter = "^1.0.0"
-pre-commit = "^4.2.0"
-
-[tool.poetry.group.docs.dependencies]
-sphinx = "^8.0.0"
-furo = "^2025.9.25"
-myst-nb = "^1.1.0"
-sphinx-autodoc-typehints = "^3.2.0"
-sphinx-copybutton = "^0.5.2"
-sphinx-design = "^0.6.0"
-myst-parser = "^4.0.1"
-linkify-it-py = "^2.0.3"
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling>=1.26.0"]
+build-backend = "hatchling.build"
+
+# Single source of truth for the version: objectnat/_version.py (VERSION = "x.y.z").
+# python-semantic-release bumps that file; hatchling reads it at build time.
+[tool.hatch.version]
+path = "objectnat/_version.py"
+pattern = 'VERSION = "(?P<version>[^"]+)"'
+
+[tool.hatch.build.targets.wheel]
+packages = ["objectnat"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/objectnat",
+    "/LICENSE.txt",
+    "/README.rst",
+    "/pyproject.toml",
+]
 
 [tool.black]
 line-length = 120
@@ -57,17 +93,18 @@ target-version = ['py311']
 max-line-length = 120
 expected-line-ending-format = "LF"
 max-locals = 20
-extension-pkg-allow-list = ["networkit"]
 disable = [
     "duplicate-code",
-    "too-many-positional-arguments",
     "missing-module-docstring",
     "missing-function-docstring",
     "too-many-locals",
     "too-many-branches",
     "too-many-statements",
     "too-many-arguments",
-    "cyclic-import"
+    "cyclic-import",
+    "line-too-long",
+    "too-many-return-statements",
+    "too-many-positional-arguments",
 ]
 
 [tool.isort]
@@ -79,3 +116,57 @@ ensure_newline_before_comments = true
 line_length = 120
 split_on_trailing_comma = true
 skip = ["__init__.py"]
+
+[tool.coverage.run]
+branch = true
+source = ["objectnat"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "pragma: no branch",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+# ---------------------------------------------------------------------------
+# Automated releases (python-semantic-release)
+#
+# The next version is derived from Conventional Commit messages since the last
+# tag: feat -> minor, fix/perf -> patch, feat!/BREAKING CHANGE -> major.
+# The release workflow runs after CI succeeds on master, bumps
+# objectnat/_version.py, updates CHANGELOG.md, commits, tags vX.Y.Z, and
+# publishes. See CONTRIBUTING.md.
+# ---------------------------------------------------------------------------
+[tool.semantic_release]
+version_variables = ["objectnat/_version.py:VERSION"]
+tag_format = "v{version}"
+commit_message = "chore(release): v{version} [skip ci]\n\nAutomated release, see CHANGELOG.md."
+build_command = "python -m pip install uv && uv build"
+allow_zero_version = false
+major_on_zero = true
+
+[tool.semantic_release.branches.master]
+match = "master"
+
+[tool.semantic_release.commit_parser_options]
+# Conventional-commit types that trigger a version bump. Everything else
+# (docs, test, chore, refactor, ci, style, build) leaves the version untouched.
+allowed_tags = [
+    "feat",
+    "fix",
+    "perf",
+    "build",
+    "chore",
+    "ci",
+    "docs",
+    "refactor",
+    "style",
+    "test",
+]
+minor_tags = ["feat"]
+patch_tags = ["fix", "perf"]
+
+[tool.semantic_release.changelog]
+exclude_commit_patterns = ['''^chore\(release\):.*''']
