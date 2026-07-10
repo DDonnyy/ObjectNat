@@ -1,9 +1,10 @@
 Isochrones and Transport Accessibility
 ======================================
 
-Isochrones represent areas reachable from a starting point within a given time limit
-along a transport network.
-This functionality enables analysis of transport accessibility using **pedestrian**, **automobile**, **public transport** graphs, or their combination.
+Isochrones represent areas reachable from a starting point within a given time or
+distance limit along an ``iduedu.UrbanGraph`` transport network.
+This functionality enables analysis of transport accessibility using **pedestrian**,
+**automobile**, **public transport**, or intermodal graphs prepared by IduEdu.
 
 ----
 
@@ -16,7 +17,7 @@ Baseline Isochrones
 
 Show a single area reachable within a specified time.
 
-.. autofunction:: objectnat.get_accessibility_isochrones
+.. autofunction:: objectnat.get_graph_isochrones
 
 .. figure:: https://raw.githubusercontent.com/DDonnyy/ObjectNat/assets/isochrone_ways_15_min.png
    :alt: isochrone_ways_15_min
@@ -50,7 +51,7 @@ Stepped Isochrones
 
 Show accessibility ranges divided into time intervals (e.g., 5, 10, 15 minutes).
 
-.. autofunction:: objectnat.get_accessibility_isochrone_stepped
+.. autofunction:: objectnat.get_stepped_graph_isochrones
 
 ----
 

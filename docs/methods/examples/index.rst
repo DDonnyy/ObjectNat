@@ -10,6 +10,5 @@ Examples
    provision
    visibility
    noise
-   clustering
-   calculate_adjacency_matrix
+   calculate_od_matrix
 

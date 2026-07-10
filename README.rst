@@ -12,12 +12,12 @@ Object-oriented Network Analysis Tools
    :target: https://pypi.org/project/objectnat/
    :alt: PyPI version
 
-.. |badge-ci| image:: https://github.com/IDUclub/ObjectNat/actions/workflows/ci_pipeline.yml/badge.svg
-   :target: https://github.com/IDUclub/ObjectNat/actions/workflows/ci_pipeline.yml
-   :alt: CI
+.. |badge-ci| image:: https://github.com/IDUclub/ObjectNat/actions/workflows/quality.yml/badge.svg
+   :target: https://github.com/IDUclub/ObjectNat/actions/workflows/quality.yml
+   :alt: Tests and coverage
 
-.. |badge-codecov| image:: https://codecov.io/gh/DDonnyy/ObjectNat/graph/badge.svg?token=K6JFSJ02GU
-   :target: https://codecov.io/gh/DDonnyy/ObjectNat
+.. |badge-codecov| image:: https://codecov.io/gh/IDUclub/ObjectNat/graph/badge.svg?token=K6JFSJ02GU
+   :target: https://codecov.io/gh/IDUclub/ObjectNat
    :alt: Coverage
 
 .. |badge-license| image:: https://img.shields.io/badge/license-BSD--3--Clause-blue.svg
@@ -53,7 +53,7 @@ Each feature includes a **Jupyter Notebook example** and **full documentation**.
 
    Isochrones represent areas reachable from an origin point within a specified time along a transport network.
    This feature allows the analysis of transport accessibility using pedestrian, road,
-   public transport, or multimodal graphs.
+   public transport, or multimodal ``UrbanGraph`` objects prepared by IduEdu.
 
    The library supports several methods for building isochrones:
 
@@ -80,6 +80,8 @@ Each feature includes a **Jupyter Notebook example** and **full documentation**.
    and a defined **accessibility threshold** (in minutes or meters).
    The function models the **balance between supply and demand**,
    assessing how well services meet the needs of nearby buildings within an acceptable time.
+   ObjectNat 2.0 returns a structured ``ProvisionResult`` with a sparse flow matrix
+   and materialization helpers for buildings, services, and link geometries.
 
    📘 `Example <https://iduclub.github.io/ObjectNat/methods/examples/provision.html>`__
    🔗 `Documentation <https://iduclub.github.io/ObjectNat/methods/provision.html>`__
@@ -88,9 +90,8 @@ Each feature includes a **Jupyter Notebook example** and **full documentation**.
 
    A function for evaluating visibility from a given point or set of points to nearby buildings within a given radius.
    It is used to assess visual accessibility in urban environments.
-   A module is also implemented for computing **visibility coverage zones**
-   using a dense observer grid (recommended ~1000 points with a 10–20 m spacing).
-   Points can be generated along the transport network and distributed across its edges.
+   The unified ``get_visibility`` API supports accurate and simplified methods,
+   including parallel execution for batches of observer points.
 
    📘 `Example <https://iduclub.github.io/ObjectNat/methods/examples/visibility.html>`__
    🔗 `Documentation <https://iduclub.github.io/ObjectNat/methods/visibility.html>`__
@@ -104,19 +105,6 @@ Each feature includes a **Jupyter Notebook example** and **full documentation**.
    🔗 `Documentation <https://iduclub.github.io/ObjectNat/methods/noise.html>`__
    🧠 `Detailed theory <https://github.com/DDonnyy/ObjectNat/wiki/Noise-simulation>`__
 
-6. **Point Clusterization**  
-
-   A function for constructing **cluster polygons** based on a set of points using:
-
-   - Minimum **distance** between points.
-   - Minimum **number of points** in a cluster.
-
-   The function can also compute the **ratio of service types** in each cluster
-   for spatial analysis of service composition.
-
-   📘 `Example <https://iduclub.github.io/ObjectNat/methods/examples/clustering.html>`__
-   🔗 `Documentation <https://iduclub.github.io/ObjectNat/methods/clustering.html>`__
-
 ----
 
 City Graphs via *IduEdu*
@@ -124,6 +112,8 @@ City Graphs via *IduEdu*
 
 For optimal performance, **ObjectNat** is recommended to be used with graphs
 created by the `IduEdu <https://github.com/IDUclub/IduEdu>`_ library.
+Graph-based ObjectNat methods consume ``iduedu.UrbanGraph`` directly; ObjectNat
+does not build NetworkX graphs internally.
 
 **IduEdu** is an open-source Python library designed for building and processing
 complex urban networks based on OpenStreetMap data.
@@ -138,7 +128,7 @@ Example usage::
     from iduedu import get_4326_boundary, get_intermodal_graph
 
     poly = get_4326_boundary(osm_id=1114252)
-    G_intermodal = get_intermodal_graph(territory=poly, clip_by_territory=True)
+    urban_graph = get_intermodal_graph(territory=poly, clip_by_territory=True)
 
 ----
 
@@ -160,6 +150,14 @@ You can adjust logging and progress bar output using the config module::
 
     config.change_logger_lvl("INFO")   # mute debug logs
     config.set_enable_tqdm(False)      # disable tqdm progress bars
+
+Migration to ObjectNat 2.0
+--------------------------
+
+ObjectNat 2.0 replaces NetworkX-based graph inputs with ``iduedu.UrbanGraph``,
+renames accessibility functions, and returns ``ProvisionResult`` from service
+provision. See the migration guide in the documentation:
+`Migration 1.x to 2.0 <https://iduclub.github.io/ObjectNat/migration_1_to_2.html>`__.
 
 ----
 
