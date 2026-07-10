@@ -34,15 +34,16 @@ def get_graph_coverage(
     Dijkstra reachability and Voronoi partitioning.
 
     Coverage answers *"which area is served by each source object"*. The function:
-        1. Snaps each source object to its nearest graph node (or uses the
-           provided ``destination_nodes``).
-        2. Runs a multi-source Dijkstra search on the reversed graph, so every
-           reachable node is labelled with its nearest source within
-           ``weight_value_cutoff``.
-        3. Builds Voronoi polygons around the graph nodes.
-        4. Dissolves the reachable Voronoi cells per source into one zone each.
-        5. Clips the result to ``zone``, to a residual-radius / road geometry
-           (``geometry_type``), or to the concave hull of the reachable nodes.
+
+    1. Snaps each source object to its nearest graph node (or uses the provided
+       ``destination_nodes``).
+    2. Runs a multi-source Dijkstra search on the reversed graph, so every
+       reachable node is labelled with its nearest source within
+       ``weight_value_cutoff``.
+    3. Builds Voronoi polygons around the graph nodes.
+    4. Dissolves the reachable Voronoi cells per source into one zone each.
+    5. Clips the result to ``zone``, to a residual-radius / road geometry
+       (``geometry_type``), or to the concave hull of the reachable nodes.
 
     Args:
         urban_graph:
@@ -218,13 +219,14 @@ def get_stepped_graph_coverage(
     Like :func:`get_graph_coverage`, but instead of one zone per source the
     reachable area is split into concentric bands of width ``step``. The
     function:
-        1. Snaps each source object to its nearest graph node (or uses the
-           provided ``destination_nodes``).
-        2. Runs a multi-source Dijkstra search on the reversed graph, labelling
-           every reachable node with the distance to its nearest source.
-        3. Buckets the nodes into steps and builds banded geometry with the
-           selected ``geometry_type``.
-        4. Optionally clips the bands to ``zone``.
+
+    1. Snaps each source object to its nearest graph node (or uses the provided
+       ``destination_nodes``).
+    2. Runs a multi-source Dijkstra search on the reversed graph, labelling
+       every reachable node with the distance to its nearest source.
+    3. Buckets the nodes into steps and builds banded geometry with the
+       selected ``geometry_type``.
+    4. Optionally clips the bands to ``zone``.
 
     Args:
         urban_graph:

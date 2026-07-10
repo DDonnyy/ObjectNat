@@ -54,7 +54,7 @@ def gdf_to_circle_zones_from_point(
 ) -> gpd.GeoDataFrame:
     """n_segments = 4*resolution,e.g. if resolution = 4 that means there will be 16 segments"""
     crs = gdf.crs
-    buffer = point_from.buffer(zone_radius, resolution=resolution)
+    buffer = point_from.buffer(zone_radius, quad_segs=resolution)
     gdf_unary = gdf.clip(buffer, keep_geom_type=True).union_all()
     gdf_geometry = (
         gpd.GeoDataFrame(geometry=[gdf_unary], crs=crs)
@@ -83,8 +83,7 @@ def remove_inner_geom(polygon: Polygon | MultiPolygon):
         for poly in polygon.geoms:
             polys.append(Polygon(poly.exterior.coords))
         return MultiPolygon(polys)
-    else:
-        return Polygon()
+    return Polygon()
 
 
 def combine_geometry(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
@@ -138,7 +137,7 @@ def distribute_points_on_linestrings(lines: gpd.GeoDataFrame, radius, lloyd_rela
     lines["lines"] = lines.geometry
     geom_concave = lines.buffer(5, resolution=1).union_all()
 
-    for i in range(lloyd_relax_n):
+    for _ in range(lloyd_relax_n):
         points.geometry = points.voronoi_polygons().clip(geom_concave).centroid
         points = points.sjoin_nearest(lines, how="left")
         points = points[~points.index.duplicated(keep="first")]

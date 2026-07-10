@@ -118,13 +118,13 @@ def simulate_noise(
                 f"One or more values in 'source_noise_db' column exceed the physical limit of {MAX_DB_VALUE} dB."
             )
         if source_points["source_noise_db"].isnull().any():
-            raise ValueError(f"Column 'source_noise_db' contains missing (NaN) values")
+            raise ValueError("Column 'source_noise_db' contains missing (NaN) values")
         use_column_db = True
 
     use_column_freq = False
     if "geometric_mean_freq_hz" in source_points.columns:
         if source_points["geometric_mean_freq_hz"].isnull().any():
-            raise ValueError(f"Column 'geometric_mean_freq_hz' contains missing (NaN) values")
+            raise ValueError("Column 'geometric_mean_freq_hz' contains missing (NaN) values")
         use_column_freq = True
 
     if not use_column_db:
@@ -209,7 +209,7 @@ def simulate_noise(
             "simulation_ind": ind,
         }
         task_queue.put((_noise_from_point_task, args, kwargs))
-        dead_area_dict[ind] = source_point.buffer(dead_area_r, resolution=2)
+        dead_area_dict[ind] = source_point.buffer(dead_area_r, quad_segs=2)
 
     noise_gdf = _recursive_simulation_queue(
         task_queue, dead_area_dict=dead_area_dict, dead_area_r=dead_area_r, use_parallel=use_parallel
@@ -329,7 +329,7 @@ def _build_tree_reduce_polygon(tree_geom: Polygon, point_from: Point, dist: floa
     if isinstance(red_polygon, GeometryCollection):
         red_polygon = max(polygonal_geometries, key=lambda geom: geom.area)
     if isinstance(red_polygon, MultiPolygon):
-        red_polygon = red_polygon.buffer(0.1, resolution=1).buffer(-0.1, resolution=1)
+        red_polygon = red_polygon.buffer(0.1, quad_segs=1).buffer(-0.1, quad_segs=1)
     if isinstance(red_polygon, MultiPolygon):
         red_polygon = max(red_polygon.geoms, key=lambda geom: geom.area)
     if not isinstance(red_polygon, Polygon) or red_polygon.is_empty:
@@ -402,7 +402,7 @@ def _noise_from_point_task(task, **kwargs) -> tuple[gpd.GeoDataFrame, list[tuple
     local_crs = obstacles.crs
     dist = round(max_dist - passed_dist, 1)
 
-    obstacles = obstacles[obstacles.intersects(point_from.buffer(dist, resolution=8))]
+    obstacles = obstacles[obstacles.intersects(point_from.buffer(dist, quad_segs=8))]
 
     if len(obstacles) == 0:
         obstacles_union = Polygon()
@@ -418,7 +418,7 @@ def _noise_from_point_task(task, **kwargs) -> tuple[gpd.GeoDataFrame, list[tuple
     # Trees noise reduce
     reduce_polygons = []
     if len(trees_orig) > 0:
-        trees_orig = trees_orig[trees_orig.intersects(point_from.buffer(dist, resolution=8))]
+        trees_orig = trees_orig[trees_orig.intersects(point_from.buffer(dist, quad_segs=8))]
         if len(trees_orig) > 0:
             try:
                 trees = gdf_to_circle_zones_from_point(trees_orig, point_from, dist, resolution=tree_res)
@@ -501,7 +501,7 @@ def _noise_from_point_task(task, **kwargs) -> tuple[gpd.GeoDataFrame, list[tuple
     vis_poly_points = vis_poly_points.sjoin(obstacles, predicate="intersects").drop(columns="index_right")
     vis_poly_points = vis_poly_points[~vis_poly_points.index.duplicated(keep="first")]
     vis_poly_points.dropna(subset=["absorb_ratio"], inplace=True)
-    nearby_poly = point_from.buffer(1.1, resolution=2)
+    nearby_poly = point_from.buffer(1.1, quad_segs=2)
     try:
         vis_poly_points.geometry = (
             vis_poly_points.difference(vis_poly).difference(obstacles_union).difference(nearby_poly)
@@ -532,7 +532,7 @@ def _noise_from_point_task(task, **kwargs) -> tuple[gpd.GeoDataFrame, list[tuple
             dist_change = loc["absorb_ratio"] * dist_last
             new_dist_db = [(dist - dist_change, db - db_change) for dist, db in dist_db]
             task_obs = new_obs.copy()
-            task_obs.geometry = task_obs.difference(loc.geometry.buffer(1, resolution=1))
+            task_obs.geometry = task_obs.difference(loc.geometry.buffer(1, quad_segs=1))
             new_tasks.append(
                 (
                     _noise_from_point_task,
@@ -556,9 +556,10 @@ def _recursive_simulation_queue(
         else:
             executor_class = concurrent.futures.ThreadPoolExecutor()
         with executor_class as executor:
+            max_workers = executor._max_workers  # pylint: disable=protected-access
             future_to_task = {}
             while True:
-                while not task_queue.empty() and len(future_to_task) < executor._max_workers:
+                while not task_queue.empty() and len(future_to_task) < max_workers:
                     func, task, kwargs = task_queue.get_nowait()
                     future = executor.submit(func, task, **kwargs)
                     future_to_task[future] = kwargs["simulation_ind"]
@@ -574,7 +575,7 @@ def _recursive_simulation_queue(
                             new_point = new_task[0]
                             if not local_dead_area.covers(new_point):
                                 task_queue.put((func, new_task, new_kwargs))
-                                new_dead_area_points.append(new_point.buffer(dead_area_r, resolution=2))
+                                new_dead_area_points.append(new_point.buffer(dead_area_r, quad_segs=2))
                                 new_tasks_n += 1
                         dead_area_dict[simulation_ind] = unary_union(new_dead_area_points)
                         total_tasks += new_tasks_n

@@ -13,6 +13,7 @@ def get_service_provision(
     threshold: float,
     buildings_demand_column: str = "demand",
     services_capacity_column: str = "capacity",
+    seed: int = 0,
 ) -> ProvisionResult:
     """
     Compute service provision between demand locations and service facilities.
@@ -36,6 +37,10 @@ def get_service_provision(
             Column name of building demand values. Default is ``"demand"``.
         services_capacity_column:
             Column name of service capacity values. Default is ``"capacity"``.
+        seed:
+            Seed for the random number generator used to allocate demand across
+            services. The model is otherwise deterministic, so a fixed seed yields
+            reproducible results; vary it to sample alternative allocations. Default is ``0``.
 
     Returns:
         ProvisionResult:
@@ -49,6 +54,7 @@ def get_service_provision(
         threshold=threshold,
         buildings_demand_column=buildings_demand_column,
         services_capacity_column=services_capacity_column,
+        seed=seed,
     )
 
 

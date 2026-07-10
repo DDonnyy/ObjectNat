@@ -31,7 +31,7 @@ class Config:
         self.enable_tqdm_bar = enable_tqdm_bar
         self.logger = logger
 
-    def change_logger_lvl(self, lvl: Literal["TRACE", "DEBUG", "INFO", "WARN", "ERROR"]):
+    def change_logger_lvl(self, lvl: Literal["TRACE", "DEBUG", "INFO", "WARNING", "ERROR"]):
         self.logger.remove()
         self.logger.add(sys.stderr, level=lvl)
 
@@ -40,4 +40,4 @@ class Config:
 
 
 config = Config()
-config.change_logger_lvl("INFO")
+config.change_logger_lvl("WARNING")

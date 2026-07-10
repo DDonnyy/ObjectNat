@@ -113,7 +113,9 @@ def _append_flow_records(
     values.extend(flow_values[row_idx, col_idx].astype(int).tolist())
 
 
-def _calculate_flows_for_service(service_distances: pd.Series, capacity: int, best_houses: float) -> pd.Series:
+def _calculate_flows_for_service(
+    service_distances: pd.Series, capacity: int, best_houses: float, seed: int
+) -> pd.Series:
     if capacity <= 0:
         return pd.Series(dtype=int)
 
@@ -133,19 +135,22 @@ def _calculate_flows_for_service(service_distances: pd.Series, capacity: int, be
     if probabilities.empty or probabilities.sum() == 0:
         return pd.Series(dtype=int)
 
-    rng = np.random.default_rng(seed=0)
+    rng = np.random.default_rng(seed=seed)
     result = pd.Series(0, probabilities.index)
     choice = np.unique(rng.choice(probabilities.index, int(capacity), p=probabilities.values), return_counts=True)
     return result.add(pd.Series(choice[1], choice[0]), fill_value=0)
 
 
-def _balance_flows_to_demand(building_flows: pd.Series, demand: int) -> pd.Series:
+def _balance_flows_to_demand(building_flows: pd.Series, demand: int, seed: int) -> pd.Series:
     flows = building_flows[building_flows > 0]
+    # Nothing to redistribute: with no positive flow or no remaining demand the
+    # positive flows are returned unchanged (callers already dropped buildings
+    # whose demand is exhausted, so demand <= 0 does not occur in the main loop).
     if flows.sum() <= 0 or demand <= 0:
         return flows
 
     probabilities = flows / flows.sum()
-    rng = np.random.default_rng(seed=0)
+    rng = np.random.default_rng(seed=seed)
     result = pd.Series(0, probabilities.index)
     choice = np.unique(rng.choice(probabilities.index, int(demand), p=probabilities.values), return_counts=True)
     choice = result.add(pd.Series(choice[1], choice[0]), fill_value=0)
@@ -254,6 +259,7 @@ def calculate_provision(
     threshold: float,
     buildings_demand_column: str = "demand",
     services_capacity_column: str = "capacity",
+    seed: int = 0,
 ) -> ProvisionResult:
     """Calculate service provision with the gravity-probabilistic model."""
     _validate_inputs(
@@ -300,6 +306,7 @@ def calculate_provision(
                 service[service <= selection_range],
                 capacity_left.loc[service.name],
                 best_houses,
+                seed,
             ),
             axis=0,
         )
@@ -307,7 +314,7 @@ def calculate_provision(
             index=working_matrix.index, columns=working_matrix.columns, fill_value=0
         ).fillna(0)
         temp_flow = service_flows.apply(
-            lambda building: _balance_flows_to_demand(building, demand_left.loc[building.name]),
+            lambda building: _balance_flows_to_demand(building, demand_left.loc[building.name], seed),
             axis=1,
         )
         temp_flow = temp_flow.reindex(index=working_matrix.index, columns=working_matrix.columns, fill_value=0)

@@ -68,12 +68,12 @@ def calculate_simplified_noise_frame(
 
         linestring_point_radius (float,  default=15):
             The spacing radius (in meters) used when converting LineString
-            geometries into distributed point sources for simulation. Default is 30. Reducing this value improves
+            geometries into distributed point sources for simulation. Default is 15. Reducing this value improves
             detail along long lines.
 
         polygon_point_radius (float,  default=5):
             The point spacing (in meters) for distributing sources within Polygon geometries.
-            Default is 15. Points are sampled across the polygon’s surface and perimeter to
+            Default is 5. Points are sampled across the polygon’s surface and perimeter to
             represent the full sound-emitting area.
 
         visibility_parallel (bool, optional):

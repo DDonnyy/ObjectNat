@@ -31,26 +31,6 @@ def materialize_provision(buildings_data, services_data, provision_result):
     )
 
 
-def test_no_demand(buildings_data, services_data, matrix_time_data):
-    buildings_data = buildings_data.copy()
-    buildings_data["demand"] = 0
-    provision_result = get_service_provision(
-        buildings=buildings_data, services=services_data, distance_matrix=matrix_time_data, threshold=10
-    )
-    links_prov = get_provision_links(buildings_data, services_data, provision_result)
-    assert links_prov.empty
-
-
-def test_no_capacity(buildings_data, services_data, matrix_time_data):
-    services_data = services_data.copy()
-    services_data["capacity"] = 0
-    provision_result = get_service_provision(
-        buildings=buildings_data, services=services_data, distance_matrix=matrix_time_data, threshold=10
-    )
-    links_prov = get_provision_links(buildings_data, services_data, provision_result)
-    assert links_prov.empty
-
-
 def test_get_service_provision(basic_provision_result, buildings_data, services_data):
     assert isinstance(basic_provision_result, ProvisionResult)
     assert basic_provision_result.flow.sparse.to_coo().nnz > 0

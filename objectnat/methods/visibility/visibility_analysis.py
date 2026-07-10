@@ -288,10 +288,9 @@ def _visibility_worker(args: tuple[Point, gpd.GeoDataFrame | None, float, str, i
 
     if method == "accurate":
         return _visibility_accurate(point_geom, obstacles, view_distance)
-    elif method == "simple":
+    if method == "simple":
         return _visibility_simple(point_geom, obstacles, view_distance, resolution)
-    else:
-        raise ValueError("method must be one of: 'accurate', 'fast'")
+    raise ValueError("method must be one of: 'accurate', 'fast'")
 
 
 def get_visibility(

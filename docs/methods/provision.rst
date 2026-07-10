@@ -17,13 +17,49 @@ Evaluate Initial Provision
 --------------------------
 
 Calculates **provision scores** between population points and service facilities
-considering:
+and returns a :class:`objectnat.ProvisionResult`. The result keeps the sparse
+building-service allocation matrix together with per-building and per-service
+summary tables. This separates the calculation step from the materialization of
+GeoDataFrames for mapping or export.
+
+The calculation considers:
 
 - **Distance or time thresholds**
 - **Facility capacity**
 - **Demand distribution**
 
 .. autofunction:: objectnat.get_service_provision
+
+Provision Result
+----------------
+
+``ProvisionResult`` is the central output of service provision analysis. It is
+designed to be lightweight enough for recalculation and explicit enough for
+downstream joins.
+
+.. autoclass:: objectnat.ProvisionResult
+   :members:
+
+The main fields are:
+
+- ``flow`` — sparse building-service matrix. Rows match building indices,
+  columns match service indices, and non-zero values are allocated demand.
+- ``demand_rows`` — per-building metrics, including original demand, remaining
+  demand, supplied demand inside/outside the normative threshold, minimum
+  distance, average weighted distance, and provision value.
+- ``capacity_rows`` — per-service metrics, including capacity, remaining
+  capacity, carried capacity inside/outside the threshold, and total service
+  load.
+- ``distance_matrix`` — aligned cost matrix used for the calculation.
+- ``threshold`` — normative distance or time threshold used to classify
+  within-threshold and outside-threshold flows.
+
+Materialize GeoDataFrames
+-------------------------
+
+Use the helper functions below to join calculated provision metrics back to
+source objects and to create link geometries between buildings and services.
+
 .. autofunction:: objectnat.get_provision_buildings
 .. autofunction:: objectnat.get_provision_services
 .. autofunction:: objectnat.get_provision_links
@@ -40,8 +76,11 @@ considering:
 Recalculate Provision
 ---------------------
 
-Allows recalculation of provision results with **new accessibility thresholds**
-**without recomputing the full OD-matrix**, saving computation time.
+Allows recalculation of provision results after tightening the maximum allowed
+link distance **without recomputing the full OD-matrix**. Existing flows whose
+cost exceeds ``new_max_dist`` are removed, and aggregate metrics are rebuilt.
+Removed demand is not redistributed to other services; run
+:func:`objectnat.get_service_provision` again when a full reallocation is needed.
 
 .. autofunction:: objectnat.recalculate_links
 
@@ -74,5 +113,5 @@ Restricts provision outputs to a given **geographic boundary**
 Example notebook
 ----------------
 
-:doc:`examples/calculate_adjacency_matrix`
+:doc:`examples/calculate_od_matrix`
 :doc:`examples/provision`

@@ -11,7 +11,30 @@ logger = config.logger
 
 @dataclass(slots=True)
 class ProvisionResult:
-    """Result of service provision calculation."""
+    """
+    Result of service provision calculation.
+
+    Attributes:
+        flow:
+            Sparse building-service allocation matrix. Rows match building
+            indices, columns match service indices, and non-zero values are
+            allocated demand units.
+        demand_rows:
+            Per-building metrics indexed like ``flow.index``. Includes original
+            demand, remaining demand, supplied demand inside/outside the
+            threshold, minimum distance, average weighted distance, and
+            provision value.
+        capacity_rows:
+            Per-service metrics indexed like ``flow.columns``. Includes
+            original capacity, remaining capacity, carried capacity
+            inside/outside the threshold, and total service load.
+        distance_matrix:
+            Aligned OD cost matrix used for the calculation. Its index and
+            columns must match ``flow``.
+        threshold:
+            Normative distance or time threshold used to split flows into
+            within-threshold and outside-threshold metrics.
+    """
 
     flow: pd.DataFrame
     demand_rows: pd.DataFrame
@@ -52,7 +75,12 @@ def get_provision_buildings(
     buildings_gdf: gpd.GeoDataFrame | pd.DataFrame,
     provision_result: ProvisionResult,
 ) -> gpd.GeoDataFrame | pd.DataFrame:
-    """Join provision demand metrics to buildings."""
+    """
+    Join provision demand metrics to buildings.
+
+    Existing columns with the same names as provision metrics are dropped and
+    replaced. The returned object preserves the input type and index.
+    """
     if not isinstance(buildings_gdf, (pd.DataFrame, gpd.GeoDataFrame)):
         raise TypeError(f"buildings_gdf must be DataFrame or GeoDataFrame, got {type(buildings_gdf).__name__}")
     _validate_provision_result(provision_result)
@@ -67,7 +95,12 @@ def get_provision_services(
     services_gdf: gpd.GeoDataFrame | pd.DataFrame,
     provision_result: ProvisionResult,
 ) -> gpd.GeoDataFrame | pd.DataFrame:
-    """Join provision capacity metrics to services."""
+    """
+    Join provision capacity metrics to services.
+
+    Existing columns with the same names as provision metrics are dropped and
+    replaced. The returned object preserves the input type and index.
+    """
     if not isinstance(services_gdf, (pd.DataFrame, gpd.GeoDataFrame)):
         raise TypeError(f"services_gdf must be DataFrame or GeoDataFrame, got {type(services_gdf).__name__}")
     _validate_provision_result(provision_result)
@@ -83,7 +116,14 @@ def get_provision_links(
     services_gdf: gpd.GeoDataFrame,
     provision_result: ProvisionResult,
 ) -> gpd.GeoDataFrame:
-    """Build building-service link geometries from non-zero provision flows."""
+    """
+    Build building-service link geometries from non-zero provision flows.
+
+    Services are reprojected to the buildings CRS when both CRS values are set
+    and differ. Empty flows return an empty ``GeoDataFrame``. Links whose
+    building or service ids are absent from the supplied GeoDataFrames are
+    filtered out.
+    """
     if not isinstance(buildings_gdf, gpd.GeoDataFrame):
         raise TypeError(f"buildings_gdf must be GeoDataFrame, got {type(buildings_gdf).__name__}")
     if not isinstance(services_gdf, gpd.GeoDataFrame):

@@ -35,7 +35,7 @@ Rules (once `graphify-out/graph.json` exists):
 ## Project Overview
 
 **ObjectNat** is an open-source library for object-level geospatial analysis on city networks: accessibility
-isochrones, coverage zones, service provision, visibility analysis, noise simulation, and spatial clustering.
+isochrones, coverage zones, service provision, visibility analysis, and noise simulation.
 
 Graphs come from **[IduEdu](https://github.com/DDonnyy/IduEdu)** (`UrbanGraph`); ObjectNat consumes them and never
 builds networks itself. Python 3.11–3.12 only. Package manager: **uv** (lockfile: `uv.lock`, committed). Build
@@ -90,13 +90,12 @@ objectnat/
       coverage.py    — get_graph_coverage, get_stepped_graph_coverage
       radius.py      — get_radius_coverage (graph-free: points + radius + Voronoi)
       _utils.py      — shared geometry builders (Voronoi cells, radius/ways/separate/stepped)
-    provision/       — get_service_provision, recalculate_links, clip_provision (+ exceptions, model)
+    provision/       — get_service_provision, recalculate_links, clip_provision, ProvisionResult
+                       (provision_calculating.py + provision_result.py + exceptions)
     noise/           — simulate_noise, calculate_simplified_noise_frame, noise_reduce helpers
     visibility/      — get_visibility (accurate/simple methods)
-    point_clustering/— get_clusters_polygon
     utils/
       geom_utils.py  — geometry helpers shared across methods
-      graph_utils.py — graph_to_gdf (NetworkX → GeoDataFrame; only remaining NetworkX user)
 ```
 
 ### Public accessibility API (all keyword-only after the graph)

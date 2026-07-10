@@ -9,6 +9,29 @@ logger = config.logger
 
 
 def get_air_resist_ratio(temp, freq, check_temp_freq=False):
+    """
+    Return the air absorption coefficient for temperature and frequency.
+
+    Values are looked up in the bundled ``air_resist_ratio`` table. Exact
+    temperature/frequency pairs are returned directly; in-between values are
+    linearly interpolated across one or both axes. Values outside the table are
+    clamped to the nearest available boundary. When ``check_temp_freq`` is
+    true, out-of-range values also produce logger warnings.
+
+    Args:
+        temp:
+            Air temperature in degrees Celsius.
+        freq:
+            Geometric mean frequency in hertz.
+        check_temp_freq:
+            Whether to warn when ``temp`` or ``freq`` is outside the tabulated
+            range.
+
+    Returns:
+        float:
+            Air absorption coefficient used by the distance attenuation model.
+    """
+
     if check_temp_freq:
         if temp > max(air_resist_ratio.columns) or temp < min(air_resist_ratio.columns):
             logger.warning(

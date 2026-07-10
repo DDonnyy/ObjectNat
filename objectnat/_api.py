@@ -8,7 +8,6 @@ from .methods.accessibility import (
     get_stepped_graph_isochrones,
 )
 from .methods.noise import calculate_simplified_noise_frame, simulate_noise
-from .methods.point_clustering import get_clusters_polygon
 from .methods.provision import (
     ProvisionResult,
     clip_provision,

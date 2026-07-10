@@ -1,4 +1,6 @@
 class CapacityKeyError(KeyError):
+    """Raised when the service capacity column is missing."""
+
     def __init__(self, *args):
         if args:
             self.message = args[0]
@@ -16,6 +18,8 @@ class CapacityKeyError(KeyError):
 
 
 class CapacityValueError(ValueError):
+    """Raised when service capacity values are missing, negative, or invalid."""
+
     def __init__(self, *args):
         if args:
             self.message = args[0]
@@ -30,6 +34,8 @@ class CapacityValueError(ValueError):
 
 
 class DemandKeyError(KeyError):
+    """Raised when the building demand column is missing."""
+
     def __init__(self, *args):
         if args:
             self.message = args[0]
@@ -47,6 +53,8 @@ class DemandKeyError(KeyError):
 
 
 class DemandValueError(ValueError):
+    """Raised when building demand values are missing, negative, or invalid."""
+
     def __init__(self, *args):
         if args:
             self.message = args[0]

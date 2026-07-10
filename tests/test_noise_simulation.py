@@ -5,17 +5,41 @@ import geopandas as gpd
 import pandas as pd
 import pytest
 from matplotlib import pyplot as plt
-from shapely import Point, Polygon, box
+from shapely import GeometryCollection, LineString, MultiPolygon, Point, Polygon, box
 
 from objectnat import calculate_simplified_noise_frame, config, simulate_noise
 from objectnat.methods.noise import get_air_resist_ratio
 from objectnat.methods.noise.noise_simulation import (
+    _angle_from_point,
     _cut_source_buffer_from_containing_geometries,
+    _iter_polygonal_geometries,
     _tree_angular_span,
 )
 from tests.conftest import output_dir
 
 logger = config.logger
+
+
+def test_iter_polygonal_geometries():
+    poly = box(0, 0, 1, 1)
+    multi = MultiPolygon([box(0, 0, 1, 1), box(2, 2, 3, 3)])
+    collection = GeometryCollection([box(0, 0, 1, 1), LineString([(0, 0), (1, 1)])])
+
+    assert _iter_polygonal_geometries(poly) == [poly]
+    assert _iter_polygonal_geometries(multi) == [multi]
+    # Only the polygonal member of the collection survives.
+    assert _iter_polygonal_geometries(collection) == [box(0, 0, 1, 1)]
+    # Non-polygonal geometry yields nothing.
+    assert _iter_polygonal_geometries(LineString([(0, 0), (1, 1)])) == []
+
+
+def test_angle_from_point_cardinal_directions():
+    origin = Point(0, 0)
+    assert _angle_from_point(origin, Point(1, 0)) == pytest.approx(0.0)
+    assert _angle_from_point(origin, Point(0, 1)) == pytest.approx(math.pi / 2)
+    assert _angle_from_point(origin, Point(-1, 0)) == pytest.approx(math.pi)
+    # Due south normalizes into [0, 2*pi) rather than staying negative.
+    assert _angle_from_point(origin, Point(0, -1)) == pytest.approx(3 * math.pi / 2)
 
 
 def test_source_position_buffer_cuts_containing_geometry():
@@ -27,6 +51,28 @@ def test_source_position_buffer_cuts_containing_geometry():
     assert len(result) == len(geometries)
     assert not result.iloc[0].geometry.covers(source_point)
     assert result.iloc[1].geometry.equals(geometries.iloc[1].geometry)
+
+
+def test_source_position_buffer_non_positive_radius_is_noop():
+    source_point = Point(0, 0)
+    geometries = gpd.GeoDataFrame(geometry=[box(-5, -5, 5, 5)], crs=3857)
+    # radius <= 0 short-circuits and returns the same object untouched.
+    assert _cut_source_buffer_from_containing_geometries(geometries, source_point, 0) is geometries
+
+
+def test_source_position_buffer_no_containing_geometry_is_noop():
+    source_point = Point(100, 100)
+    geometries = gpd.GeoDataFrame(geometry=[box(-5, -5, 5, 5)], crs=3857)
+    # Source is not inside any geometry, so nothing is cut.
+    result = _cut_source_buffer_from_containing_geometries(geometries, source_point, 1)
+    assert result.iloc[0].geometry.equals(geometries.iloc[0].geometry)
+
+
+def test_tree_angular_span_degenerate_returns_none():
+    source_point = Point(0, 0)
+    # All exterior vertices sit within SOURCE_VERTEX_EPS of the source -> fewer than 2 usable points.
+    tiny_tree = Polygon([(1e-9, 0), (2e-9, 0), (1e-9, 1e-9)])
+    assert _tree_angular_span(tiny_tree, source_point) is None
 
 
 def test_tree_angular_span_handles_zero_angle_seam():

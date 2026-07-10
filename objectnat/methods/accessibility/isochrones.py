@@ -35,12 +35,13 @@ def get_graph_isochrones(
     An isochrone is the area reachable from an origin within ``weight_value_cutoff``.
     Unlike coverage, each origin gets its own independent isochrone, but all
     shortest-path searches run in a single parallel Numba call. The function:
-        1. Snaps each origin to its nearest graph node (or uses the provided
-           ``origin_nodes``).
-        2. Runs one Dijkstra search per origin in parallel.
-        3. Builds a reachability polygon for each origin with the selected
-           ``geometry_type``.
-        4. Optionally clips each isochrone to ``zone``.
+
+    1. Snaps each origin to its nearest graph node (or uses the provided
+       ``origin_nodes``).
+    2. Runs one Dijkstra search per origin in parallel.
+    3. Builds a reachability polygon for each origin with the selected
+       ``geometry_type``.
+    4. Optionally clips each isochrone to ``zone``.
 
     Args:
         urban_graph:
@@ -205,12 +206,13 @@ def get_stepped_graph_isochrones(
 
     Unlike coverage, the search runs outward from the origins (along the original
     edge direction on a directed graph). The function:
-        1. Snaps each origin to its nearest graph node (or uses the provided
-           ``origin_nodes``).
-        2. Runs a multi-source Dijkstra search outward from the origins.
-        3. Buckets reachable nodes into steps and builds banded geometry with the
-           selected ``geometry_type``.
-        4. Optionally clips the bands to ``zone``.
+
+    1. Snaps each origin to its nearest graph node (or uses the provided
+       ``origin_nodes``).
+    2. Runs a multi-source Dijkstra search outward from the origins.
+    3. Buckets reachable nodes into steps and builds banded geometry with the
+       selected ``geometry_type``.
+    4. Optionally clips the bands to ``zone``.
 
     Args:
         urban_graph:

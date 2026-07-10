@@ -13,10 +13,8 @@ dependencies = [
     "geopandas>=1.1.0,<2.0.0",
     "iduedu>=2.0.0,<3.0.0",
     "loguru>=0.7.3,<0.8.0",
-    "networkx>=3.4.2,<4.0.0",
     "numpy>=2.4.0,<3.0.0",
     "pandas>=3.0.0,<4.0.0",
-    "scikit-learn>=1.4.0,<2.0.0",
     "scipy>=1.17.0,<2.0.0",
     "tqdm>=4.66.2,<5.0.0",
 ]
@@ -95,6 +93,7 @@ expected-line-ending-format = "LF"
 max-locals = 20
 disable = [
     "duplicate-code",
+    "fixme",
     "missing-module-docstring",
     "missing-function-docstring",
     "too-many-locals",
@@ -122,6 +121,9 @@ branch = true
 source = ["objectnat"]
 
 [tool.coverage.report]
+# Floor set below the ~85% baseline (2026-07-10) so runs stay green despite
+# accessibility coverage drifting with live Overpass graph data.
+fail_under = 80
 exclude_lines = [
     "pragma: no cover",
     "pragma: no branch",

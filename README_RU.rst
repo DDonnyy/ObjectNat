@@ -12,12 +12,12 @@ Object-oriented Network Analysis Tools
    :target: https://pypi.org/project/objectnat/
    :alt: Версия PyPI
 
-.. |badge-ci| image:: https://github.com/DDonnyy/ObjectNat/actions/workflows/ci_pipeline.yml/badge.svg
-   :target: https://github.com/DDonnyy/ObjectNat/actions/workflows/ci_pipeline.yml
-   :alt: CI статус
+.. |badge-ci| image:: https://github.com/IDUclub/ObjectNat/actions/workflows/quality.yml/badge.svg
+   :target: https://github.com/IDUclub/ObjectNat/actions/workflows/quality.yml
+   :alt: Тесты и покрытие
 
-.. |badge-codecov| image:: https://codecov.io/gh/DDonnyy/ObjectNat/graph/badge.svg?token=K6JFSJ02GU
-   :target: https://codecov.io/gh/DDonnyy/ObjectNat
+.. |badge-codecov| image:: https://codecov.io/gh/IDUclub/ObjectNat/graph/badge.svg?token=K6JFSJ02GU
+   :target: https://codecov.io/gh/IDUclub/ObjectNat
    :alt: Покрытие тестами
 
 .. |badge-license| image:: https://img.shields.io/badge/license-BSD--3--Clause-blue.svg
@@ -55,7 +55,7 @@ Object-oriented Network Analysis Tools
 
    Изохроны представляют собой области, достижимые из исходной точки за заданное время по транспортной сети.
    Эта функция позволяет анализировать транспортную доступность с использованием графов пешеходного, автомобильного,
-   общественного транспорта или их комбинации.
+   общественного транспорта или их комбинации, подготовленных в формате ``UrbanGraph`` через IduEdu.
 
    Библиотека поддерживает несколько методов построения изохрон:
 
@@ -80,6 +80,8 @@ Object-oriented Network Analysis Tools
    которые имеют ограниченную **вместимость** и заданный **порог доступности** (в минутах или метрах).
    Функция моделирует **баланс спроса и предложения**, оценивая, насколько хорошо услуги удовлетворяют потребности
    близлежащих зданий в пределах допустимого времени.
+   В ObjectNat 2.0 результат возвращается как структурированный ``ProvisionResult`` со sparse-матрицей потоков
+   и helper-функциями для зданий, сервисов и геометрий связей.
 
    📘 `Пример <https://iduclub.github.io/ObjectNat/methods/examples/provision.html>`__
    🔗 `Документация <https://iduclub.github.io/ObjectNat/methods/provision.html>`__
@@ -87,9 +89,8 @@ Object-oriented Network Analysis Tools
 4. **Анализ видимости**
 
    Функция оценки видимости от заданной точки или множества точек до близлежащих зданий в пределах заданного радиуса.
-   Применяется для оценки визуальной доступности в городской среде. Также реализован модуль для расчёта **зоны охвата**
-   по видимости с использованием плотной сетки наблюдателей (рекомендуется ~1000 точек с шагом 10–20 метров).
-   Точки можно сгенерировать по транспортной сети и распределить по её рёбрам.
+   Применяется для оценки визуальной доступности в городской среде. Единый API ``get_visibility`` поддерживает
+   точный и упрощённый методы, а также параллельный расчёт для набора точек наблюдения.
 
    📘 `Пример <https://iduclub.github.io/ObjectNat/methods/examples/visibility.html>`__
    🔗 `Документация <https://iduclub.github.io/ObjectNat/methods/visibility.html>`__
@@ -102,18 +103,6 @@ Object-oriented Network Analysis Tools
    🔗 `Документация <https://iduclub.github.io/ObjectNat/methods/noise.html>`__
    🧠 `Подробное описание <https://github.com/DDonnyy/ObjectNat/wiki/Noise-simulation>`__
 
-6. **Кластеризация точек**
-
-   Функция построения **кластерных полигонов** по множеству точек на основе:
-
-   - Минимального **расстояния** между точками.
-   - Минимального **числа точек** в кластере.
-
-   Также функция может рассчитывать **соотношение типов услуг** в каждом кластере для пространственного анализа состава услуг.
-
-   📘 `Пример <https://iduclub.github.io/ObjectNat/methods/examples/clustering.html>`__
-   🔗 `Документация <https://iduclub.github.io/ObjectNat/methods/clustering.html>`__
-
 ----
 
 Городские графы с помощью *IduEdu*
@@ -121,6 +110,8 @@ Object-oriented Network Analysis Tools
 
 Для оптимальной работы **ObjectNat** рекомендуется использовать графы,
 созданные библиотекой `IduEdu <https://github.com/IDUclub/IduEdu>`__.
+Графовые методы ObjectNat принимают ``iduedu.UrbanGraph`` напрямую; ObjectNat больше не строит
+NetworkX-графы внутри библиотеки.
 
 **IduEdu** — это библиотека на Python с открытым исходным кодом, предназначенная для построения и обработки
 сложных городских сетей на основе данных OpenStreetMap.
@@ -135,7 +126,7 @@ Object-oriented Network Analysis Tools
     from iduedu import get_4326_boundary, get_intermodal_graph
 
     poly = get_4326_boundary(osm_id=1114252)
-    G_intermodal = get_intermodal_graph(territory=poly, clip_by_territory=True)
+    urban_graph = get_intermodal_graph(territory=poly, clip_by_territory=True)
 
 ----
 
@@ -157,6 +148,14 @@ Object-oriented Network Analysis Tools
 
     config.change_logger_lvl("INFO")   # отключить отладочные логи
     config.set_enable_tqdm(False)      # отключить прогресс-бары tqdm
+
+Миграция на ObjectNat 2.0
+-------------------------
+
+ObjectNat 2.0 заменяет NetworkX-входы на ``iduedu.UrbanGraph``, переименовывает
+функции доступности и возвращает ``ProvisionResult`` из анализа обеспеченности.
+См. migration guide в документации:
+`Migration 1.x to 2.0 <https://iduclub.github.io/ObjectNat/migration_1_to_2.html>`__.
 
 ----
 

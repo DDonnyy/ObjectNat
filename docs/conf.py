@@ -57,7 +57,6 @@ intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
     "pandas": ("https://pandas.pydata.org/pandas-docs/stable/", None),
     "geopandas": ("https://geopandas.org/en/stable/", None),
-    "networkx": ("https://networkx.org/documentation/stable/", None),
     "shapely": ("https://shapely.readthedocs.io/en/stable/", None),
 }
 
@@ -69,12 +68,16 @@ napoleon_preprocess_types = True
 napoleon_type_aliases = {
     "gpd.GeoDataFrame": "geopandas.GeoDataFrame",
     "GeoDataFrame": "geopandas.GeoDataFrame",
-    "nx.Graph": "networkx.Graph",
-    "Graph": "networkx.Graph",
     "Series": "pandas.Series",
     "DataFrame": "pandas.DataFrame",
     "LineString": "shapely.geometry.LineString",
 }
 
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+exclude_patterns = [
+    "_build",
+    "Thumbs.db",
+    ".DS_Store",
+    "methods/clustering.rst",
+    "methods/examples/clustering.ipynb",
+]
 lexers["ipython2"] = get_lexer_by_name("ipython3")
